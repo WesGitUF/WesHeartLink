@@ -32,7 +32,8 @@ class MyApp extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.active) {
             final firebase_auth.User? user = snapshot.data;
             if (user == null) {
-              return const LoginScreen();
+              // return const LoginScreen();
+              return const HomeScreen();
             } else {
               return const HomeScreen();
             }
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
         },
       ),
       routes: {
-        '/login': (context) => const LoginScreen(),
+        // '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/session': (context) => const SessionScreen(),
         '/sensorSelection': (context) => const SensorSelectionScreen(),
