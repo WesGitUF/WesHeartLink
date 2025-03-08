@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
+import 'package:heart_link_app/widgets/custom_widgets.dart'; //this is the heart animation thing
+
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
@@ -109,18 +111,45 @@ class _TrackingScreenState extends State<TrackingScreen> {
     bool sameZone = userZone.name == partnerZone.name;
 
     return Scaffold(
+      // backgroundColor: Colors.grey,
       appBar: AppBar(title: const Text('Tracking Heart Rates')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
+            // Expanded(
+            //   child: Container(
+            //     color: Color(userZone.colorValue).withOpacity(0.2),
+            //     child: Center(
+            //       child: Column(
+            //         mainAxisAlignment: MainAxisAlignment.center,
+            //         children: [
+            //           const Text('You', style: TextStyle(fontSize: 24)),
+            //           Text('$_userHR bpm', style: const TextStyle(fontSize: 48)),
+            //           Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 20)),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            //Inserting UI here to match it up to our lowfi like design we have
             Expanded(
               child: Container(
-                color: Color(userZone.colorValue).withOpacity(0.2),
+                // color: Color(userZone.colorValue).withOpacity(0.2),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // New row with pulsating heart and meter.
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          PulseHeart(size: 100, color: Colors.red),
+                          const SizedBox(width: 20),
+                          HeartRateMeter(heartRate: _userHR),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       const Text('You', style: TextStyle(fontSize: 24)),
                       Text('$_userHR bpm', style: const TextStyle(fontSize: 48)),
                       Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 20)),
@@ -129,13 +158,62 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 ),
               ),
             ),
+
+            // Expanded(
+            //   child: Container(
+            //     color: Color(partnerZone.colorValue).withOpacity(0.2),
+            //     child: Center(
+            //       child: Column(
+            //         mainAxisAlignment: MainAxisAlignment.center,
+            //         children: [
+            //           const Text('Partner', style: TextStyle(fontSize: 24)),
+            //           Text('$_partnerHR bpm', style: const TextStyle(fontSize: 48)),
+            //           Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 20)),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            //doingthe same here too
+            const Divider(thickness: 2, color: Colors.black),
+            Container(
+              height: 30, 
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: sameZone ? Colors.green : Colors.red, // background is green if sameZone or red 
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Text(
+                  sameZone
+                      ? 'Great job! You’re both in the same zone ❤️'
+                      : 'Alert: The two people are in different zones.\nPlease adjust your paces.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14, color: Colors.black), 
+                ),
+              ),
+            ),
+
+            const Divider(thickness: 2, color: Colors.black),
+
             Expanded(
               child: Container(
-                color: Color(partnerZone.colorValue).withOpacity(0.2),
+                // color: Color(partnerZone.colorValue).withOpacity(0.2),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // New row with pulsating heart and meter
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          PulseHeart(size: 100, color: Colors.red),
+                          const SizedBox(width: 20),
+                          HeartRateMeter(heartRate: _partnerHR),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       const Text('Partner', style: TextStyle(fontSize: 24)),
                       Text('$_partnerHR bpm', style: const TextStyle(fontSize: 48)),
                       Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 20)),
@@ -144,15 +222,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 ),
               ),
             ),
-            sameZone
-                ? const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      'Great job! You’re both in the same zone ❤️',
-                      style: TextStyle(fontSize: 18, color: Colors.red),
-                    ),
-                  )
-                : const SizedBox.shrink(),
+
+            // sameZone
+            //     ? const Padding(
+            //         padding: EdgeInsets.all(8.0),
+            //         child: Text(
+            //           'Great job! You’re both in the same zone ❤️',
+            //           style: TextStyle(fontSize: 18, color: Colors.red),
+            //         ),
+            //       )
+            //     : const SizedBox.shrink(),
           ],
         ),
       ),
