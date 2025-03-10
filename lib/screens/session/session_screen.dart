@@ -22,7 +22,7 @@ class _SessionScreenState extends State<SessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Start New Session')),
+      appBar: AppBar(title: const Text('Select your preferred sport')),
       body: Column(
         // mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -87,7 +87,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   textStyle: const TextStyle(fontSize: 24),
                 ),
                 // child: const Text('Next: Select Sensors'),
-                child: const Text('Let\'s get you sensors set up'),
+                child: const Text('Let\'s get your sensors set up'),
               ),
             ),
           ),

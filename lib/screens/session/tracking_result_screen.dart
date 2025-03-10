@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class TrackingResultScreen extends StatelessWidget {
   final Duration elapsedTime;
-  const TrackingResultScreen({Key? key, required this.elapsedTime}) : super(key: key);
+  const TrackingResultScreen({super.key, required this.elapsedTime});
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');

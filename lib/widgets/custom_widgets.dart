@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class PulseHeart extends StatefulWidget {
   final double size;
   final Color color;
-  const PulseHeart({Key? key, required this.size, required this.color}) : super(key: key);
+  const PulseHeart({super.key, required this.size, required this.color});
   
   @override
   _PulseHeartState createState() => _PulseHeartState();
@@ -53,11 +53,11 @@ class HeartRateMeter extends StatelessWidget {
   final double barWidth;
   
   const HeartRateMeter({
-    Key? key,
+    super.key,
     required this.heartRate,
     this.barHeight = 200,
     this.barWidth = 50,
-  }) : super(key: key);
+  });
   
   // Returns the fill color based on the heart rate.
   Color _getFillColor() {

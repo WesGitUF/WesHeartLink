@@ -28,7 +28,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   StreamSubscription<List<int>>? _partnerSubscription;
 
   // Timer and stopwatch for tracking time
-  Stopwatch _stopwatch = Stopwatch();
+  final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
   void _startTimer() {
