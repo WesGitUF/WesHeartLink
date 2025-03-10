@@ -12,7 +12,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _screens = [
     _HomeTab(),
-    Center(child: Text('Session Tab')),
+    // Center(child: Text('Session Tab')),
     Center(child: Text('Profile Tab')),
   ];
 
