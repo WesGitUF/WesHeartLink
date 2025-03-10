@@ -8,6 +8,11 @@ import 'package:heart_link_app/screens/session/tracking_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/services/auth_service.dart';
+import 'package:heart_link_app/screens/max_hr_input_screen.dart';
+
+
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -51,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/sensorSelection': (context) => const SensorSelectionScreen(),
         '/tracking': (context) => const TrackingScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/maxHR': (context) => const MaxHRInputScreen(),
         '/trackingResult': (context) {
           final elapsed = ModalRoute.of(context)!.settings.arguments as Duration;
           return TrackingResultScreen(elapsedTime: elapsed);

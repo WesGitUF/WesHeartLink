@@ -20,8 +20,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    
-    // For testing: add a dummy device with a valid Bluetooth address format.
+    // For testing, add a dummy device (this is optional and can be removed later).
     setState(() {
       _devicesList.add(DiscoveredDevice(
         id: '00:11:22:33:44:55', // Valid Bluetooth address format.
@@ -32,7 +31,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
         serviceUuids: [],
       ));
     });
-    
+
     // Request permissions then start scanning for real devices.
     requestPermissions().then((granted) {
       if (granted) {
@@ -60,7 +59,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
       scanMode: ScanMode.lowLatency,
     ).listen((DiscoveredDevice device) {
       print("Discovered device: ${device.name.isNotEmpty ? device.name : device.id}, RSSI: ${device.rssi}");
-      // Add device if it is not already in the list.
       if (!_devicesList.any((d) => d.id == device.id)) {
         setState(() {
           _devicesList.add(device);
@@ -76,172 +74,101 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
     _scanSubscription?.cancel();
     super.dispose();
   }
+
   Future<void> _showDeviceSelectionMenu(bool forUser) async {
-  final selected = await showModalBottomSheet<DiscoveredDevice>(
-    context: context,
-    builder: (context) {
-      return ListView.builder(
-        itemCount: _devicesList.length,
-        itemBuilder: (context, index) {
-          final device = _devicesList[index];
-          return ListTile(
-            leading: const Icon(Icons.bluetooth),
-            title: Text(device.name.isNotEmpty ? device.name : device.id),
-            onTap: () {
-              Navigator.pop(context, device);
-            },
-          );
-        },
-      );
-    },
-  );
-  if (selected != null) {
-    setState(() {
-      if (forUser) {
-        _selectedUserDevice = selected;
-      } else {
-        _selectedPartnerDevice = selected;
-      }
-    });
+    final selected = await showModalBottomSheet<DiscoveredDevice>(
+      context: context,
+      builder: (context) {
+        return ListView.builder(
+          itemCount: _devicesList.length,
+          itemBuilder: (context, index) {
+            final device = _devicesList[index];
+            return ListTile(
+              leading: const Icon(Icons.bluetooth),
+              title: Text(device.name.isNotEmpty ? device.name : device.id),
+              onTap: () {
+                Navigator.pop(context, device);
+              },
+            );
+          },
+        );
+      },
+    );
+    if (selected != null) {
+      setState(() {
+        if (forUser) {
+          _selectedUserDevice = selected;
+        } else {
+          _selectedPartnerDevice = selected;
+        }
+      });
+    }
   }
-}
 
   Widget _buildSensorSelectButton({required DiscoveredDevice? device, required bool forUser}) {
-  return GestureDetector(
-    onTap: () {
-      _showDeviceSelectionMenu(forUser);
-    },
-    child: Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.black26, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Icon(Icons.favorite, size: 80, color: Colors.red),
-          if (device == null)
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: CircleAvatar(
-                radius: 15,
-                backgroundColor: Colors.green,
-                child: const Icon(Icons.add, size: 20, color: Colors.white),
-              ),
+    return GestureDetector(
+      onTap: () {
+        _showDeviceSelectionMenu(forUser);
+      },
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.black26, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 4,
+              offset: Offset(2, 2),
             ),
-          if (device != null)
-          Positioned(
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.yellowAccent,
-                borderRadius: BorderRadius.circular(4),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.favorite, size: 80, color: Colors.red),
+            if (device == null)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: CircleAvatar(
+                  radius: 15,
+                  backgroundColor: Colors.green,
+                  child: const Icon(Icons.add, size: 20, color: Colors.white),
+                ),
               ),
-              child: Text(
-                device.name.isNotEmpty ? device.name : device.id,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+            if (device != null)
+              Positioned(
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.yellowAccent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    device.name.isNotEmpty ? device.name : device.id,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
-
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Select Sensors')),
-      // body: SingleChildScrollView(
-      //   child: Column(
-      //     children: [
-      //       const Padding(
-      //         padding: EdgeInsets.all(8.0),
-      //         child: Text('Select Your Sensor'),
-      //       ),
-      //       DropdownButton<DiscoveredDevice>(
-      //         hint: const Text('Select Device'),
-      //         value: _selectedUserDevice,
-      //         items: _devicesList.map((device) {
-      //           return DropdownMenuItem<DiscoveredDevice>(
-      //             value: device,
-      //             child: Text(device.name.isNotEmpty ? device.name : device.id),
-      //           );
-      //         }).toList(),
-      //         onChanged: (device) {
-      //           setState(() {
-      //             _selectedUserDevice = device;
-      //           });
-      //         },
-      //       ),
-      //       const Padding(
-      //         padding: EdgeInsets.all(8.0),
-      //         child: Text('Select Partner’s Sensor'),
-      //       ),
-      //       DropdownButton<DiscoveredDevice>(
-      //         hint: const Text('Select Device'),
-      //         value: _selectedPartnerDevice,
-      //         items: _devicesList.map((device) {
-      //           return DropdownMenuItem<DiscoveredDevice>(
-      //             value: device,
-      //             child: Text(device.name.isNotEmpty ? device.name : device.id),
-      //           );
-      //         }).toList(),
-      //         onChanged: (device) {
-      //           setState(() {
-      //             _selectedPartnerDevice = device;
-      //           });
-      //         },
-      //       ),
-      //       const SizedBox(height: 20),
-      //       ElevatedButton(
-      //         onPressed: (_selectedUserDevice == null || _selectedPartnerDevice == null)
-      //             ? null
-      //             : () {
-      //                 Navigator.pushNamed(context, '/tracking', arguments: {
-      //                   'userDeviceId': _selectedUserDevice!.id,
-      //                   'partnerDeviceId': _selectedPartnerDevice!.id,
-      //                 });
-      //               },
-      //         child: const Text('Start Tracking'),
-      //       ),
-      //       const SizedBox(height: 20),
-      //       ElevatedButton(
-      //         onPressed: () {
-      //           setState(() {
-      //             _devicesList.clear();
-      //             _selectedUserDevice = null;
-      //             _selectedPartnerDevice = null;
-      //           });
-      //           _startScan();
-      //         },
-      //         child: const Text('Refresh Devices'),
-      //       ),
-      //     ],
-      //   ),
-      // ),
-      //I'm replacing this (I'm reusing most of your code that's already there...) with UI to match the lowFi designs we had
-      //Going to have the two hearts and stuff...
       body: Column(
         children: [
           const Divider(thickness: 2, color: Colors.grey),
-          // Top half contianing the User sensor selection.
+          // Top half: Your sensor selection.
           Expanded(
             child: Center(
               child: Column(
@@ -255,7 +182,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
             ),
           ),
           const Divider(thickness: 2, color: Colors.grey),
-          // Bottom half containing the partner sensor selection.
+          // Bottom half: Partner sensor selection.
           Expanded(
             child: Center(
               child: Column(
@@ -269,7 +196,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
             ),
           ),
           const Divider(thickness: 2, color: Colors.grey),
-          //Control buttons in the bottom (both the rset and the start tracking)
+          // Navigation button: Go to Max HR Input Screen.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -279,10 +206,14 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                     onPressed: (_selectedUserDevice == null || _selectedPartnerDevice == null)
                         ? null
                         : () {
-                            Navigator.pushNamed(context, '/tracking', arguments: {
-                              'userDeviceId': _selectedUserDevice!.id,
-                              'partnerDeviceId': _selectedPartnerDevice!.id,
-                            });
+                            Navigator.pushNamed(
+                              context,
+                              '/maxHR',
+                              arguments: {
+                                'userDeviceId': _selectedUserDevice!.id,
+                                'partnerDeviceId': _selectedPartnerDevice!.id,
+                              },
+                            );
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: (_selectedUserDevice == null || _selectedPartnerDevice == null)
@@ -291,7 +222,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       textStyle: const TextStyle(fontSize: 24),
                     ),
-                    child: const Text('Start Tracking'),
+                    child: const Text('Next: Enter Max HR'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -299,7 +230,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                   icon: const Icon(Icons.refresh, size: 32, color: Colors.blue),
                   onPressed: () {
                     setState(() {
-                      // Only reset selected devices, not the devices list.
+                      _devicesList.clear();
                       _selectedUserDevice = null;
                       _selectedPartnerDevice = null;
                     });
@@ -309,7 +240,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               ],
             ),
           ),
-          
         ],
       ),
     );

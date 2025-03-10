@@ -14,7 +14,7 @@ class TrackingScreen extends StatefulWidget {
 class _TrackingScreenState extends State<TrackingScreen> {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
 
-  // Instead of BluetoothDevice, we'll use device IDs (Strings)
+ 
   String? userDeviceId;
   String? partnerDeviceId;
 
@@ -26,6 +26,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   StreamSubscription<ConnectionStateUpdate>? _partnerConnection;
   StreamSubscription<List<int>>? _userSubscription;
   StreamSubscription<List<int>>? _partnerSubscription;
+
 
   // Timer and stopwatch for tracking time
   final Stopwatch _stopwatch = Stopwatch();
@@ -59,6 +60,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$hours:$minutes:$seconds";
   }
+
+
+
 
   @override
   void initState() {
@@ -192,7 +196,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         ],
                       ),
                       const SizedBox(width: 20),
-                      HeartRateMeter(heartRate: _userHR),
+                      HeartRateMeter(heartRate: _userHR, maxHeartRate: 220),
                     ],
                   ),
                 ),
@@ -256,7 +260,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                         ],
                       ),
                       const SizedBox(width: 20),
-                      HeartRateMeter(heartRate: _partnerHR),
+                      HeartRateMeter(heartRate: _partnerHR, maxHeartRate: 220),
                     ],
                   ),
                 ),

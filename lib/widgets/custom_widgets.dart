@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-// PulseHeart Widget 
+// PulseHeart Widget
 class PulseHeart extends StatefulWidget {
   final double size;
   final Color color;
   const PulseHeart({super.key, required this.size, required this.color});
-  
+
   @override
   _PulseHeartState createState() => _PulseHeartState();
 }
@@ -13,7 +13,7 @@ class PulseHeart extends StatefulWidget {
 class _PulseHeartState extends State<PulseHeart> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -26,13 +26,13 @@ class _PulseHeartState extends State<PulseHeart> with SingleTickerProviderStateM
     );
     _controller.repeat(reverse: true);
   }
-  
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return ScaleTransition(
@@ -46,37 +46,37 @@ class _PulseHeartState extends State<PulseHeart> with SingleTickerProviderStateM
   }
 }
 
-//HeartRateMeter Widget 
+// HeartRateMeter Widget with dynamic zones based on max HR
 class HeartRateMeter extends StatelessWidget {
-  final int heartRate; 
+  final int heartRate;
   final double barHeight;
   final double barWidth;
-  
+  final int maxHeartRate; // Used to calculate zones as percentages
+
   const HeartRateMeter({
     super.key,
     required this.heartRate,
+    required this.maxHeartRate,
     this.barHeight = 200,
     this.barWidth = 50,
   });
-  
-  // Returns the fill color based on the heart rate.
+
+  // Returns the fill color based on the heart rate percentage.
   Color _getFillColor() {
-    if (heartRate <= 120) return Colors.blue;
-    if (heartRate <= 140) return Colors.green;
-    if (heartRate <= 160) return Colors.yellow;
-    if (heartRate <= 180) return Colors.orange;
-    return Colors.red;
+    double percentage = (heartRate / maxHeartRate) * 100;
+    if (percentage <= 60) return Colors.blue;   // Zone 1 (0-60%)
+    if (percentage <= 70) return Colors.green;  // Zone 2 (61-70%)
+    if (percentage <= 80) return Colors.yellow; // Zone 3 (71-80%)
+    if (percentage <= 90) return Colors.orange; // Zone 4 (81-90%)
+    return Colors.red;                          // Zone 5 (91-100%)
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    // Calculate fill height as a proportion of the bar.
-    double fillHeight = (heartRate.clamp(0, 200) / 200) * barHeight;
-    
+    double fillHeight = (heartRate.clamp(0, maxHeartRate) / maxHeartRate) * barHeight;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // The meter bar with an animated fill.
         Stack(
           alignment: Alignment.bottomCenter,
           children: [
@@ -97,16 +97,15 @@ class HeartRateMeter extends StatelessWidget {
           ],
         ),
         const SizedBox(width: 10),
-        // Column with zone labels.
         Column(
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Zone 1: 0-120', style: TextStyle(fontSize: 12, color: Colors.blue)),
-            Text('Zone 2: 121-140', style: TextStyle(fontSize: 12, color: Colors.green)),
-            Text('Zone 3: 141-160', style: TextStyle(fontSize: 12, color: Colors.yellow[700])),
-            Text('Zone 4: 161-180', style: TextStyle(fontSize: 12, color: Colors.orange)),
-            Text('Zone 5: 181-200', style: const TextStyle(fontSize: 12, color: Colors.red)),
+            Text('Zone 1: 0-60% Max HR', style: TextStyle(fontSize: 12, color: Colors.blue)),
+            Text('Zone 2: 61-70% Max HR', style: TextStyle(fontSize: 12, color: Colors.green)),
+            Text('Zone 3: 71-80% Max HR', style: TextStyle(fontSize: 12, color: Colors.yellow[700])),
+            Text('Zone 4: 81-90% Max HR', style: TextStyle(fontSize: 12, color: Colors.orange)),
+            Text('Zone 5: 91-100% Max HR', style: const TextStyle(fontSize: 12, color: Colors.red)),
           ],
         ),
       ],
