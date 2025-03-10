@@ -174,7 +174,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Your Sensor", style: TextStyle(fontSize: 18)),
+                  const Text("Tap to select your Sensor", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 10),
                   _buildSensorSelectButton(device: _selectedUserDevice, forUser: true),
                 ],
@@ -188,7 +188,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Partner's Sensor", style: TextStyle(fontSize: 18)),
+                  const Text("Tap to select your partner's Sensor", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 10),
                   _buildSensorSelectButton(device: _selectedPartnerDevice, forUser: false),
                 ],

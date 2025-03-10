@@ -57,7 +57,7 @@ class HeartRateMeter extends StatelessWidget {
     super.key,
     required this.heartRate,
     required this.maxHeartRate,
-    this.barHeight = 200,
+    this.barHeight = 300,
     this.barWidth = 50,
   });
 
@@ -101,11 +101,11 @@ class HeartRateMeter extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Zone 1: 0-60% Max HR', style: TextStyle(fontSize: 12, color: Colors.blue)),
-            Text('Zone 2: 61-70% Max HR', style: TextStyle(fontSize: 12, color: Colors.green)),
-            Text('Zone 3: 71-80% Max HR', style: TextStyle(fontSize: 12, color: Colors.yellow[700])),
-            Text('Zone 4: 81-90% Max HR', style: TextStyle(fontSize: 12, color: Colors.orange)),
-            Text('Zone 5: 91-100% Max HR', style: const TextStyle(fontSize: 12, color: Colors.red)),
+            Text('Zone 1: 0-60% Max HR', style: TextStyle(fontSize: 18, color: Colors.blue, fontWeight: FontWeight.bold,)),
+            Text('Zone 2: 61-70% Max HR', style: TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold,)),
+            Text('Zone 3: 71-80% Max HR', style: TextStyle(fontSize: 18, color: Colors.yellow[700], fontWeight: FontWeight.bold,)),
+            Text('Zone 4: 81-90% Max HR', style: TextStyle(fontSize: 18, color: Colors.orange, fontWeight: FontWeight.bold,)),
+            Text('Zone 5: 91-100% Max HR', style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold,)),
           ],
         ),
       ],

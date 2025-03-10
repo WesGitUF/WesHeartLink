@@ -160,7 +160,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
               style: const TextStyle(fontSize: 15 , fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            const Divider(thickness: 1, color: Colors.black),
+            const Divider(thickness: 3, color: Colors.black),
                     // Expanded(
             //   child: Container(
             //     color: Color(userZone.colorValue).withOpacity(0.2),
@@ -188,11 +188,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PulseHeart(size: 100, color: Colors.red),
+                          PulseHeart(size: 150, color: Colors.red),
                           const SizedBox(height: 5),
-                          const Text('You', style: TextStyle(fontSize: 15)),
-                          Text('$_userHR bpm', style: const TextStyle(fontSize: 20)),
-                          Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 15)),
+                          const Text('You', style: TextStyle(fontSize: 25)),
+                          Text('$_userHR bpm', style: const TextStyle(fontSize: 30)),
+                          Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 25)),
                         ],
                       ),
                       const SizedBox(width: 20),
@@ -219,9 +219,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
             //   ),
             // ),
             //doingthe same here too
-            const Divider(thickness: 1, color: Colors.black),
+            const Divider(thickness: 3, color: Colors.black),
             Container(
-              height: 30, 
+              height: 50, 
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: sameZone ? Colors.green : Colors.red, // background is green if sameZone or red 
@@ -234,12 +234,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       ? 'Great job! You’re both in the same zone ❤️'
                       : 'Alert: The two people are in different zones.\nPlease adjust your paces.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 10, color: Colors.black), 
+                  style: const TextStyle(fontSize: 25, color: Colors.black), 
                 ),
               ),
             ),
 
-            const Divider(thickness: 1, color: Colors.black),
+            const Divider(thickness: 3, color: Colors.black),
 
             Expanded(
               child: Container(
@@ -252,11 +252,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PulseHeart(size: 100, color: Colors.red),
+                          PulseHeart(size: 150, color: Colors.red),
                           const SizedBox(height: 5),
-                          const Text('Partner', style: TextStyle(fontSize: 15)),
-                          Text('$_partnerHR bpm', style: const TextStyle(fontSize: 20)),
-                          Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 15)),
+                          const Text('Partner:', style: TextStyle(fontSize: 25)),
+                          Text('$_partnerHR bpm', style: const TextStyle(fontSize: 30)),
+                          Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 25)),
                         ],
                       ),
                       const SizedBox(width: 20),
@@ -266,7 +266,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 ),
               ),
             ),
-            const Divider(thickness: 1, color: Colors.black),
+            const Divider(thickness: 3, color: Colors.black),
             ElevatedButton(
               onPressed: () {
                 _stopTimerAndNavigate();

@@ -15,7 +15,7 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enter Max Heart Rate')),
+      appBar: AppBar(title: const Text('Enter Your Max Heart Rate')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -25,12 +25,15 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
             children: [
               TextFormField(
                 controller: _maxHRController,
+                style: const TextStyle(fontSize: 24, color: Colors.black),
                 decoration: const InputDecoration(
-                  labelText: 'Max Heart Rate',
+                  labelText: 'Enter Your Max Heart Rate',
+                  labelStyle: TextStyle(fontSize: 24),
                   hintText: 'Enter your max HR',
+                  hintStyle: TextStyle(fontSize: 24),
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.number,            
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter a value';
@@ -54,7 +57,12 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                     );
                   }
                 },
-                child: const Text('Start Tracking'),
+                child: const Text(
+                  'Start Tracking',
+                  style: TextStyle(fontSize: 24),
+                ),
+                style: ElevatedButton.styleFrom(),
+
               ),
             ],
           ),
