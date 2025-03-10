@@ -27,6 +27,39 @@ class _TrackingScreenState extends State<TrackingScreen> {
   StreamSubscription<List<int>>? _userSubscription;
   StreamSubscription<List<int>>? _partnerSubscription;
 
+  // Timer and stopwatch for tracking time
+  Stopwatch _stopwatch = Stopwatch();
+  Timer? _timer;
+
+  void _startTimer() {
+    _stopwatch.reset();
+    _stopwatch.start();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      setState(() {}); // Refresh the UI every second
+    });
+  }
+
+  void _stopTimerAndNavigate() {
+    _stopwatch.stop();
+    _timer?.cancel();
+    // Capture the elapsed time
+    final elapsed = _stopwatch.elapsed;
+    // Navigate to a new screen with the elapsed time and resetting the navigation stack
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/trackingResult',
+      (Route<dynamic> route) => false,
+      arguments: elapsed,
+    );
+  }
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = duration.inHours;
+    final minutes = twoDigits(duration.inMinutes.remainder(60));
+    final seconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$hours:$minutes:$seconds";
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +69,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
       userDeviceId = args['userDeviceId'] as String;
       partnerDeviceId = args['partnerDeviceId'] as String;
       _connectToDevices();
+      _startTimer(); // Start the timer when the screen loads
     });
   }
 
@@ -117,7 +151,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Expanded(
+            Text(
+              'Elapsed Time: ${_formatDuration(_stopwatch.elapsed)}',
+              style: const TextStyle(fontSize: 15 , fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const Divider(thickness: 1, color: Colors.black),
+                    // Expanded(
             //   child: Container(
             //     color: Color(userZone.colorValue).withOpacity(0.2),
             //     child: Center(
@@ -137,22 +177,22 @@ class _TrackingScreenState extends State<TrackingScreen> {
               child: Container(
                 // color: Color(userZone.colorValue).withOpacity(0.2),
                 child: Center(
-                  child: Column(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // New row with pulsating heart and meter.
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           PulseHeart(size: 100, color: Colors.red),
-                          const SizedBox(width: 20),
-                          HeartRateMeter(heartRate: _userHR),
+                          const SizedBox(height: 5),
+                          const Text('You', style: TextStyle(fontSize: 15)),
+                          Text('$_userHR bpm', style: const TextStyle(fontSize: 20)),
+                          Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 15)),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      const Text('You', style: TextStyle(fontSize: 24)),
-                      Text('$_userHR bpm', style: const TextStyle(fontSize: 48)),
-                      Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 20),
+                      HeartRateMeter(heartRate: _userHR),
                     ],
                   ),
                 ),
@@ -175,7 +215,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
             //   ),
             // ),
             //doingthe same here too
-            const Divider(thickness: 2, color: Colors.black),
+            const Divider(thickness: 1, color: Colors.black),
             Container(
               height: 30, 
               alignment: Alignment.center,
@@ -190,39 +230,51 @@ class _TrackingScreenState extends State<TrackingScreen> {
                       ? 'Great job! You’re both in the same zone ❤️'
                       : 'Alert: The two people are in different zones.\nPlease adjust your paces.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 14, color: Colors.black), 
+                  style: const TextStyle(fontSize: 10, color: Colors.black), 
                 ),
               ),
             ),
 
-            const Divider(thickness: 2, color: Colors.black),
+            const Divider(thickness: 1, color: Colors.black),
 
             Expanded(
               child: Container(
                 // color: Color(partnerZone.colorValue).withOpacity(0.2),
                 child: Center(
-                  child: Column(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // New row with pulsating heart and meter
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           PulseHeart(size: 100, color: Colors.red),
-                          const SizedBox(width: 20),
-                          HeartRateMeter(heartRate: _partnerHR),
+                          const SizedBox(height: 5),
+                          const Text('Partner', style: TextStyle(fontSize: 15)),
+                          Text('$_partnerHR bpm', style: const TextStyle(fontSize: 20)),
+                          Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 15)),
                         ],
                       ),
-                      const SizedBox(height: 10),
-                      const Text('Partner', style: TextStyle(fontSize: 24)),
-                      Text('$_partnerHR bpm', style: const TextStyle(fontSize: 48)),
-                      Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 20),
+                      HeartRateMeter(heartRate: _partnerHR),
                     ],
                   ),
                 ),
               ),
             ),
-
+            const Divider(thickness: 1, color: Colors.black),
+            ElevatedButton(
+              onPressed: () {
+                _stopTimerAndNavigate();
+                // Navigator.pushNamedAndRemoveUntil(context, '/home', (Route<dynamic> route) => false);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red, // Stop button in red
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+                textStyle: const TextStyle(fontSize: 24),
+              ),
+              child: const Text("Stop Tracking"),
+            ),
             // sameZone
             //     ? const Padding(
             //         padding: EdgeInsets.all(8.0),

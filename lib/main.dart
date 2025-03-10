@@ -6,6 +6,7 @@ import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';
+import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 
@@ -51,6 +52,10 @@ class MyApp extends StatelessWidget {
         '/sensorSelection': (context) => const SensorSelectionScreen(),
         '/tracking': (context) => const TrackingScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/trackingResult': (context) {
+          final elapsed = ModalRoute.of(context)!.settings.arguments as Duration;
+          return TrackingResultScreen(elapsedTime: elapsed);
+        },
       },
     );
   }
