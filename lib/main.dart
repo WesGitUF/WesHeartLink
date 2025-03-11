@@ -58,8 +58,11 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
         '/maxHR': (context) => const MaxHRInputScreen(),
         '/trackingResult': (context) {
-          final elapsed = ModalRoute.of(context)!.settings.arguments as Duration;
-          return TrackingResultScreen(elapsedTime: elapsed);
+          final args = ModalRoute.of(context)!.settings.arguments as Map;
+          return TrackingResultScreen(
+              elapsedTime: args['elapsed'] as Duration,
+              sameZoneTime: args['sameZone'] as Duration,
+            );
         },
       },
     );

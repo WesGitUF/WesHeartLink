@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 class TrackingResultScreen extends StatelessWidget {
   final Duration elapsedTime;
-  const TrackingResultScreen({super.key, required this.elapsedTime});
+  final Duration sameZoneTime;
+
+  const TrackingResultScreen({super.key, required this.elapsedTime, required this.sameZoneTime});
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -27,6 +29,12 @@ class TrackingResultScreen extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24), 
+            Text(
+              'Time in Same Zone: ${_formatDuration(sameZoneTime)}',
+              style: const TextStyle(fontSize: 32),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
                 // Navigate to HomeScreen and clear the navigation stack.

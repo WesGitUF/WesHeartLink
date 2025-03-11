@@ -29,6 +29,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
+  Duration _sameZoneDuration = Duration.zero;
+
   // Flag to indicate that initialization is complete.
   bool _isInitialized = false;
 
@@ -38,7 +40,15 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _stopwatch.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       // print("Timer tick: ${_stopwatch.elapsed}"); THAT WAS FOR TESTING: WESLY
-      setState(() {}); // Refresh the UI every second
+      setState(() {
+        // Calculate zones for current HR values using maxHeartRate
+          var currentUserZone = getZoneForHR(_userHR, maxHeartRate);
+          var currentPartnerZone = getZoneForHR(_partnerHR, maxHeartRate);
+          // If the zones are the same then add one second to _sameZoneDuration
+          if (currentUserZone.name == currentPartnerZone.name) {
+            _sameZoneDuration += const Duration(seconds: 1);
+          }
+      }); // Refresh the UI every second
     });
   }
 
@@ -50,7 +60,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
       context,
       '/trackingResult',
       (Route<dynamic> route) => false,
-      arguments: elapsed,
+      arguments: {
+        'elapsed': elapsed,
+        'sameZone': _sameZoneDuration,
+      },
     );
   }
 
