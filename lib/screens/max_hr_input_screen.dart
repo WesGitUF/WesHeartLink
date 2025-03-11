@@ -53,7 +53,11 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                     Navigator.pushNamed(
                       context,
                       '/tracking',
-                      arguments: {'maxHR': maxHR},
+                      arguments: {
+                        'maxHR': maxHR,
+                        'userDeviceId': 'dummyUserId',
+                        'partnerDeviceId': 'dummyPartnerId',
+                      },
                     );
                   }
                 },
