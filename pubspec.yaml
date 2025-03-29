@@ -34,6 +34,7 @@ dependencies:
   firebase_auth: ^5.5.1
   google_sign_in: ^6.2.2
   permission_handler: ^11.4.0
+  flutter_ble_peripheral: ^1.0.0
   flutter_reactive_ble: ^5.4.0
   # flutter_blue: any
 

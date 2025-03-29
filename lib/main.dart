@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:heart_link_app/screens/home/home_screen.dart';
+import 'package:heart_link_app/screens/role_selection_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';
@@ -54,6 +55,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/session': (context) => const SessionScreen(),
         '/sensorSelection': (context) => const SensorSelectionScreen(),
+        '/roleSelection': (context) => const RoleSelectionScreen(),
         '/tracking': (context) => const TrackingScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/maxHR': (context) => const MaxHRInputScreen(),

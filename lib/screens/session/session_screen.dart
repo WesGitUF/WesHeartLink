@@ -79,7 +79,7 @@ class _SessionScreenState extends State<SessionScreen> {
                 onPressed: _selectedActivity == null
                     ? null
                     : () {
-                        Navigator.pushNamed(context, '/sensorSelection');
+                        Navigator.pushNamed(context, '/roleSelection');
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
