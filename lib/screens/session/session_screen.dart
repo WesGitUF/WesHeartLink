@@ -11,18 +11,28 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   String? _selectedActivity;
-  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
+  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking'];
     final Map<String, IconData> _activityIcons = {
     'Running': Icons.directions_run,
     'Cycling': Icons.directions_bike,
     'HIIT': Icons.fitness_center,
     'Walking': Icons.directions_walk,
-    'Swimming': Icons.pool,
+    // 'Swimming': Icons.pool,
   };
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select your preferred sport')),
+      appBar: AppBar(title: const Text('Select your preferred sport'),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        },
+      ),),
       body: Column(
         // mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -41,6 +51,14 @@ class _SessionScreenState extends State<SessionScreen> {
           //     });
           //   },
           // ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              "Step 1 of 4",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+          ),
           //Changing Dropdown to a Card like view to match our LowFi design
           Expanded(
             child: ListView.builder(
@@ -51,7 +69,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   child: ListTile(
                     leading: Icon(_activityIcons[activity]),
                     title: Text(activity),
-                    tileColor: _selectedActivity == activity ? Colors.lightBlue[100] : null,
+                    tileColor: _selectedActivity == activity ? Colors.green[100] : null,
                     onTap: () {
                       setState(() {
                         _selectedActivity = activity;
@@ -79,10 +97,16 @@ class _SessionScreenState extends State<SessionScreen> {
                 onPressed: _selectedActivity == null
                     ? null
                     : () {
-                        Navigator.pushNamed(context, '/roleSelection');
+                        Navigator.pushNamed(
+                          context, '/roleSelection',
+                          arguments: {
+                            'sport' : _selectedActivity,
+                          },
+                          );
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   textStyle: const TextStyle(fontSize: 24),
                 ),

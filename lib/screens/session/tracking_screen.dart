@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:math';
-import 'dart:typed_data';
-import 'dart:convert'; 
+// import 'dart:typed_data';
+// import 'dart:convert'; 
 // import 'package:flutter_bluetooth_serial/FlutterBluetoothSerial.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
+// import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:heart_link_app/widgets/custom_widgets.dart'; // Contains PulseHeart & HeartRateMeter
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class TrackingScreen extends StatefulWidget {
@@ -18,7 +19,7 @@ class TrackingScreen extends StatefulWidget {
 
 class _TrackingScreenState extends State<TrackingScreen> {
 
-  final FlutterBlePeripheral _blePeripheral = FlutterBlePeripheral();
+  // final FlutterBlePeripheral _blePeripheral = FlutterBlePeripheral();
 
 
   final FlutterReactiveBle _ble = FlutterReactiveBle();
@@ -29,92 +30,157 @@ class _TrackingScreenState extends State<TrackingScreen> {
   int _userHR = 0;
   int _partnerHR = 0;
   late int maxHeartRate;
+  int _remoteElapsedMS = 0;
 
   StreamSubscription<ConnectionStateUpdate>? _userConnection;
   StreamSubscription<ConnectionStateUpdate>? _partnerConnection;
   StreamSubscription<List<int>>? _userSubscription;
   StreamSubscription<List<int>>? _partnerSubscription;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
+  StreamSubscription<DocumentSnapshot>? _hrSubscription;
 
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
 
   Duration _sameZoneDuration = Duration.zero;
 
-  final AdvertiseData _advertiseData = AdvertiseData(
-    serviceUuid: '0000F00D-0000-1000-8000-00805F9B34FB',
-    localName: 'HeartLinkPrimary',
-    manufacturerId: 1234,
-    manufacturerData: Uint8List.fromList([1, 2, 3, 4]),
-    );
+  Future<void> _uploadHrDataToFirebase() async {
+    final docRef = FirebaseFirestore.instance
+      .collection('sessions')
+      .doc('sharedHRSession'); // use a sessionID later not for now temp
 
-  Future<void> _startBleAdvertising() async {
     try {
-      await _blePeripheral.start(advertiseData: _advertiseData);
-      print('Primary phone: BLE advertising started.');
+      await docRef.set({
+        'userHR': _userHR,
+        'partnerHR': _partnerHR,
+        'elapsedMS': _stopwatch.elapsedMilliseconds,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      }, SetOptions(merge: true));
+
+      print("Primary phone: Uploaded HR to Firebase (userHR=$_userHR, partnerHR=$_partnerHR)");
     } catch (e) {
-      print('Error starting BLE advertising: $e');
+      print("Error writing to Firestore: $e");
     }
   }
-  Future<void> _stopBleAdvertising() async {
-    try {
-      await _blePeripheral.stop();
-      print('Stopped BLE advertising.');
-    } catch (e) {
-      print('Error stopping BLE advertising: $e');
-    }
-  }
+  void _listenHrFromFirebase() {
+    final docRef = FirebaseFirestore.instance
+      .collection('sessions')
+      .doc('sharedHRSession'); // same doc name used above 
 
-  void _startBleScanForPrimary() {
-  var targetServiceUuid = Uuid.parse("0000F00D-0000-1000-8000-00805F9B34FB");
-  _scanSubscription = _ble.scanForDevices(withServices: [targetServiceUuid])
-    .listen((device) {
-      print("Secondary found potential primary phone: ${device.name}, id: ${device.id}");
-      
-      if (device.manufacturerData.isNotEmpty) {
-        final mapString = utf8.decode(device.manufacturerData);
-        print("Decoded advertisement data: $mapString");
+    _hrSubscription = docRef.snapshots().listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _userHR = data['userHR'] ?? _userHR;
+          _partnerHR = data['partnerHR'] ?? _partnerHR;
+           final int? fetchedElapsedMS = data['elapsedMS'] as int?;
+          if (fetchedElapsedMS != null) {
+            _remoteElapsedMS = fetchedElapsedMS;
+          }
+        });
+        print("Secondary phone: read userHR=$_userHR partnerHR=$_partnerHR from Firestore");
       }
-    },
-    onError: (err) {
-      print("Scan error: $err");
-    }
-  );
-}
-
-Future<void> _updateBleData() async {
-  // convert the HR  to JSON
-  final hrMap = {
-    'userHR': _userHR,
-    'partnerHR': _partnerHR,
-    'timestamp': DateTime.now().millisecondsSinceEpoch,
-  };
-  final hrBytes = utf8.encode(jsonEncode(hrMap));
-
-  // stop old advert
-  try {
-    await _blePeripheral.stop();
-    print('Stopped old advertisement.');
-  } catch (e) {
-    print('Error stopping old advertisement: $e');
+    }, onError: (error) {
+      print("Error reading Firestore: $error");
+    });
   }
+
+  Future<void> _saveCompletedSessionToFirestore() async {
+      final docRef = FirebaseFirestore.instance.collection('allSessions');
+
+      final int secondsSpent = _stopwatch.elapsed.inSeconds;
+      final int sameZoneSec = _sameZoneDuration.inSeconds;
+
+      final args = ModalRoute.of(context)!.settings.arguments as Map?;
+      final String? chosenSport = args?['sport'] as String?;
+
+      try {
+        await docRef.add({
+          'sport': chosenSport ?? 'Unknown',
+          'timeSpent': secondsSpent,
+          'timeInSameZone': sameZoneSec,
+          'finishedAt': FieldValue.serverTimestamp(),
+        });
+        print("Session stored in Firestore: sport=$chosenSport, timeSpent=$secondsSpent, sameZone=$sameZoneSec");
+      } catch (e) {
+        print("Error saving session: $e");
+      }
+    }
+
+  // final AdvertiseData _advertiseData = AdvertiseData(
+  //   serviceUuid: '0000F00D-0000-1000-8000-00805F9B34FB',
+  //   localName: 'HeartLinkPrimary',
+  //   manufacturerId: 1234,
+  //   manufacturerData: Uint8List.fromList([1, 2, 3, 4]),
+  //   );
+
+  // Future<void> _startBleAdvertising() async {
+  //   try {
+  //     await _blePeripheral.start(advertiseData: _advertiseData);
+  //     print('Primary phone: BLE advertising started.');
+  //   } catch (e) {
+  //     print('Error starting BLE advertising: $e');
+  //   }
+  // }
+  // Future<void> _stopBleAdvertising() async {
+  //   try {
+  //     await _blePeripheral.stop();
+  //     print('Stopped BLE advertising.');
+  //   } catch (e) {
+  //     print('Error stopping BLE advertising: $e');
+  //   }
+  // }
+
+//   void _startBleScanForPrimary() {
+//   var targetServiceUuid = Uuid.parse("0000F00D-0000-1000-8000-00805F9B34FB");
+//   _scanSubscription = _ble.scanForDevices(withServices: [targetServiceUuid])
+//     .listen((device) {
+//       print("Secondary found potential primary phone: ${device.name}, id: ${device.id}");
+      
+//       if (device.manufacturerData.isNotEmpty) {
+//         final mapString = utf8.decode(device.manufacturerData);
+//         print("Decoded advertisement data: $mapString");
+//       }
+//     },
+//     onError: (err) {
+//       print("Scan error: $err");
+//     }
+//   );
+// }
+
+// Future<void> _updateBleData() async {
+//   // convert the HR  to JSON
+//   final hrMap = {
+//     'userHR': _userHR,
+//     'partnerHR': _partnerHR,
+//     'timestamp': DateTime.now().millisecondsSinceEpoch,
+//   };
+//   final hrBytes = utf8.encode(jsonEncode(hrMap));
+
+//   // stop old advert
+//   try {
+//     await _blePeripheral.stop();
+//     print('Stopped old advertisement.');
+//   } catch (e) {
+//     print('Error stopping old advertisement: $e');
+//   }
 
   // create new Advertisedata
-  final newData = AdvertiseData(
-    serviceUuid: '0000F00D-0000-1000-8000-00805F9B34FB',
-    localName: 'HeartLinkPrimary',
-    manufacturerId: 1234,
-    manufacturerData: Uint8List.fromList(hrBytes), // updated with new HR
-  );
+//   final newData = AdvertiseData(
+//     serviceUuid: '0000F00D-0000-1000-8000-00805F9B34FB',
+//     localName: 'HeartLinkPrimary',
+//     manufacturerId: 1234,
+//     manufacturerData: Uint8List.fromList(hrBytes), // updated with new HR
+//   );
 
-  // 4) new advert
-  try {
-    await _blePeripheral.start(advertiseData: newData);
-    print('Restarted advertisement with new data: $hrMap');
-  } catch (e) {
-    print('Error starting advertisement: $e');
-  }
-}
+//   // 4) new advert
+//   try {
+//     await _blePeripheral.start(advertiseData: newData);
+//     print('Restarted advertisement with new data: $hrMap');
+//   } catch (e) {
+//     print('Error starting advertisement: $e');
+//   }
+// }
 
 
 
@@ -232,7 +298,7 @@ Future<void> _updateBleData() async {
         if (!_isSecondary) {
           // Just for testing, simulate changing HR
         _userHR = 60 + Random().nextInt(40);
-        _partnerHR = 60 + Random().nextInt(40);
+        _partnerHR = 160 + Random().nextInt(40);
         }
         // Calculate zones for current HR values using maxHeartRate
           var currentUserZone = getZoneForHR(_userHR, maxHeartRate);
@@ -245,7 +311,8 @@ Future<void> _updateBleData() async {
 
       // primary updates advertisment everey second
       if (!_isSecondary){
-        _updateBleData();
+        // _updateBleData();
+        _uploadHrDataToFirebase();
       }
       // //only send if spp is in primary
       // if (!_isSecondary){
@@ -262,10 +329,12 @@ Future<void> _updateBleData() async {
     });
   }
 
-  void _stopTimerAndNavigate() {
+  void _stopTimerAndNavigate() async{
     _stopwatch.stop();
     _timer?.cancel();
     // _btConnection?.dispose(); // Close the persistent connection
+    await _saveCompletedSessionToFirestore();
+
     final elapsed = _stopwatch.elapsed;
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -285,6 +354,13 @@ Future<void> _updateBleData() async {
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$hours:$minutes:$seconds";
   }
+  String _formatMillis(int ms) {
+  final duration = Duration(milliseconds: ms);
+  final hours = duration.inHours;
+  final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
+  final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+  return '$hours:$minutes:$seconds';
+}
 
   bool _isSecondary = false;
 
@@ -300,7 +376,8 @@ Future<void> _updateBleData() async {
       _isSecondary = true;
       // _startBluetoothServer();
       maxHeartRate = 196;
-      _startBleScanForPrimary();
+      // _startBleScanForPrimary();
+      _listenHrFromFirebase();
     }else{
       //primary mode
       userDeviceId = args['userDeviceId'] as String?;
@@ -310,7 +387,7 @@ Future<void> _updateBleData() async {
       _connectToDevices();
 
       //start advertising
-      _startBleAdvertising();
+      // _startBleAdvertising();
     }
       setState(() {
         _isInitialized = true;
@@ -379,9 +456,10 @@ Future<void> _updateBleData() async {
 
     if (!_isSecondary){
       _userSubscription?.cancel();
-    _partnerSubscription?.cancel();
-    _userConnection?.cancel();
-    _partnerConnection?.cancel();
+      _partnerSubscription?.cancel();
+      _userConnection?.cancel();
+      _partnerConnection?.cancel();
+      _hrSubscription?.cancel();
     // _btConnection?.dispose();
     }else{
       
@@ -400,6 +478,9 @@ Future<void> _updateBleData() async {
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
+
     HeartRateZone userZone = getZoneForHR(_userHR, maxHeartRate);
     HeartRateZone partnerZone = getZoneForHR(_partnerHR, maxHeartRate);
     bool sameZone = userZone.name == partnerZone.name;
@@ -411,8 +492,10 @@ Future<void> _updateBleData() async {
         child: Column(
           children: [
             Text(
-              'Elapsed Time: ${_formatDuration(_stopwatch.elapsed)}',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              _isSecondary
+              ? 'Elapsed Time: ${_formatMillis(_remoteElapsedMS)}'
+              : 'Elapsed Time: ${_formatDuration(_stopwatch.elapsed)}',
+              style: TextStyle(fontSize: 30 * scale, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const Divider(thickness: 1, color: Colors.black),
@@ -425,15 +508,15 @@ Future<void> _updateBleData() async {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PulseHeart(size: 45, color: Colors.red),
+                          Text('You', style: TextStyle(fontSize: 20 * scale)),
+                          PulseHeart(size: 45 * scale, color: Colors.red),
                           const SizedBox(height: 2),
-                          const Text('You', style: TextStyle(fontSize: 10)),
-                          Text('$_userHR bpm', style: const TextStyle(fontSize: 15)),
-                          Text('Zone: ${userZone.name}', style: const TextStyle(fontSize: 15)),
+                          Text('$_userHR bpm', style: TextStyle(fontSize: 28 * scale)),
+                          Text(' ${userZone.name}', style: TextStyle(fontSize: 30 * scale)),
                         ],
                       ),
                       const SizedBox(width: 10),
-                      HeartRateMeter(heartRate: _userHR, maxHeartRate: maxHeartRate),
+                      HeartRateMeter(heartRate: _userHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
                     ],
                   ),
                 ),
@@ -451,10 +534,10 @@ Future<void> _updateBleData() async {
                 padding: const EdgeInsets.all(4.0),
                 child: Text(
                   sameZone
-                      ? 'Great job! You’re both in the same zone ❤️'
-                      : 'Alert: In different zones. Adjust your paces.',
+                      ? 'In Same Zone! ❤️'
+                      : 'Alert: In Different Zones 💔',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 15, color: Colors.black),
+                  style: TextStyle(fontSize: 25 * scale, color: Colors.black),
                 ),
               ),
             ),
@@ -468,32 +551,36 @@ Future<void> _updateBleData() async {
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          PulseHeart(size: 45, color: Colors.red),
+                          Text('Partner', style: TextStyle(fontSize: 20 * scale)),
+                          PulseHeart(size: 45 * scale, color: Colors.red),
                           const SizedBox(height: 2),
-                          const Text('Partner:', style: TextStyle(fontSize: 10)),
-                          Text('$_partnerHR bpm', style: const TextStyle(fontSize: 15)),
-                          Text('Zone: ${partnerZone.name}', style: const TextStyle(fontSize: 15)),
+                          
+                          Text('$_partnerHR bpm', style: TextStyle(fontSize: 28 * scale)),
+                          Text(' ${partnerZone.name}', style: TextStyle(fontSize: 30 * scale)),
                         ],
                       ),
                       const SizedBox(width: 10),
-                      HeartRateMeter(heartRate: _partnerHR, maxHeartRate: maxHeartRate),
+                      HeartRateMeter(heartRate: _partnerHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
                     ],
                   ),
                 ),
               ),
             ),
             const Divider(thickness: 1, color: Colors.black),
-            ElevatedButton(
-              onPressed: () {
-              _stopTimerAndNavigate();
-              },
-              style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-              textStyle: const TextStyle(fontSize: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 70 * scale, 
+              child: ElevatedButton(
+                onPressed: () {
+                  _stopTimerAndNavigate();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  textStyle: TextStyle(fontSize: 24 * scale), 
+                ),
+                child: const Text("Stop Tracking"),
               ),
-              child: const Text("Stop Tracking"),
             ),
           ],
         ),

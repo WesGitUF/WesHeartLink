@@ -164,9 +164,26 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select Sensors')),
+      appBar: AppBar(
+        title: const Text('Select Sensors'),
+        leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacementNamed(context, '/roleSelection');
+          }
+        },
+      ),
+      ),
       body: Column(
         children: [
+          const Text(
+                  "Step 3 of 4",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
           const Divider(thickness: 2, color: Colors.grey),
           // Top half: Your sensor selection.
           Expanded(
@@ -174,7 +191,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Tap to select your Sensor", style: TextStyle(fontSize: 20)),
+                  const Text("Add your HRM", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 10),
                   _buildSensorSelectButton(device: _selectedUserDevice, forUser: true),
                 ],
@@ -188,7 +205,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Tap to select your partner's Sensor", style: TextStyle(fontSize: 20)),
+                  const Text("Add you partner's HRM", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 10),
                   _buildSensorSelectButton(device: _selectedPartnerDevice, forUser: false),
                 ],
@@ -219,10 +236,11 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                       backgroundColor: (_selectedUserDevice == null || _selectedPartnerDevice == null)
                           ? Colors.grey
                           : Colors.green,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       textStyle: const TextStyle(fontSize: 24),
                     ),
-                    child: const Text('Next: Enter Max HR'),
+                    child: const Text('Enter Max HR'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -230,7 +248,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                   icon: const Icon(Icons.refresh, size: 32, color: Colors.blue),
                   onPressed: () {
                     setState(() {
-                      _devicesList.clear();
+                      // _devicesList.clear();
                       _selectedUserDevice = null;
                       _selectedPartnerDevice = null;
                     });

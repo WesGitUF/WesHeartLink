@@ -52,6 +52,7 @@ class HeartRateMeter extends StatelessWidget {
   final double barHeight;
   final double barWidth;
   final int maxHeartRate; // Used to calculate zones as percentages
+  final double textScale;
 
   const HeartRateMeter({
     super.key,
@@ -59,6 +60,7 @@ class HeartRateMeter extends StatelessWidget {
     required this.maxHeartRate,
     this.barHeight = 300,
     this.barWidth = 50,
+    this.textScale = 1.0,
   });
 
   // Returns the fill color based on the heart rate percentage.
@@ -101,11 +103,11 @@ class HeartRateMeter extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.end,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Zone 1: 0-60% Max HR', style: TextStyle(fontSize: 18, color: Colors.blue, fontWeight: FontWeight.bold,)),
-            Text('Zone 2: 61-70% Max HR', style: TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.bold,)),
-            Text('Zone 3: 71-80% Max HR', style: TextStyle(fontSize: 18, color: Colors.yellow[700], fontWeight: FontWeight.bold,)),
-            Text('Zone 4: 81-90% Max HR', style: TextStyle(fontSize: 18, color: Colors.orange, fontWeight: FontWeight.bold,)),
-            Text('Zone 5: 91-100% Max HR', style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold,)),
+            Text('Zone 1: 0-60% Max HR', style: TextStyle(fontSize: 15 * textScale, color: Colors.blue, fontWeight: FontWeight.bold,)),
+            Text('Zone 2: 61-70% Max HR', style: TextStyle(fontSize: 15 * textScale, color: Colors.green, fontWeight: FontWeight.bold,)),
+            Text('Zone 3: 71-80% Max HR', style: TextStyle(fontSize: 15 * textScale, color: Colors.yellow[700], fontWeight: FontWeight.bold,)),
+            Text('Zone 4: 81-90% Max HR', style: TextStyle(fontSize: 15 * textScale, color: Colors.orange, fontWeight: FontWeight.bold,)),
+            Text('Zone 5: 91-100% Max HR', style: TextStyle(fontSize: 15 * textScale, color: Colors.red, fontWeight: FontWeight.bold,)),
           ],
         ),
       ],

@@ -46,6 +46,7 @@ class TrackingResultScreen extends StatelessWidget {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
                 textStyle: const TextStyle(fontSize: 24),
               ),

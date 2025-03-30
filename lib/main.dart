@@ -18,6 +18,8 @@ import 'package:heart_link_app/screens/max_hr_input_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+   // Sign in anonymously
+  await firebase_auth.FirebaseAuth.instance.signInAnonymously();
   runApp(const MyApp());
 }
 

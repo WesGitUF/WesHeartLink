@@ -19,6 +19,9 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
   @override
   void initState() {
     super.initState();
+    _maxHRController.addListener(() {
+    setState(() {});
+    });
     // Retrieve the sensor selection arguments.
     Future.delayed(Duration.zero, () {
       final args = ModalRoute.of(context)!.settings.arguments as Map?;
@@ -34,23 +37,60 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enter Your Max Heart Rate')),
+      appBar: AppBar(title: const Text('Enter Your Max Heart Rate'),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacementNamed(context, '/sensorSelection');
+          }
+        },
+      ),),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Step 4 of 4",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: "Estimate your max HR using the formula: 220 - your age.",
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.green, // set icon color as desired
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 80),       
+      Form(
           key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextFormField(
                 controller: _maxHRController,
+                cursorColor: Colors.green,
                 style: const TextStyle(fontSize: 24, color: Colors.black),
                 decoration: const InputDecoration(
-                  labelText: 'Enter Your Estimated Max Heart Rate',
+                  labelText: 'Enter yout Max HR',
                   labelStyle: TextStyle(fontSize: 24),
+                  floatingLabelStyle: TextStyle(color: Colors.green),
                   hintText: 'Enter your max HR',
                   hintStyle: TextStyle(fontSize: 24),
                   border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.green, width: 2.0),
+                  ),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -64,31 +104,68 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState?.validate() ?? false) {
-                    final maxHR = int.parse(_maxHRController.text);
-                    // Pass all required arguments to TrackingScreen.
-                    Navigator.pushNamed(
-                      context,
-                      '/tracking',
-                      arguments: {
-                        'userDeviceId': userDeviceId,
-                        'partnerDeviceId': partnerDeviceId,
-                        'maxHR': maxHR,
-                      },
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(),
-                child: const Text(
-                  'Start Tracking',
-                  style: TextStyle(fontSize: 24),
+              // ElevatedButton(
+              //   onPressed: () {
+              //     if (_formKey.currentState?.validate() ?? false) {
+              //       final maxHR = int.parse(_maxHRController.text);
+              //       // Pass all required arguments to TrackingScreen.
+              //       Navigator.pushNamed(
+              //         context,
+              //         '/tracking',
+              //         arguments: {
+              //           'userDeviceId': userDeviceId,
+              //           'partnerDeviceId': partnerDeviceId,
+              //           'maxHR': maxHR,
+              //         },
+              //       );
+              //     }
+              //   },
+              //   style: ElevatedButton.styleFrom(
+              //     backgroundColor: Colors.green,
+              //     foregroundColor: Colors.white,
+              //     padding: const EdgeInsets.symmetric(vertical: 20),
+              //     minimumSize: const Size(0, 60),
+              //     textStyle: const TextStyle(fontSize: 24),
+              //   ),
+              //   child: const Text(
+              //     'Start Tracking',
+              //     style: TextStyle(fontSize: 24),
+              //   ),
+              // ),
+              SizedBox(
+                width: double.infinity,
+                height: 80, // Fixed height for a larger button
+                child: ElevatedButton(
+                  onPressed: _maxHRController.text.isEmpty
+                      ? null
+                      : () {
+                          if (_formKey.currentState?.validate() ?? false) {
+                            final maxHR = int.parse(_maxHRController.text);
+                            Navigator.pushNamed(
+                              context,
+                              '/tracking',
+                              arguments: {
+                                'userDeviceId': userDeviceId,
+                                'partnerDeviceId': partnerDeviceId,
+                                'maxHR': maxHR,
+                              },
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _maxHRController.text.isEmpty ? Colors.grey : Colors.green,
+                    foregroundColor: Colors.white,
+                    textStyle: const TextStyle(fontSize: 24),
+                  ),
+                  child: const Text('Start Tracking'),
                 ),
               ),
+
             ],
           ),
         ),
+          ]
+        )
       ),
     );
   }
