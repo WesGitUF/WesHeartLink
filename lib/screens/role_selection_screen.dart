@@ -5,6 +5,8 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
     return Scaffold(
       appBar: AppBar(title: const Text('Select Device Role'),
       leading: IconButton(
@@ -20,35 +22,33 @@ class RoleSelectionScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // --- Top Section: Progress Text with Tooltip ---
+          
           Container(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   "Step 2 of 4",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(width: 8),
-                // Tooltip wrapping an IconButton ("i")
+                SizedBox(width: 8 * scale),
                 Tooltip(
                   message: "Primary device: connects with HRMs\n"
                       "Secondary device: receives HRs shared from the primary phone\n and skips to the tracking screen"
                       "Make sure your phones have internet access.",
                   child: IconButton(
                     icon: const Icon(Icons.info_outline),
-                    color: Colors.black, // set icon color to white
+                    color: Colors.black, 
                     onPressed: () {
-                      // This onPressed is not used; the tooltip appears on long press/hover.
+                      
                     },
                   ),
                 ),
               ],
             ),
           ),
-          // --- Remaining Content Centered ---
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -56,12 +56,12 @@ class RoleSelectionScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Instruction Text
-                  const Text(
+                  Text(
                     'Are you the primary device or the secondary device?',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20),
+                    style: TextStyle(fontSize: 20 * scale),
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32 * scale),
                   // Primary Button with consistent styling
                   SizedBox(
                     width: double.infinity,
@@ -82,14 +82,13 @@ class RoleSelectionScreen extends StatelessWidget {
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        minimumSize: const Size(0, 60), // enforce consistent height
-                        textStyle: const TextStyle(fontSize: 24),
+                        minimumSize: const Size(0, 60), 
+                        textStyle: TextStyle(fontSize: 24 * scale),
                       ),
                       child: const Text('Primary'),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // Secondary Button with consistent styling
+                  SizedBox(height: 16 * scale),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -108,8 +107,8 @@ class RoleSelectionScreen extends StatelessWidget {
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        minimumSize: const Size(0, 60), // enforce consistent height
-                        textStyle: const TextStyle(fontSize: 24),
+                        minimumSize: const Size(0, 60), 
+                        textStyle: TextStyle(fontSize: 24 * scale),
                       ),
                       child: const Text('Secondary'),
                     ),

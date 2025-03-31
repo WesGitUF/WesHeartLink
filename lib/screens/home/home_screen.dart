@@ -53,6 +53,8 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
     return Scaffold(
       appBar: AppBar(title: const Text('HeartLink Home')),
       body: Padding(
@@ -67,12 +69,18 @@ class _HomeTab extends StatelessWidget {
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-              textStyle: const TextStyle(fontSize: 24),
+              textStyle: TextStyle(fontSize: 24 * scale),
             ),
             child: const Text("Start a New Session"),
           ),
-          const SizedBox(height: 20),
-
+          SizedBox(height: 20* scale),
+          const Divider(thickness: 2, color: Colors.grey),
+          
+          Text(
+                  "Previous Sessions",
+                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+          ),
           //read session doc from firestore
           Expanded(
               child: StreamBuilder<QuerySnapshot>(

@@ -36,6 +36,8 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
     return Scaffold(
       appBar: AppBar(title: const Text('Enter Your Max Heart Rate'),
       leading: IconButton(
@@ -56,12 +58,12 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   "Step 4 of 4",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8 * scale),
                 Tooltip(
                   message: "Estimate your max HR using the formula: 220 - your age.",
                   child: const Icon(
@@ -71,7 +73,7 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 80),       
+            SizedBox(height: 80 * scale),       
       Form(
           key: _formKey,
           child: Column(
@@ -80,15 +82,15 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
               TextFormField(
                 controller: _maxHRController,
                 cursorColor: Colors.green,
-                style: const TextStyle(fontSize: 24, color: Colors.black),
-                decoration: const InputDecoration(
+                style: TextStyle(fontSize: 24* scale, color: Colors.black),
+                decoration: InputDecoration(
                   labelText: 'Enter yout Max HR',
-                  labelStyle: TextStyle(fontSize: 24),
-                  floatingLabelStyle: TextStyle(color: Colors.green),
+                  labelStyle: TextStyle(fontSize: 24* scale),
+                  floatingLabelStyle: const TextStyle(color: Colors.green),
                   hintText: 'Enter your max HR',
-                  hintStyle: TextStyle(fontSize: 24),
-                  border: OutlineInputBorder(),
-                  focusedBorder: OutlineInputBorder(
+                  hintStyle: TextStyle(fontSize: 24* scale),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.green, width: 2.0),
                   ),
                 ),
@@ -103,7 +105,7 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20 * scale),
               // ElevatedButton(
               //   onPressed: () {
               //     if (_formKey.currentState?.validate() ?? false) {
@@ -134,7 +136,7 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
               // ),
               SizedBox(
                 width: double.infinity,
-                height: 80, // Fixed height for a larger button
+                height: 80 * scale, // Fixed height for a larger button
                 child: ElevatedButton(
                   onPressed: _maxHRController.text.isEmpty
                       ? null
@@ -155,7 +157,7 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _maxHRController.text.isEmpty ? Colors.grey : Colors.green,
                     foregroundColor: Colors.white,
-                    textStyle: const TextStyle(fontSize: 24),
+                    textStyle: TextStyle(fontSize: 24 * scale),
                   ),
                   child: const Text('Start Tracking'),
                 ),

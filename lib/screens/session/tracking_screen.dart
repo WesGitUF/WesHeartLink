@@ -297,8 +297,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
       setState(() {
         if (!_isSecondary) {
           // Just for testing, simulate changing HR
-        _userHR = 60 + Random().nextInt(40);
-        _partnerHR = 160 + Random().nextInt(40);
+        // _userHR = 60 + Random().nextInt(40);
+        // _partnerHR = 160 + Random().nextInt(40);
         }
         // Calculate zones for current HR values using maxHeartRate
           var currentUserZone = getZoneForHR(_userHR, maxHeartRate);
@@ -511,12 +511,16 @@ class _TrackingScreenState extends State<TrackingScreen> {
                           Text('You', style: TextStyle(fontSize: 20 * scale)),
                           PulseHeart(size: 45 * scale, color: Colors.red),
                           const SizedBox(height: 2),
-                          Text('$_userHR bpm', style: TextStyle(fontSize: 28 * scale)),
-                          Text(' ${userZone.name}', style: TextStyle(fontSize: 30 * scale)),
+                          Text(
+                          _isSecondary? '$_partnerHR bpm': '$_userHR bpm',
+                          style: TextStyle(fontSize: 28 * scale)),
+                          Text(
+                          _isSecondary? ' ${partnerZone.name}': ' ${userZone.name}',
+                          style: TextStyle(fontSize: 30 * scale)),
                         ],
                       ),
                       const SizedBox(width: 10),
-                      HeartRateMeter(heartRate: _userHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
+                      HeartRateMeter(heartRate:  _isSecondary? _partnerHR: _userHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
                     ],
                   ),
                 ),
@@ -547,20 +551,38 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 child: Center(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    // children: [
+                    //   Column(
+                    //     mainAxisSize: MainAxisSize.min,
+                    //     children: [
+                    //       Text('Partner', style: TextStyle(fontSize: 20 * scale)),
+                    //       PulseHeart(size: 45 * scale, color: Colors.red),
+                    //       const SizedBox(height: 2),
+                          
+                    //       Text('$_partnerHR bpm', style: TextStyle(fontSize: 28 * scale)),
+                    //       Text(' ${partnerZone.name}', style: TextStyle(fontSize: 30 * scale)),
+                    //     ],
+                    //   ),
+                    //   const SizedBox(width: 10),
+                    //   HeartRateMeter(heartRate: _partnerHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
+                    // ],
+                     children: [
                       Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('Partner', style: TextStyle(fontSize: 20 * scale)),
                           PulseHeart(size: 45 * scale, color: Colors.red),
                           const SizedBox(height: 2),
-                          
-                          Text('$_partnerHR bpm', style: TextStyle(fontSize: 28 * scale)),
-                          Text(' ${partnerZone.name}', style: TextStyle(fontSize: 30 * scale)),
+                          Text(
+                          _isSecondary? '$_userHR bpm': '$_partnerHR bpm',
+                          style: TextStyle(fontSize: 28 * scale)),
+                          Text(
+                          _isSecondary? ' ${userZone.name}': ' ${partnerZone.name}',
+                          style: TextStyle(fontSize: 30 * scale)),
                         ],
                       ),
                       const SizedBox(width: 10),
-                      HeartRateMeter(heartRate: _partnerHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
+                      HeartRateMeter(heartRate:  _isSecondary? _userHR: _partnerHR, maxHeartRate: maxHeartRate, barHeight: 300 * scale, barWidth: 50 * scale, textScale: scale),
                     ],
                   ),
                 ),

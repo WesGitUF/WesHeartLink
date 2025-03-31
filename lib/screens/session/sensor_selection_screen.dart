@@ -163,6 +163,9 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Sensors'),
@@ -179,11 +182,28 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
       ),
       body: Column(
         children: [
-          const Text(
+          // const Text(
+          //         "Step 3 of 4",
+          //         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          //         textAlign: TextAlign.center,
+          //       ),
+          Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
                   "Step 3 of 4",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: "Device not visible? Please hit the refresh button and try again!",
+                  child: const Icon(
+                    Icons.info_outline,
+                  ),
+                ),
+              ],
+            ),      
           const Divider(thickness: 2, color: Colors.grey),
           // Top half: Your sensor selection.
           Expanded(
@@ -191,8 +211,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Add your HRM", style: TextStyle(fontSize: 20)),
-                  const SizedBox(height: 10),
+                  Text("Add your HRM", style: TextStyle(fontSize: 20 * scale)),
+                  SizedBox(height: 10 * scale),
                   _buildSensorSelectButton(device: _selectedUserDevice, forUser: true),
                 ],
               ),
@@ -205,8 +225,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Add you partner's HRM", style: TextStyle(fontSize: 20)),
-                  const SizedBox(height: 10),
+                  Text("Add you partner's HRM", style: TextStyle(fontSize: 20 * scale)),
+                  SizedBox(height: 10 * scale),
                   _buildSensorSelectButton(device: _selectedPartnerDevice, forUser: false),
                 ],
               ),
@@ -238,7 +258,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                           : Colors.green,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 20),
-                      textStyle: const TextStyle(fontSize: 24),
+                      textStyle: TextStyle(fontSize: 24 * scale),
                     ),
                     child: const Text('Enter Max HR'),
                   ),

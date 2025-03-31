@@ -21,6 +21,8 @@ class _SessionScreenState extends State<SessionScreen> {
   };
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final scale = screenWidth / 400.0;
     return Scaffold(
       appBar: AppBar(title: const Text('Select your preferred sport'),
       leading: IconButton(
@@ -55,7 +57,7 @@ class _SessionScreenState extends State<SessionScreen> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               "Step 1 of 4",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
           ),
@@ -108,7 +110,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 20),
-                  textStyle: const TextStyle(fontSize: 24),
+                  textStyle: TextStyle(fontSize: 24 * scale),
                 ),
                 // child: const Text('Next: Select Sensors'),
                 child: const Text('Let\'s get your sensors set up'),
