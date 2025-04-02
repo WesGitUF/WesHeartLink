@@ -66,6 +66,9 @@ class MyApp extends StatelessWidget {
           return TrackingResultScreen(
               elapsedTime: args['elapsed'] as Duration,
               sameZoneTime: args['sameZone'] as Duration,
+              avgUserHR: args['avgUserHR'] as double,
+              avgPartnerHR: args['avgPartnerHR'] as double,
+              avgHR: args['avgHR'] as double,
             );
         },
       },

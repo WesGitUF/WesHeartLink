@@ -11,6 +11,7 @@ class MaxHRInputScreen extends StatefulWidget {
 class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _maxHRController = TextEditingController();
+  final TextEditingController _partnerMaxHRController = TextEditingController(); 
 
   // Declare variables to hold device IDs passed from SensorSelectionScreen.
   String? userDeviceId;
@@ -106,6 +107,34 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 },
               ),
               SizedBox(height: 20 * scale),
+              TextFormField(
+                controller: _partnerMaxHRController,
+                cursorColor: Colors.green,
+                style: TextStyle(fontSize: 24 * scale, color: Colors.black),
+                decoration: InputDecoration(
+                  labelText: 'Enter Partner\'s Max HR',
+                  labelStyle: TextStyle(fontSize: 24 * scale),
+                  floatingLabelStyle: const TextStyle(color: Colors.green),
+                  hintText: 'Enter your partner\'s max HR',
+                  hintStyle: TextStyle(fontSize: 24 * scale),
+                  border: const OutlineInputBorder(),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.green, width: 2.0),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a value';
+                  }
+                  if (int.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
+              ),
+
+              SizedBox(height: 20 * scale),
               // ElevatedButton(
               //   onPressed: () {
               //     if (_formKey.currentState?.validate() ?? false) {
@@ -138,11 +167,12 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 width: double.infinity,
                 height: 80 * scale, // Fixed height for a larger button
                 child: ElevatedButton(
-                  onPressed: _maxHRController.text.isEmpty
+                  onPressed: (_maxHRController.text.isEmpty || _partnerMaxHRController.text.isEmpty)
                       ? null
                       : () {
                           if (_formKey.currentState?.validate() ?? false) {
                             final maxHR = int.parse(_maxHRController.text);
+                            final partnerMaxHR = int.parse(_partnerMaxHRController.text);
                             Navigator.pushNamed(
                               context,
                               '/tracking',
@@ -150,12 +180,13 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                                 'userDeviceId': userDeviceId,
                                 'partnerDeviceId': partnerDeviceId,
                                 'maxHR': maxHR,
+                                'partnerMaxHR': partnerMaxHR,
                               },
                             );
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _maxHRController.text.isEmpty ? Colors.grey : Colors.green,
+                    backgroundColor: (_maxHRController.text.isEmpty || _partnerMaxHRController.text.isEmpty) ? Colors.grey : Colors.green,
                     foregroundColor: Colors.white,
                     textStyle: TextStyle(fontSize: 24 * scale),
                   ),

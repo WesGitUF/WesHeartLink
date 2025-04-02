@@ -110,6 +110,9 @@ class _HomeTab extends StatelessWidget {
                       final String sport = data['sport'] ?? 'Unknown';
                       final int timeSpent = data['timeSpent'] ?? 0; 
                       final int timeInSameZone = data['timeInSameZone'] ?? 0; 
+                      final double avgUserHR = data['avgUserHR'] ?? 0.0;
+                      final double avgPartnerHR = data['avgPartnerHR'] ?? 0.0;
+                      final double avgHR = data['avgHR'] ?? 0.0;
                       final finishedAt = data['finishedAt']; 
                       
                       final durationMin = (timeSpent / 60).toStringAsFixed(1);
@@ -122,7 +125,10 @@ class _HomeTab extends StatelessWidget {
                           title: Text(
                             '$sport Session\n'
                             'Total Time: $durationMin min, '
-                            'Same-Zone: $sameZoneMin min',
+                            'Same-Zone: $sameZoneMin min,'
+                            'Primary User\'s Avg HR: ${avgUserHR.toStringAsFixed(1)} bpm,'
+                            'Secondary User\'s Avg HR: ${avgPartnerHR.toStringAsFixed(1)} bpm,'
+                            'Avg HR: ${avgHR.toStringAsFixed(1)} bpm',
                           ),
                           subtitle: finishedAt != null
                               ? Text('Finished: ${finishedAt.toDate().toString()}')

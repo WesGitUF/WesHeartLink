@@ -30,6 +30,11 @@ class _TrackingScreenState extends State<TrackingScreen> {
   int _userHR = 0;
   int _partnerHR = 0;
   late int maxHeartRate;
+  late int partnerMaxHeartRate;
+  double _totalUserHR = 0;
+  double _totalPartnerHR = 0;
+  int _hrCount = 0;
+
   int _remoteElapsedMS = 0;
 
   StreamSubscription<ConnectionStateUpdate>? _userConnection;
@@ -51,17 +56,22 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     try {
       await docRef.set({
+        'ended': false,
         'userHR': _userHR,
         'partnerHR': _partnerHR,
+        'maxHeartRate': maxHeartRate,              
+        'partnerMaxHeartRate': partnerMaxHeartRate,
         'elapsedMS': _stopwatch.elapsedMilliseconds,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       }, SetOptions(merge: true));
 
-      print("Primary phone: Uploaded HR to Firebase (userHR=$_userHR, partnerHR=$_partnerHR)");
+      print("Primary phone: Uploaded HR to Firebase (userHR=$_userHR, partnerHR=$_partnerHR, maxHR=$maxHeartRate, partnerMaxHR=$partnerMaxHeartRate)");
     } catch (e) {
       print("Error writing to Firestore: $e");
     }
   }
+  bool _hasEndedLocally = false;
+
   void _listenHrFromFirebase() {
     final docRef = FirebaseFirestore.instance
       .collection('sessions')
@@ -73,12 +83,20 @@ class _TrackingScreenState extends State<TrackingScreen> {
         setState(() {
           _userHR = data['userHR'] ?? _userHR;
           _partnerHR = data['partnerHR'] ?? _partnerHR;
+          maxHeartRate = data['maxHeartRate'] ?? maxHeartRate;
+          partnerMaxHeartRate = data['partnerMaxHeartRate'] ?? partnerMaxHeartRate;
            final int? fetchedElapsedMS = data['elapsedMS'] as int?;
           if (fetchedElapsedMS != null) {
             _remoteElapsedMS = fetchedElapsedMS;
           }
         });
-        print("Secondary phone: read userHR=$_userHR partnerHR=$_partnerHR from Firestore");
+        // Check if session has ended
+      if (data['ended'] == true && !_hasEndedLocally) {
+        print("Detected ended == true from Firestore; stopping now...");
+        _hasEndedLocally = true;
+        _stopTimerAndNavigate();
+      }
+        print("Secondary phone: read userHR=$_userHR, partnerHR=$_partnerHR, maxHR=$maxHeartRate, partnerMaxHR=$partnerMaxHeartRate from Firestore");
       }
     }, onError: (error) {
       print("Error reading Firestore: $error");
@@ -90,6 +108,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
       final int secondsSpent = _stopwatch.elapsed.inSeconds;
       final int sameZoneSec = _sameZoneDuration.inSeconds;
+        double avgUserHR = _hrCount > 0 ? _totalUserHR / _hrCount : 0;
+        double avgPartnerHR = _hrCount > 0 ? _totalPartnerHR / _hrCount : 0;
+        double avgHR = (avgUserHR + avgPartnerHR) / 2;
 
       final args = ModalRoute.of(context)!.settings.arguments as Map?;
       final String? chosenSport = args?['sport'] as String?;
@@ -99,12 +120,34 @@ class _TrackingScreenState extends State<TrackingScreen> {
           'sport': chosenSport ?? 'Unknown',
           'timeSpent': secondsSpent,
           'timeInSameZone': sameZoneSec,
+          'avgUserHR': avgUserHR,    
+          'avgPartnerHR': avgPartnerHR, 
+          'avgHR': avgHR, 
           'finishedAt': FieldValue.serverTimestamp(),
         });
         print("Session stored in Firestore: sport=$chosenSport, timeSpent=$secondsSpent, sameZone=$sameZoneSec");
       } catch (e) {
         print("Error saving session: $e");
       }
+    }
+
+    Future<bool> _endSessionIfNotEnded() async {
+      final docRef = FirebaseFirestore.instance
+          .collection('sessions')
+          .doc('sharedHRSession');
+      return FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        final data = snapshot.data();
+        
+        if (data != null && data['ended'] == true) {
+          // already ended
+          return false;
+        } else {
+          // if not ended yet end it
+          transaction.update(docRef, {'ended': true});
+          return true;
+        }
+      });
     }
 
   // final AdvertiseData _advertiseData = AdvertiseData(
@@ -307,6 +350,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
           if (currentUserZone.name == currentPartnerZone.name) {
             _sameZoneDuration += const Duration(seconds: 1);
           }
+          _totalUserHR += _userHR;
+          _totalPartnerHR += _partnerHR;
+          _hrCount++;
       }); // Refresh the UI every second
 
       // primary updates advertisment everey second
@@ -333,9 +379,17 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _stopwatch.stop();
     _timer?.cancel();
     // _btConnection?.dispose(); // Close the persistent connection
+    bool shouldWriteSession = await _endSessionIfNotEnded();
+    if (shouldWriteSession) {
     await _saveCompletedSessionToFirestore();
+   }
 
     final elapsed = _stopwatch.elapsed;
+
+    double avgUserHR = _hrCount > 0 ? _totalUserHR / _hrCount : 0;
+    double avgPartnerHR = _hrCount > 0 ? _totalPartnerHR / _hrCount : 0;
+    double avgHR = (avgUserHR + avgPartnerHR) / 2;
+
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/trackingResult',
@@ -343,6 +397,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
       arguments: {
         'elapsed': elapsed,
         'sameZone': _sameZoneDuration,
+        'avgUserHR': avgUserHR,
+        'avgPartnerHR': avgPartnerHR,
+        'avgHR': avgHR,
       },
     );
   }
@@ -375,7 +432,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
       print("Operating in secondary mode");
       _isSecondary = true;
       // _startBluetoothServer();
-      maxHeartRate = 196;
+      //fall back values that will change once the secondary phone starts listening from the firbase (primary)
+      maxHeartRate = 220;
+      partnerMaxHeartRate = 220;
       // _startBleScanForPrimary();
       _listenHrFromFirebase();
     }else{
@@ -383,7 +442,8 @@ class _TrackingScreenState extends State<TrackingScreen> {
       userDeviceId = args['userDeviceId'] as String?;
       partnerDeviceId = args['partnerDeviceId'] as String?;
       maxHeartRate = args['maxHR'] as int;
-      print("TrackingScreen received: userDeviceId=$userDeviceId, partnerDeviceId=$partnerDeviceId, maxHR=$maxHeartRate");
+      partnerMaxHeartRate = args['partnerMaxHR'] as int;
+      print("TrackingScreen received: userDeviceId=$userDeviceId, partnerDeviceId=$partnerDeviceId, maxHR=$maxHeartRate, partnerMaxHR=$partnerMaxHeartRate");
       _connectToDevices();
 
       //start advertising
@@ -482,7 +542,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final scale = screenWidth / 400.0;
 
     HeartRateZone userZone = getZoneForHR(_userHR, maxHeartRate);
-    HeartRateZone partnerZone = getZoneForHR(_partnerHR, maxHeartRate);
+    HeartRateZone partnerZone = getZoneForHR(_partnerHR, partnerMaxHeartRate);
     bool sameZone = userZone.name == partnerZone.name;
 
     return Scaffold(
