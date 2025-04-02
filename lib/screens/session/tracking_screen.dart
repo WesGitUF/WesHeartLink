@@ -9,6 +9,8 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:heart_link_app/widgets/custom_widgets.dart'; // Contains PulseHeart & HeartRateMeter
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:slide_to_act/slide_to_act.dart'; // slide to act
+
 
 
 class TrackingScreen extends StatefulWidget {
@@ -18,6 +20,8 @@ class TrackingScreen extends StatefulWidget {
 }
 
 class _TrackingScreenState extends State<TrackingScreen> {
+
+double _sliderValue = 0.0;
 
   // final FlutterBlePeripheral _blePeripheral = FlutterBlePeripheral();
 
@@ -649,19 +653,27 @@ class _TrackingScreenState extends State<TrackingScreen> {
               ),
             ),
             const Divider(thickness: 1, color: Colors.black),
-            SizedBox(
-              width: double.infinity,
-              height: 70 * scale, 
-              child: ElevatedButton(
-                onPressed: () {
-                  _stopTimerAndNavigate();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  textStyle: TextStyle(fontSize: 24 * scale), 
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0 * scale),
+              child: SlideAction(
+                text: "Slide to Stop Tracking",
+                textStyle: TextStyle(
+                  fontSize: 20 * scale,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: const Text("Stop Tracking"),
+                outerColor: Colors.red,
+                innerColor: Colors.white,
+                sliderButtonIcon: Icon(Icons.stop, color: Colors.red),
+                elevation: 4,
+                height: 70 * scale,
+                onSubmit: () {
+                  _stopTimerAndNavigate();
+                  // Optionally reset the slider after a delay
+                  Future.delayed(const Duration(seconds: 1), () {
+                    // Can be reset it with a GlobalKey if needed
+                  });
+                },
               ),
             ),
           ],
