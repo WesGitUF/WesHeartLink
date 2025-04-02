@@ -61,15 +61,18 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
               children: [
                 Text(
                   "Step 4 of 4",
-                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontSize: 20 * scale, // Dynamically scales with screen width
+                    fontWeight: FontWeight.w500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(width: 8 * scale),
                 Tooltip(
-                  message: "Estimate your max HR using the formula: 220 - your age.",
+                  message: "Estimate your max HR using the formula: Max HR = 208 - (0.7 * age).",
                   child: const Icon(
                     Icons.info_outline,
-                    color: Colors.green, // set icon color as desired
+                    color: Color.fromARGB(255, 248, 0, 0), // set icon color as desired
                   ),
                 ),
               ],
@@ -85,10 +88,10 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 cursorColor: Colors.green,
                 style: TextStyle(fontSize: 24* scale, color: Colors.black),
                 decoration: InputDecoration(
-                  labelText: 'Enter yout Max HR',
+                  labelText: 'Enter primary (host) Max HR',
                   labelStyle: TextStyle(fontSize: 24* scale),
                   floatingLabelStyle: const TextStyle(color: Colors.green),
-                  hintText: 'Enter your max HR',
+                  hintText: 'Max HR = 208 - (0.7 * age)',
                   hintStyle: TextStyle(fontSize: 24* scale),
                   border: const OutlineInputBorder(),
                   focusedBorder: const OutlineInputBorder(
@@ -112,10 +115,10 @@ class _MaxHRInputScreenState extends State<MaxHRInputScreen> {
                 cursorColor: Colors.green,
                 style: TextStyle(fontSize: 24 * scale, color: Colors.black),
                 decoration: InputDecoration(
-                  labelText: 'Enter Partner\'s Max HR',
+                  labelText: 'Enter secondary (peer) Max HR',
                   labelStyle: TextStyle(fontSize: 24 * scale),
                   floatingLabelStyle: const TextStyle(color: Colors.green),
-                  hintText: 'Enter your partner\'s max HR',
+                  hintText: 'Max HR = 208 - (0.7 * age)',
                   hintStyle: TextStyle(fontSize: 24 * scale),
                   border: const OutlineInputBorder(),
                   focusedBorder: const OutlineInputBorder(

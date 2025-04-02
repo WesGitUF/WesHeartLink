@@ -75,12 +75,7 @@ class TrackingResultScreen extends StatelessWidget {
                     DataCell(Text("${avgPartnerHR.toStringAsFixed(1)} bpm",
                         style: TextStyle(fontSize: 16 * scale))),
                   ]),
-                  DataRow(cells: [
-                    DataCell(Text("Session's Average HR",
-                        style: TextStyle(fontSize: 16 * scale))),
-                    DataCell(Text("${avgHR.toStringAsFixed(1)} bpm",
-                        style: TextStyle(fontSize: 16 * scale))),
-                  ]),
+                
                 ],
               ),
             ),

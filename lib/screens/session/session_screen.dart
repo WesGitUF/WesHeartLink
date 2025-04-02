@@ -57,7 +57,7 @@ class _SessionScreenState extends State<SessionScreen> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               "Step 1 of 4",
-              style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
           ),

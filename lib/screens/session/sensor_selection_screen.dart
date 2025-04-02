@@ -192,7 +192,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               children: [
                 Text(
                   "Step 3 of 4",
-                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(width: 8),
@@ -200,6 +200,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                   message: "Device not visible? Please hit the refresh button and try again!",
                   child: const Icon(
                     Icons.info_outline,
+                    color: Color.fromARGB(255, 248, 0, 0),
                   ),
                 ),
               ],

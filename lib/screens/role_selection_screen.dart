@@ -30,17 +30,17 @@ class RoleSelectionScreen extends StatelessWidget {
               children: [
                 Text(
                   "Step 2 of 4",
-                  style: TextStyle(fontSize: 16 * scale, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(width: 8 * scale),
                 Tooltip(
-                  message: "Primary device: connects with HRMs\n"
-                      "Secondary device: receives HRs shared from the primary phone\n and skips to the tracking screen"
+                  message: "Primary device: connects with all HRMs\n"
+                      "Secondary device: receives all HRs shared from the primary device\n"
                       "Make sure your phones have internet access.",
                   child: IconButton(
                     icon: const Icon(Icons.info_outline),
-                    color: Colors.black, 
+                    color: const Color.fromARGB(255, 248, 1, 1), 
                     onPressed: () {
                       
                     },
@@ -57,7 +57,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 children: [
                   // Instruction Text
                   Text(
-                    'Are you the primary device or the secondary device?',
+                    'Are you the primary (host) device or the secondary (peer) device?',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 20 * scale),
                   ),
@@ -85,7 +85,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         minimumSize: const Size(0, 60), 
                         textStyle: TextStyle(fontSize: 24 * scale),
                       ),
-                      child: const Text('Primary'),
+                      child: const Text('Primary (Host)'),
                     ),
                   ),
                   SizedBox(height: 16 * scale),
@@ -110,7 +110,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         minimumSize: const Size(0, 60), 
                         textStyle: TextStyle(fontSize: 24 * scale),
                       ),
-                      child: const Text('Secondary'),
+                      child: const Text('Secondary (Peer)'),
                     ),
                   ),
                 ],

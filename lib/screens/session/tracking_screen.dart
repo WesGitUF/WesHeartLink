@@ -122,7 +122,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
           'timeInSameZone': sameZoneSec,
           'avgUserHR': avgUserHR,    
           'avgPartnerHR': avgPartnerHR, 
-          'avgHR': avgHR, 
+          // 'avgHR': avgHR, 
           'finishedAt': FieldValue.serverTimestamp(),
         });
         print("Session stored in Firestore: sport=$chosenSport, timeSpent=$secondsSpent, sameZone=$sameZoneSec");
