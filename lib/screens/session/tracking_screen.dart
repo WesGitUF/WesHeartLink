@@ -47,6 +47,8 @@ double _sliderValue = 0.0;
   StreamSubscription<List<int>>? _partnerSubscription;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
   StreamSubscription<DocumentSnapshot>? _hrSubscription;
+  StreamSubscription<DocumentSnapshot>? _sessionEndSubscription;
+
 
   final Stopwatch _stopwatch = Stopwatch();
   Timer? _timer;
@@ -75,6 +77,18 @@ double _sliderValue = 0.0;
     }
   }
   bool _hasEndedLocally = false;
+  Future<void> _resetSession() async {
+    final docRef = FirebaseFirestore.instance.collection('sessions').doc('sharedHRSession');
+    await docRef.set({
+      'ended': false,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+      'userHR': 0,
+      'partnerHR': 0,
+      'elapsedMS': 0,
+    }, SetOptions(merge: true));
+    print("Session reset: ended set to false");
+  }
+
 
   void _listenHrFromFirebase() {
     final docRef = FirebaseFirestore.instance
@@ -106,6 +120,43 @@ double _sliderValue = 0.0;
       print("Error reading Firestore: $error");
     });
   }
+
+  void _listenSessionEnd() {
+    final docRef = FirebaseFirestore.instance.collection('sessions').doc('sharedHRSession');
+    _sessionEndSubscription = docRef.snapshots().listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        if (data['ended'] == true && !_hasEndedLocally) {
+          _hasEndedLocally = true;
+          _showSessionEndedDialog();
+        }
+      }
+    }, onError: (error) {
+      print("Error listening for session end: $error");
+    });
+  }
+void _showSessionEndedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Session Ended"),
+          content: Text("The secondary phone has stopped the session."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _stopTimerAndNavigate();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   Future<void> _saveCompletedSessionToFirestore() async {
       final docRef = FirebaseFirestore.instance.collection('allSessions');
@@ -429,7 +480,7 @@ double _sliderValue = 0.0;
   void initState() {
     super.initState();
     print("TrackingScreen initState called");
-    Future.delayed(Duration.zero, () {
+    Future.delayed(Duration.zero, () async {
       final args = ModalRoute.of(context)!.settings.arguments as Map;
       //check for the role flag
       if (args != null && args['role'] == 'secondary') {
@@ -448,8 +499,9 @@ double _sliderValue = 0.0;
       maxHeartRate = args['maxHR'] as int;
       partnerMaxHeartRate = args['partnerMaxHR'] as int;
       print("TrackingScreen received: userDeviceId=$userDeviceId, partnerDeviceId=$partnerDeviceId, maxHR=$maxHeartRate, partnerMaxHR=$partnerMaxHeartRate");
+      await _resetSession();
       _connectToDevices();
-
+       _listenSessionEnd();
       //start advertising
       // _startBleAdvertising();
     }
@@ -524,6 +576,7 @@ double _sliderValue = 0.0;
       _userConnection?.cancel();
       _partnerConnection?.cancel();
       _hrSubscription?.cancel();
+      _sessionEndSubscription?.cancel();
     // _btConnection?.dispose();
     }else{
       
@@ -654,13 +707,15 @@ double _sliderValue = 0.0;
             ),
             const Divider(thickness: 1, color: Colors.black),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0 * scale),
+              padding: EdgeInsets.symmetric(horizontal: 10 * scale),
               child: SlideAction(
-                text: "Slide to Stop Tracking",
+                text: "     Slide to Stop Tracking",
+                // alignment: Alignment.centerRight,
                 textStyle: TextStyle(
                   fontSize: 20 * scale,
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
+                  
                 ),
                 outerColor: Colors.red,
                 innerColor: Colors.white,
@@ -670,9 +725,9 @@ double _sliderValue = 0.0;
                 onSubmit: () {
                   _stopTimerAndNavigate();
                   // Optionally reset the slider after a delay
-                  Future.delayed(const Duration(seconds: 1), () {
-                    // Can be reset it with a GlobalKey if needed
-                  });
+                  // Future.delayed(const Duration(seconds: 1), () {
+                  //   // Can be reset it with a GlobalKey if needed
+                  // });
                 },
               ),
             ),
