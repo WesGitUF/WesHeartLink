@@ -1,0 +1,110 @@
+import 'package:flutter/material.dart';
+import 'package:heart_link_app/screens/home/home_screen.dart';
+import 'package:heart_link_app/screens/history/history_screen.dart';
+import 'package:heart_link_app/screens/profile/profile_screen.dart';
+import 'package:heart_link_app/screens/workout/workout_screen.dart';
+import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
+
+class AppShell extends StatefulWidget {
+  const AppShell({super.key});
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  //Index of the currently selected page
+  int _index = 0;
+
+  // define the list of pages in order as the naviagtion buttons
+  final _pages = const <Widget>[
+    HomeScreen(),
+    HistoryScreen(),
+    HeartrateScreen(),
+    ProfileScreen(),
+  ];
+
+  // updates index and rebuilds the UI(switch pages)
+  void _go(int i) => setState(() => _index = i);
+
+  // widget for a navigation item (icon + label)
+  Widget _navItem({
+    required int i,
+    required IconData icon,
+    required String label,
+  }) {
+    
+    //check if this tab is currently selected
+    final bool selected = _index == i;
+    final Color color = selected ? const Color.fromARGB(255, 190, 88, 88) : Colors.black54;
+
+    return InkWell(
+      onTap: () => _go(i),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBody: true,
+
+      body: SafeArea(
+        child: IndexedStack(index: _index, children: _pages),
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const WorkoutPage()),
+          );
+        },
+        shape: const CircleBorder(),
+        backgroundColor: const Color.fromARGB(255, 175, 82, 82),
+        child: const Icon(Icons.add, size: 30, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 8,
+        elevation: 8,
+        color: const Color.fromARGB(255, 73, 75, 76),
+        child: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.only(bottom: 4),
+          child: SizedBox(
+            height: 68, 
+            child: Row(
+              children: [
+                Expanded(child: _navItem(i: 0, icon: Icons.home_rounded,    label: 'Home')),
+                Expanded(child: _navItem(i: 1, icon: Icons.history_rounded, label: 'History')),
+                const SizedBox(width: 64), 
+                Expanded(child: _navItem(i: 2, icon: Icons.favorite_rounded,label: 'Heart Rate')),
+                Expanded(child: _navItem(i: 3, icon: Icons.person_rounded,  label: 'Profile')),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
