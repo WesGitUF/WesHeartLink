@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'zone_dial.dart';
 
-class HeartrateScreen extends StatelessWidget {
+class HeartrateScreen extends StatefulWidget {
   const HeartrateScreen({super.key});
+
+  @override
+  State<HeartrateScreen> createState() => _HeartrateScreenState();
+}
+
+class _HeartrateScreenState extends State<HeartrateScreen> {
+  int bpm = 120;
 
   @override
   Widget build(BuildContext context) {
@@ -12,14 +20,25 @@ class HeartrateScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: const Center(
-        child: Text(
-          'Heart Rate Dial Placeholder',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ZoneDial(bpm: bpm, maxHr: 200),
+            const SizedBox(height: 40),
+            Slider(
+              min: 60,
+              max: 200,
+              value: bpm.toDouble(),
+              onChanged: (v) => setState(() => bpm = v.toInt()),
+              activeColor: Colors.redAccent,
+              thumbColor: Colors.white,
+            ),
+            Text(
+              'Adjust BPM: $bpm',
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ],
         ),
       ),
     );
