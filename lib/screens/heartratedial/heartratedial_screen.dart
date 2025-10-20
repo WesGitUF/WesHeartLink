@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'zone_dial.dart';
+//import 'zone_dial.dart';
+import 'package:heart_link_app/screens/heartratedial/zone_dial.dart';
+
 
 class HeartrateScreen extends StatefulWidget {
   const HeartrateScreen({super.key});
@@ -27,7 +29,7 @@ class _HeartrateScreenState extends State<HeartrateScreen> {
             ZoneDial(bpm: bpm, maxHr: 200),
             const SizedBox(height: 40),
             Slider(
-              min: 60,
+              min: 40,
               max: 200,
               value: bpm.toDouble(),
               onChanged: (v) => setState(() => bpm = v.toInt()),

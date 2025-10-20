@@ -13,9 +13,8 @@ class ZoneDial extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dynamically size dial based on screen width
     final screenWidth = MediaQuery.of(context).size.width;
-    final dialHeight = screenWidth * 0.8; // ~80% of width — fits comfortably
+    final dialHeight = screenWidth * 0.85;
 
     final minBpm = 40;
     final clampedBpm = bpm.clamp(minBpm, maxHr);
@@ -23,48 +22,53 @@ class ZoneDial extends StatelessWidget {
     final zone = zoneInfo['zone'] as _Zone;
     final zonePct = zoneInfo['zonePct'] as int;
 
-    return SizedBox(
-      height: dialHeight,
-      width: screenWidth,
-      child: TweenAnimationBuilder<int>(
-        tween: IntTween(begin: clampedBpm, end: clampedBpm),
-        duration: const Duration(milliseconds: 900),
-        curve: Curves.easeOutCubic,
-        builder: (_, animBpm, __) {
-          final animZoneInfo = _zoneForBpm(animBpm, maxHr);
-          final animZone = animZoneInfo['zone'] as _Zone;
-          final animZonePct = animZoneInfo['zonePct'] as int;
-          final pct = (animBpm - minBpm) / (maxHr - minBpm);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          height: dialHeight,
+          width: screenWidth,
+          child: TweenAnimationBuilder<int>(
+            tween: IntTween(begin: clampedBpm, end: clampedBpm),
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeOutCubic,
+            builder: (_, animBpm, __) {
+              final animZoneInfo = _zoneForBpm(animBpm, maxHr);
+              final animZone = animZoneInfo['zone'] as _Zone;
+              final animZonePct = animZoneInfo['zonePct'] as int;
+              final pct = (animBpm - minBpm) / (maxHr - minBpm);
 
-          return CustomPaint(
-            painter: _DialPainter(pct, animZone.emoji, minBpm, maxHr),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 12),
-                Text(
-                  '${animBpm.toString()} BPM',
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
+              return CustomPaint(
+                painter: _DialPainter(pct, animZone.emoji, minBpm, maxHr),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 115), // ⬇ moved BPM lower from emoji
+                    Text(
+                      '${animBpm.toString()} BPM',
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$animZonePct%',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '$animZonePct%',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _ZoneChip(zone: animZone),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 32),
+        _ZoneChip(zone: zone),
+      ],
     );
   }
 
@@ -150,8 +154,10 @@ class _DialPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final center = Offset(w / 2, h * 0.85); // dial sits lower for better balance
-    final radius = min(w, h) * 0.8;
+
+    final center = Offset(w / 2, h * 0.46);
+    final radius = min(w, h) * 0.9;
+    const strokeThickness = 50.0;
 
     final startAngle = pi + (pi / 10);
     final sweep = 11 * pi / 10;
@@ -170,43 +176,43 @@ class _DialPainter extends CustomPainter {
       const Color(0xFFEF4444),
     ];
 
-    // faint background arc
+    final rect = Rect.fromCircle(center: center, radius: radius / 2);
+
     final bg = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 30
+      ..strokeWidth = strokeThickness
       ..color = Colors.white10
       ..strokeCap = StrokeCap.round;
-    final rect = Rect.fromCircle(center: center, radius: radius / 2);
     canvas.drawArc(rect, startAngle, sweep, false, bg);
 
-    // colored arcs
     for (int i = 0; i < 5; i++) {
       final segStart = startAngle + sweep * zoneCuts[i];
       final segSweep = sweep * (zoneCuts[i + 1] - zoneCuts[i]);
       final paint = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 30
+        ..strokeWidth = strokeThickness
         ..strokeCap = StrokeCap.butt
         ..color = colors[i].withOpacity(0.9);
       canvas.drawArc(rect, segStart, segSweep, false, paint);
     }
 
-    // needle
+    // Draw needle
     final needleAngle = startAngle + sweep * pct;
-    final needleLen = radius / 2 + 10;
+    final needleLen = radius / 2 + 45;
     final needlePaint = Paint()
       ..color = Colors.white
-      ..strokeWidth = 3
+      ..strokeWidth = 3.5
       ..strokeCap = StrokeCap.round;
+
     final needleEnd =
         center + Offset(cos(needleAngle), sin(needleAngle)) * needleLen;
     canvas.drawLine(center, needleEnd, needlePaint);
 
-    // emoji center
+    // Emoji now drawn at the NEEDLE BASE (center)
     final emojiPainter = TextPainter(
       text: TextSpan(
         text: emoji,
-        style: const TextStyle(fontSize: 28),
+        style: const TextStyle(fontSize: 30),
       ),
       textDirection: TextDirection.ltr,
     );
