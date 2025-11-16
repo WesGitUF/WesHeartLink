@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class oldLoginScreen extends StatefulWidget {
+  const oldLoginScreen({super.key});
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<oldLoginScreen> {
   final AuthService _authService = AuthService();
   bool _isLoading = false;
 

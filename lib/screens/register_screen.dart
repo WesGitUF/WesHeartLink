@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -15,37 +17,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
 
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   String _email = '';
   String _password = '';
   String _displayName = '';
   String _ageForMaxHr = '';
+  String _weight = '';
+  String? _gender;
   bool _isLoading = false;
 
-  InputDecoration _inputDeco(BuildContext context,
-      {required String hint, 
-      required IconData icon}) {
-        final ColorScheme = Theme.of(context).colorScheme;
-        return InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon, color: ColorScheme.primary),
-          filled: true,
-          fillColor: ColorScheme.surface,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide(color: ColorScheme.outline.withOpacity(.3)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(28),
-            borderSide: BorderSide(color: ColorScheme.primary, width: 1.4),
-          ),
-        );
-      }
+  InputDecoration _inputDeco(
+    BuildContext context, {
+    required String hint,
+    required IconData icon,
+  }) {
+    final ColorScheme = Theme.of(context).colorScheme;
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: ColorScheme.primary),
+      filled: true,
+      fillColor: ColorScheme.surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 14,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide(
+          color: ColorScheme.outline.withOpacity(.3),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide(
+          color: ColorScheme.primary,
+          width: 1.4,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -87,17 +102,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 16),
 
                   // title
-                  Text('Heart Link',
-                      style: Theme.of(context)
-                          .textTheme
-                          .displaySmall
-                          ?.copyWith(fontWeight: FontWeight.w800)),
+                  Text(
+                    'Heart Link',
+                    style: Theme.of(context)
+                        .textTheme
+                        .displaySmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
                   const SizedBox(height: 6),
-                  Text('Stay in sync',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(color: Colors.white70)),
+                  Text(
+                    'Stay in sync',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(color: Colors.white70),
+                  ),
                   const SizedBox(height: 28),
 
                   // registration form card
@@ -119,46 +138,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('New User',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800)),
+                          Text(
+                            'New User',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
                           const SizedBox(height: 18),
 
                           // user name input
                           TextFormField(
-                            decoration: _inputDeco(context,
-                                hint: 'User Name', icon: Icons.person),
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'User Name',
+                              icon: Icons.person,
+                            ),
                             onChanged: (InputText) => _displayName = InputText.trim(),
-                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter name' : null,
-                          ),
+                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter name' : null,),
                           const SizedBox(height: 14),
 
                           // email input
                           TextFormField(
-                            decoration: _inputDeco(context,
-                                hint: 'Email', icon: Icons.mail_outline),
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'Email',
+                              icon: Icons.mail_outline,
+                            ),
                             keyboardType: TextInputType.emailAddress,
                             onChanged: (InputText) => _email = InputText.trim(),
-                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter email' : null,
-                          ),
+                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter email' : null,),
                           const SizedBox(height: 14),
 
-                          // 
+                          // text form
                           TextFormField(
-                            decoration: _inputDeco(context,
-                                hint: 'Password', icon: Icons.lock_outline),
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'Password',
+                              icon: Icons.lock_outline,
+                            ),
                             obscureText: true,
                             onChanged: (InputText) => _password = InputText,
-                            validator: (InputText) => InputText == null || InputText.length < 6 ? 'Min 6 chars' : null,
-                          ),
+                            validator: (InputText) => InputText == null || InputText.length < 6 ? 'Min 6 chars' : null,),
                           const SizedBox(height: 14),
 
                           // age input
                           TextFormField(
-                            decoration: _inputDeco(context,
-                                hint: 'Age', icon: Icons.cake),
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'Age',
+                              icon: Icons.cake,
+                            ),
                             keyboardType: TextInputType.number,
                             onChanged: (InputText) => _ageForMaxHr = InputText,
                             validator: (InputText) {
@@ -169,6 +199,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 20),
+
+                          // weight input
+                          TextFormField(
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'Weight',
+                              icon: Icons.monitor_weight,
+                            ).copyWith(
+                              suffixText: 'kg',
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (InputText) => _weight = InputText,
+                            validator: (InputText) {
+                              final weight = int.tryParse(InputText ?? '');
+                              if (weight == null || weight <= 0 || weight >= 500) {
+                                return 'Enter valid weight';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // gender
+                          DropdownButtonFormField<String>(
+                            value: _gender,
+                            decoration: _inputDeco(
+                              context,
+                              hint: 'Gender',
+                              icon: Icons.person_outline,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'male',
+                                child: Text('Male'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'female',
+                                child: Text('Female'),
+                              ),
+                            ],
+                            onChanged: (value) => setState(() => _gender = value),
+                            validator: (value) => value == null ? 'Select gender' : null,),
                           const SizedBox(height: 20),
 
                           // register button
@@ -184,37 +257,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       }
                                       setState(() => _isLoading = true);
                                       try {
-                                        final user = await _authService
-                                            .signUpWithEmail(
-                                                _email, _password);
+                                        final user =
+                                            await _authService
+                                                .signUpWithEmail(
+                                          _email,
+                                          _password,
+                                        );
+
                                         if (user != null) {
                                           if (_displayName.isNotEmpty) {
                                             await user.updateDisplayName(
                                                 _displayName);
                                             await user.reload();
                                           }
-                                          final age =
-                                              int.parse(_ageForMaxHr.trim());
+
+                                          final age = int.parse(
+                                              _ageForMaxHr.trim());
+                                          final weight =
+                                              int.parse(_weight.trim());
+
                                           await hrState.updateAge(age);
                                           await hrState.setCustomMaxHr(null);
+
+                                          await _db
+                                              .collection('users')
+                                              .doc(user.uid)
+                                              .set({
+                                            'displayName': _displayName,
+                                            'email': _email,
+                                            'age': age,
+                                            'weight': weight,
+                                            'gender': _gender,
+                                            'createdAt':
+                                                FieldValue.serverTimestamp(),
+                                          }, SetOptions(merge: true));
 
                                           if (!mounted) return;
                                           Navigator.of(context)
                                               .pushAndRemoveUntil(
                                             MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const AppShell()),
-                                            (route) => false,
+                                              builder: (_) => const AppShell(),),
+                                              (route) => false,
                                           );
                                         }
                                       } catch (e) {
                                         ScaffoldMessenger.of(context)
-                                            .showSnackBar(SnackBar(
-                                                content:
-                                                    Text(e.toString())));
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(e.toString()),
+                                          ),
+                                        );
                                       } finally {
                                         if (mounted) {
-                                          setState(() => _isLoading = false);
+                                          setState(
+                                            () => _isLoading = false,
+                                          );
                                         }
                                       }
                                     },
@@ -227,8 +324,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   : const Text(
                                       'Create Account',
                                       style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                             ),
                           ),
@@ -240,7 +338,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               onPressed: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
-                                      builder: (_) => const LoginScreen()),
+                                    builder: (_) => const LoginScreen(),
+                                  ),
                                 );
                               },
                               child: Text(
@@ -248,7 +347,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 style: TextStyle(color: cs.primary),
                               ),
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ),

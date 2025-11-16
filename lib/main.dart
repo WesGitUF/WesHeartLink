@@ -10,13 +10,13 @@ import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/max_hr_input_screen.dart';
 import 'package:heart_link_app/shell/app_shell.dart';    
+import 'package:heart_link_app/screens/login_screen.dart';
+import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
-
-
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await hrState.load();
   runApp(const MyApp());
 }
 
@@ -69,12 +69,12 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<firebase_auth.User?>(
         stream: authService.userChanges,
         builder: (context, snapshot) {
-          // If the connection is active, check for a logged-in user
+          // If the connection is active, check for a logged in user
           if (snapshot.connectionState == ConnectionState.active) {
             final firebase_auth.User? user = snapshot.data;
             if (user == null) {
               // return const LoginScreen();
-              return const AppShell();
+              return const LoginScreen();
             } else {
               return const AppShell();
             }
@@ -86,7 +86,6 @@ class MyApp extends StatelessWidget {
         },
       ),
       routes: {
-        // '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
         '/session': (context) => const SessionScreen(),
         '/sensorSelection': (context) => const SensorSelectionScreen(),

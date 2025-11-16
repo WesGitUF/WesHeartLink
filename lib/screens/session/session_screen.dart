@@ -1,6 +1,5 @@
 // TODO Implement this library.
-//
-
+import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 import 'package:flutter/material.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -51,7 +50,7 @@ class _SessionScreenState extends State<SessionScreen> {
                   child: ListTile(
                     leading: Icon(_activityIcons[activity]),
                     title: Text(activity),
-                    tileColor: _selectedActivity == activity ? Colors.lightBlue[100] : null,
+                    tileColor: _selectedActivity == activity ? Colors.green: null,
                     onTap: () {
                       setState(() {
                         _selectedActivity = activity;
@@ -77,19 +76,25 @@ class _SessionScreenState extends State<SessionScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _selectedActivity == null
-                    ? null
-                    : () {
-                        Navigator.pushNamed(context, '/sensorSelection');
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  textStyle: const TextStyle(fontSize: 24),
-                ),
-                // child: const Text('Next: Select Sensors'),
-                child: const Text('Let\'s get your sensors set up'),
-              ),
-            ),
+      ? null
+      : () {
+          // Navigate to Sensor Selection Screen with selected activity
+          Navigator.pushNamed(
+            context,
+            '/sensor',
+            arguments: {'activity': _selectedActivity}, 
+          );
+        },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: const Color.fromARGB(255, 76, 175, 80),
+    padding: const EdgeInsets.symmetric(vertical: 20),
+    textStyle: const TextStyle(fontSize: 24),
+  ),
+  child: const Text(
+    'Let\'s get your sensors set up',
+    style: TextStyle(color: Colors.white),
+),
+            ),)
           ),
         ],
       ),

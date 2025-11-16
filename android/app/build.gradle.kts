@@ -46,10 +46,10 @@ flutter {
 
 dependencies {
     // Import the Firebase BoM for version management
-    implementation(platform("com.google.firebase:firebase-bom:33.9.0"))
-
+    implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     // Add Firebase libraries without specifying versions
     implementation("com.google.firebase:firebase-auth")
     // You can add more Firebase libraries as needed, for example:
     // implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-analytics")
 }
