@@ -17,8 +17,9 @@ class HeartratedialScreen extends StatefulWidget {
 }
 
 class _DialPageState extends State<HeartratedialScreen> {
-  int sliderBpm = 40;
-  int liveBpm = 40;
+  // cal the initial hr (40%maxhr)
+  late int sliderBpm;
+  late int liveBpm;
   bool useBle = false;
   bool isConnecting = false;
   bool isConnected = false;
@@ -28,8 +29,6 @@ class _DialPageState extends State<HeartratedialScreen> {
   int? userAge;
   double? userWeight;
   String? userGender;
-
-  
 
   // session type
   String _activity = 'Running';
@@ -163,6 +162,12 @@ class _DialPageState extends State<HeartratedialScreen> {
     _loadUserInfo();
     // keep the screen lighting always
     WakelockPlus.enable();
+    
+    // initial to 40%maxhr 
+    final maxHr = hrState.maxHr;                 
+    final baseline = (maxHr * 0.40).round();     
+    sliderBpm = baseline;                      
+    liveBpm = baseline;
 
     // get arguments from last route
     Future.microtask(() {
@@ -252,8 +257,21 @@ class _DialPageState extends State<HeartratedialScreen> {
       animation: hrState,
       builder: (context, _) {
         final int maxHrTheoretical = hrState.maxHr;
+        final int minBpm = (maxHrTheoretical * 0.40).round();
+        final int safeSliderBpm = sliderBpm.clamp(minBpm, maxHrTheoretical);
         final displayBpmRaw = useBle ? (liveBpm > 0 ? liveBpm : sliderBpm) : sliderBpm;
-        final displayBpm = displayBpmRaw < 40 ? 40 : displayBpmRaw;
+        final displayBpm = displayBpmRaw < minBpm ? minBpm : displayBpmRaw;
+        // max hr zone color
+        final pctMax = (_sessionMaxHr / maxHrTheoretical).clamp(0, 1).toDouble();
+        final zoneIndexMax = _zoneIndexFor(pctMax);
+        final zoneColorMax = _zoneColor(zoneIndexMax);
+
+        // avg hr zone color
+        final pctAvg = (_avgHrLive / maxHrTheoretical).clamp(0, 1).toDouble();
+        final zoneIndexAvg = _zoneIndexFor(pctAvg);
+        final zoneColorAvg = _zoneColor(zoneIndexAvg);
+        
+        // message 
         final pct = (displayBpm / maxHrTheoretical).clamp(0, 1).toDouble();
         final zoneIndex = _zoneIndexFor(pct);
         final msg = _zoneMessage(zoneIndex);
@@ -287,14 +305,14 @@ class _DialPageState extends State<HeartratedialScreen> {
             child: Column(
               children: [
                 AspectRatio(
-                  aspectRatio: 1,
+                  aspectRatio: 1.2,
                   child: SemiDial(
                     bpm: displayBpm,
                     maxHr: maxHrTheoretical,
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 0),
                 Text(
                   elapsedText, 
                   textAlign: TextAlign.center,
@@ -305,7 +323,7 @@ class _DialPageState extends State<HeartratedialScreen> {
                     letterSpacing: 1.0,
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 18),
 
                 Container(
                   width: double.infinity,
@@ -321,16 +339,16 @@ class _DialPageState extends State<HeartratedialScreen> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
                   ),
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 18),
 
                 Row(
                   children: [
-                    Expanded(child: _InfoCard(title: 'Max HR', value: '$_sessionMaxHr bpm', color: zoneColor,)),
+                    Expanded(child: _InfoCard(title: 'Max HR', value: '$_sessionMaxHr bpm', color: zoneColorMax,)),
                     const SizedBox(width: 12),
-                    Expanded(child: _InfoCard(title: 'Avg HR', value: '${_avgHrLive} bpm', color: zoneColor,)),
+                    Expanded(child: _InfoCard(title: 'Avg HR', value: '${_avgHrLive} bpm', color: zoneColorAvg,)),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 30),
 
                 // end session button
                 SizedBox(
@@ -393,7 +411,7 @@ class _DialPageState extends State<HeartratedialScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
 
                 // bpm slider
                 Column(
@@ -405,10 +423,12 @@ class _DialPageState extends State<HeartratedialScreen> {
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                     Slider(
-                      value: sliderBpm.toDouble(),
-                      min: 40,
+                      value: safeSliderBpm.toDouble(), 
+                      min: minBpm.toDouble(),
                       max: maxHrTheoretical.toDouble(),
-                      divisions: maxHrTheoretical,
+                      divisions: (maxHrTheoretical - minBpm) > 0
+                          ? (maxHrTheoretical - minBpm)
+                          : null,
                       label: '$sliderBpm',
                       onChanged: useBle
                           ? null

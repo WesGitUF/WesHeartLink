@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "1081142475806",
-    "project_id": "shanhrtest",
-    "storage_bucket": "shanhrtest.firebasestorage.app"
+    "project_number": "106073814804",
+    "project_id": "heartlink-74a85",
+    "storage_bucket": "heartlink-74a85.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1081142475806:android:2390528399e33c41f1820f",
+        "mobilesdk_app_id": "1:106073814804:android:d6dae3bfe2bc35474a7401",
         "android_client_info": {
           "package_name": "com.example.heart_link_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "106073814804-9m71nsncehs9s4j5uqbt3urvi3u79lb4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.heart_link_app",
+            "certificate_hash": "9517c824f01e17abed0e1e2601dc1f8f57c6199d"
+          }
+        },
+        {
+          "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyAHRfq4eJbfBs3cVkvt2zFlzmG8rn7hi7k"
+          "current_key": "AIzaSyDjcdoWkcE2GN1FVy53S5JU8zXDMzHnUbI"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

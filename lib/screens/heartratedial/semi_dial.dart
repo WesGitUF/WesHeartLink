@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 // heart rate zone segment for dial
 class HrZone {
-  final double start; 
-  final double end;  
+  final double start; // 0..1 on the dial
+  final double end;   // 0..1 on the dial
   final Color color;
   HrZone(this.start, this.end, this.color);
 }
@@ -30,75 +30,111 @@ class SemiDial extends StatefulWidget {
 }
 
 // handle animation and mapping to zones
-class _SemiDialState extends State<SemiDial> with SingleTickerProviderStateMixin {
-  late AnimationController _beat; 
-  late Animation<double> _scale; 
+class _SemiDialState extends State<SemiDial>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _beat;
+  late Animation<double> _scale;
 
   final List<double> _physStops = [0.40, 0.65, 0.80, 0.89, 0.95, 1.00];
-
-  // visual zone percentage:
-  final List<double> _visualStops = [0.00, 0.40, 0.55, 0.70, 0.85, 1.00];
-
-  // visual zones with colors
-  late final List<HrZone> _zonesVisual = <HrZone>[
-    HrZone(0.00, 0.40, const Color(0xFF666A70)), 
-    HrZone(0.40, 0.55, const Color(0xFF2F6BDA)), 
-    HrZone(0.55, 0.70, const Color(0xFF66B35B)), 
-    HrZone(0.70, 0.85, const Color(0xFFF3A43B)), 
-    HrZone(0.85, 1.00, const Color(0xFFE25353)), 
-  ];
 
   // face by zone index
   ({String emoji, double scale}) _emojiForZone(int idx) {
     switch (idx) {
-      case 0: return (emoji: '😊', scale: 1.4);
-      case 1: return (emoji: '😐', scale: 1.4);
-      case 2: return (emoji: '😫', scale: 1.4);
-      case 3: return (emoji: '🥵', scale: 1.4);
-      default: return (emoji: '🤮', scale: 1.4);
+      case 0:
+        return (emoji: '😊', scale: 1.4);
+      case 1:
+        return (emoji: '😐', scale: 1.4);
+      case 2:
+        return (emoji: '😫', scale: 1.4);
+      case 3:
+        return (emoji: '🥵', scale: 1.4);
+      default:
+        return (emoji: '🤮', scale: 1.4);
     }
   }
 
   // active color by zone index
   Color _activeColorFor(int zoneIndex) {
     switch (zoneIndex) {
-      case 0: return const Color(0xFF666A70); 
-      case 1: return const Color(0xFF2F6BDA);
-      case 2: return const Color(0xFF66B35B); 
-      case 3: return const Color(0xFFF3A43B); 
-      default: return const Color(0xFFE25353); 
+      case 0:
+        return const Color(0xFF666A70);
+      case 1:
+        return const Color(0xFF2F6BDA);
+      case 2:
+        return const Color(0xFF66B35B);
+      case 3:
+        return const Color(0xFFF3A43B);
+      default:
+        return const Color(0xFFE25353);
     }
   }
 
+  // color by index
+  Color _zoneColorByIndex(int i) {
+    switch (i) {
+      case 0:
+        return const Color(0xFF666A70); // 40–65%
+      case 1:
+        return const Color(0xFF2F6BDA); // 65–80%
+      case 2:
+        return const Color(0xFF66B35B); // 80–89%
+      case 3:
+        return const Color(0xFFF3A43B); // 89–95%
+      default:
+        return const Color(0xFFE25353); // 95–100%
+    }
+  }
+
+  double _toVisual(double physFraction) {
+    const double pMin = 0.40; 
+    const double range = 1.0 - pMin; 
+    final double v = (physFraction - pMin) / range;
+    return v.clamp(0.0, 1.0);
+  }
+
+  List<HrZone> get _zonesVisual {
+    final List<HrZone> out = [];
+    for (int i = 0; i < _physStops.length - 1; i++) {
+      final double physStart = _physStops[i];
+      final double physEnd = _physStops[i + 1];
+
+      final double visStart = _toVisual(physStart);
+      final double visEnd = _toVisual(physEnd);
+
+      out.add(HrZone(visStart, visEnd, _zoneColorByIndex(i)));
+    }
+    return out;
+  }
+
   @override
-  @override
-void initState() {
-  super.initState();
-  // 1. create AnimationController
-  _beat = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 800),
-  );
-  // 2. repeat the animation
-  _beat.repeat(reverse: true);
-  // 3. create a Tween：0.95 → 1.10
-  final Tween<double> scaleTween = Tween<double>(
-    begin: 0.95,
-    end: 1.10,
-  );
-  // 4.create a CurveTween 
-  final CurveTween curveTween = CurveTween(
-    curve: Curves.easeInOut,
-  );
-  // 5. chain the two curve
-  final Animatable<double> combinedTween = scaleTween.chain(curveTween);
-  _scale = combinedTween.animate(_beat);
-}
+  void initState() {
+    super.initState();
+    // 1. create AnimationController
+    _beat = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    // 2. repeat the animation
+    _beat.repeat(reverse: true);
+    // 3. create a Tween：0.95 → 1.10
+    final Tween<double> scaleTween = Tween<double>(
+      begin: 0.95,
+      end: 1.10,
+    );
+    // 4.create a CurveTween
+    final CurveTween curveTween = CurveTween(
+      curve: Curves.easeInOut,
+    );
+    // 5. chain the two curve
+    final Animatable<double> combinedTween = scaleTween.chain(curveTween);
+    _scale = combinedTween.animate(_beat);
+  }
 
   @override
   void didUpdateWidget(covariant SemiDial oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final bpm = widget.bpm.clamp(40, 200);
+    final minBpm = (widget.maxHr * 0.40).round();
+    final bpm = widget.bpm.clamp(minBpm, widget.maxHr);
     final ms = (60000 / bpm).round();
     if (_beat.duration!.inMilliseconds != ms) {
       _beat.duration = Duration(milliseconds: ms);
@@ -112,47 +148,23 @@ void initState() {
     super.dispose();
   }
 
-  // accurate percentage to zone index
+  // accurate percentage to zone index（用“真实百分比”判断区间）
   int _zoneIndexFromPhysPct(double p) {
     if (p < 0.65) return 0;
     if (p < 0.80) return 1;
     if (p < 0.89) return 2;
     if (p < 0.95) return 3;
-    return 4; 
+    return 4;
   }
-
-double _mapPhysToVisual(double physPct) {
-  final double pMin = 40.0 / widget.maxHr;                
-  final double denom = (1.0 - pMin).clamp(0.0001, 1.0);    
-  final double q = ((physPct - pMin) / denom).clamp(0.0, 1.0);
-
-  final List<double> ps = <double>[
-    0.00,
-    ((0.65 - pMin) / denom).clamp(0.0, 1.0),
-    ((0.80 - pMin) / denom).clamp(0.0, 1.0),
-    ((0.89 - pMin) / denom).clamp(0.0, 1.0),
-    ((0.95 - pMin) / denom).clamp(0.0, 1.0),
-    1.00,
-  ];
-  final vs = _visualStops; 
-
-  for (int i = 0; i < vs.length - 1; i++) {
-    final p0 = ps[i], p1 = ps[i + 1];
-    final v0 = vs[i], v1 = vs[i + 1];
-    if (q <= p1 || i == vs.length - 2) {
-      final t = ((q - p0) / (p1 - p0)).clamp(0.0, 1.0);
-      return v0 + t * (v1 - v0);
-    }
-  }
-  return 1.0;
-}
 
   @override
   Widget build(BuildContext context) {
-    final physPct = (widget.bpm / widget.maxHr).clamp(0, 1).toDouble();
-    final visualPct = _mapPhysToVisual(physPct);
-    final zoneIndex = _zoneIndexFromPhysPct(physPct);
-    final active = _activeColorFor(zoneIndex);
+    final double physPct =
+        (widget.maxHr > 0) ? (widget.bpm / widget.maxHr) : 0.0;
+    final double physPctClamped = physPct.clamp(0.0, 1.0);
+    final double visualPct = _toVisual(physPctClamped);
+    final int zoneIndex = _zoneIndexFromPhysPct(physPctClamped);
+    final Color active = _activeColorFor(zoneIndex);
     final face = _emojiForZone(zoneIndex);
 
     return LayoutBuilder(
@@ -163,9 +175,9 @@ double _mapPhysToVisual(double physPct) {
           height: size,
           child: CustomPaint(
             painter: _SemiDialPainter(
-              zones: _zonesVisual,         
-              visualPct: visualPct,        
-              physZoneIndex: zoneIndex,   
+              zones: _zonesVisual,
+              visualPct: visualPct,
+              physZoneIndex: zoneIndex,
               trackWidth: widget.trackWidth,
               progressWidth: widget.progressWidth,
               activeColor: active,
@@ -224,9 +236,9 @@ double _mapPhysToVisual(double physPct) {
 
 // painter for the semi-dial
 class _SemiDialPainter extends CustomPainter {
-  final List<HrZone> zones;     
-  final double visualPct;       
-  final int physZoneIndex;      
+  final List<HrZone> zones;
+  final double visualPct;
+  final int physZoneIndex;
   final double trackWidth;
   final double progressWidth;
   final Color activeColor;
@@ -244,8 +256,8 @@ class _SemiDialPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height * 0.62);
     final radius = size.width * 0.38;
-    const startAngle = math.pi;      // left
-    const sweepTotal = math.pi;      // half circle
+    const startAngle = math.pi; // left
+    const sweepTotal = math.pi; // half circle
 
     final arcRect = Rect.fromCircle(center: center, radius: radius);
 
@@ -281,7 +293,7 @@ class _SemiDialPainter extends CustomPainter {
 
     // Draw Roman numerals for zones
     const romans = ['I', 'II', 'III', 'IV', 'V'];
-    final labelRadius = radius; 
+    final labelRadius = radius;
 
     for (int i = 0; i < zones.length; i++) {
       final z = zones[i];
@@ -313,17 +325,17 @@ class _SemiDialPainter extends CustomPainter {
     // Draw outer inverted triangle pointer
     final needleAngle = startAngle + sweepTotal * visualPct;
     final outerEdgeR = radius + trackWidth * 0.5;
-    const gapOut = 5.0;  // distance outside the arc
+    const gapOut = 5.0; // distance outside the arc
     final tipR = outerEdgeR + gapOut;
 
     const markerW = 20.0;
     const markerH = 16.0;
 
-    final u = Offset(math.cos(needleAngle), math.sin(needleAngle));        // radial
-    final v = Offset(-math.sin(needleAngle), math.cos(needleAngle));       // tangent
+    final u = Offset(math.cos(needleAngle), math.sin(needleAngle)); // radial
+    final v = Offset(-math.sin(needleAngle), math.cos(needleAngle)); // tangent
 
     final tip = Offset(center.dx + tipR * u.dx, center.dy + tipR * u.dy);
-    final baseCenter = tip + u * markerH;    
+    final baseCenter = tip + u * markerH;
 
     final p1 = baseCenter + v * (markerW / 2);
     final p2 = baseCenter - v * (markerW / 2);
@@ -342,7 +354,7 @@ class _SemiDialPainter extends CustomPainter {
     tri.lineTo(p1.dx, p1.dy);
     tri.lineTo(p2.dx, p2.dy);
     tri.close();
-    
+
     canvas.drawPath(tri, outline);
     canvas.drawPath(tri, fill);
   }
