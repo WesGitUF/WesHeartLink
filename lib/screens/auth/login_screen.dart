@@ -17,29 +17,32 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Sign In')),
       body: Center(
-        child: _isLoading
-            ? const CircularProgressIndicator()
-            : ElevatedButton(
-                onPressed: () async {
-                  setState(() => _isLoading = true);
-                  try {
-                    // Hardcoded credentials
-                    User? user = await _authService.signInWithEmail(
-                      "email@email.com",
-                      "password",
-                    );
-                    if (user != null) {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    }
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
-                  }
-                  setState(() => _isLoading = false);
-                },
-                child: const Text('Sign In with Hardcoded Credentials'),
-              ),
+        // child: _isLoading
+        //     ? const CircularProgressIndicator()
+        //     : ElevatedButton(
+        //         onPressed: () async {
+        //         setState(() => _isLoading = true);
+        //         try {
+        //           final user = await _authService.signInWithEmail(_email, _password);
+        //           if (user != null) {
+        //             // Optional: seed only for your test email
+        //             if ((user.email ?? '').toLowerCase() == 'email@email.com') {
+        //               await _authService.updateProfileData(
+        //                 user,
+        //                 name: 'Ethan Willis',
+        //                 age: 21
+        //               );
+        //             }
+        //             Navigator.pushReplacementNamed(context, '/home');
+        //           }
+        //         } catch (e) {
+        //           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        //         } finally {
+        //           setState(() => _isLoading = false);
+        //         }
+        //       },
+        //         child: const Text('Sign In with Hardcoded Credentials'),
+        //       ),
       ),
     );
   }
