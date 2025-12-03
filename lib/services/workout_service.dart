@@ -28,6 +28,19 @@ class WorkoutService {
         .add(data);
   }
 
+  // ADD THIS METHOD
+  Future<void> deleteEntry(String docId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('workout')
+        .doc(docId)
+        .delete();
+  }
+
   Future<List<HistoryEntry>> loadEntriesForCurrentUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return [];
@@ -57,7 +70,12 @@ class WorkoutService {
       final series =
           rawSeries.map((e) => (e as num).toInt()).toList();
 
-      return HistoryEntry(workout: workout, series: series);
+      // IMPORTANT: Pass the document ID so we can delete it later
+      return HistoryEntry(
+        workout: workout, 
+        series: series,
+        docId: doc.id,  // ADD THIS LINE
+      );
     }).toList();
   }
 }

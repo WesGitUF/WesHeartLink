@@ -157,7 +157,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  // single workout tile
+  // single workout tile with delete button
   Widget _workoutTile(BuildContext context, HistoryEntry entry) {
     final w = entry.workout;
     final c = _colorFor(context, w.type);
@@ -165,14 +165,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     final titleColor = scheme.onSurface;
     final subColor = scheme.onSurfaceVariant;
-    final maxChipWidth = MediaQuery.of(context).size.width * 0.50;
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: CircleAvatar(
           radius: 22,
           backgroundColor: c.withOpacity(0.12),
@@ -186,38 +184,76 @@ class _HistoryScreenState extends State<HistoryScreen> {
             color: titleColor,
           ),
         ),
-        subtitle: Text(
-          _hm(w.start),
-          style: TextStyle(color: subColor),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _hm(w.start),
+              style: TextStyle(color: subColor),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                _pill(
+                  icon: Icons.favorite_rounded,
+                  label: 'Avg',
+                  value: '${w.avgHr} bpm',
+                  color: const Color.fromARGB(255, 160, 52, 52),
+                ),
+                _pill(
+                  icon: Icons.timer_rounded,
+                  label: 'time',
+                  value: _fmt(w.duration),
+                  color: Colors.blueGrey,
+                ),
+              ],
+            ),
+          ],
         ),
-        trailing: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxChipWidth),
-          child: Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            alignment: WrapAlignment.end,
-            children: [
-              _pill(
-                icon: Icons.favorite_rounded,
-                label: 'Avg',
-                value: '${w.avgHr} bpm',
-                color: const Color.fromARGB(255, 160, 52, 52),
-              ),
-              _pill(
-                icon: Icons.timer_rounded,
-                label: 'time',
-                value: _fmt(w.duration),
-                color: Colors.blueGrey,
-              ),
-            ],
-          ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.red),
+          onPressed: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (BuildContext dialogContext) {
+                return AlertDialog(
+                  title: const Text('Delete Workout?'),
+                  content: const Text('Are you sure you want to delete this workout? This cannot be undone.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(true),
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                );
+              },
+            );
+            
+            if (confirm == true) {
+              await HistoryRepo.instance.delete(entry);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${w.type} workout deleted'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            }
+          },
         ),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => WorkoutDetailScreen(
                 workout: w,
-                series: entry.series, 
+                series: entry.series,
               ),
             ),
           );
@@ -234,7 +270,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(999),
@@ -249,21 +285,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 6),
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
           Text(
             value,
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               color: color,
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           Text(
             label,
-            style:
-                TextStyle(fontSize: 11, color: color.withOpacity(0.9)),
+            style: TextStyle(fontSize: 10, color: color.withOpacity(0.9)),
           ),
         ],
       ),

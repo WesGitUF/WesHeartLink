@@ -357,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // Exercise record chart
               const SizedBox(height: 24),
+              
               _ExerciseRecord(
                 data: _isLoadingWorkout ? [] : weeklyChartData,
                 maxHr: chartMaxHr,

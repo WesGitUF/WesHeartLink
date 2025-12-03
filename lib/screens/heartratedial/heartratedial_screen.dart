@@ -31,6 +31,9 @@ class _DialPageState extends State<HeartratedialScreen> {
   double? userWeight;
   String? userGender;
 
+  // Track if workout is simulated (slider) or real (BLE)
+  bool _isSimulatedWorkout = false;
+
   // session type
   String _activity = 'Running';
 
@@ -51,30 +54,31 @@ class _DialPageState extends State<HeartratedialScreen> {
 
   // user profile(user infomation)
   Future<void> _loadUserInfo() async {
-  final userInfo = await _userInfoService.loadCurrentUserProfile();
-  if (!mounted) return;
+    final userInfo = await _userInfoService.loadCurrentUserProfile();
+    if (!mounted) return;
 
-  if (userInfo != null) {
-    setState(() {
-      userAge    = (userInfo['age'] as num?)?.toInt();
-      userWeight = (userInfo['weight'] as num?)?.toDouble();
-      userGender = userInfo['gender'] as String?;
-    });
+    if (userInfo != null) {
+      setState(() {
+        userAge    = (userInfo['age'] as num?)?.toInt();
+        userWeight = (userInfo['weight'] as num?)?.toDouble();
+        userGender = userInfo['gender'] as String?;
+      });
 
-    debugPrint('Loaded user info: age=$userAge weight=$userWeight gender=$userGender');
-  } else {
-    debugPrint('No user profile found in Firestore');
+      debugPrint('Loaded user info: age=$userAge weight=$userWeight gender=$userGender');
+    } else {
+      debugPrint('No user profile found in Firestore');
+    }
   }
-}
 
   // ingest a new heart rate reading
-  void _ingestReading(int bpm) {
+  void _ingestReading(int bpm, {bool fromSlider = false}) {
     if (bpm <= 0) return;
     if (_isPaused) return;
     if (!_hasStarted) {
       _hasStarted = true;
       _sessionStart = DateTime.now();
       hrState.setSessionActive(true);
+      _isSimulatedWorkout = fromSlider; // Track if this is simulated
     }
     _sumHr += bpm;
     _timesHr++;
@@ -141,7 +145,7 @@ class _DialPageState extends State<HeartratedialScreen> {
             setState(() {
               liveBpm = hr;
               useBle = true;
-              _ingestReading(hr); // ingest new reading
+              _ingestReading(hr, fromSlider: false); // Mark as real workout
             });
             _bpmLog.add(hr); // log bpm reading
           }
@@ -238,14 +242,14 @@ class _DialPageState extends State<HeartratedialScreen> {
   }
   
   Color _zoneColor(int idx) {
-  switch (idx) {
-    case 0: return const Color(0xFF666A70); 
-    case 1: return const Color(0xFF2F6BDA);
-    case 2: return const Color(0xFF66B35B); 
-    case 3: return const Color(0xFFF3A43B); 
-    default: return const Color(0xFFE25353); 
+    switch (idx) {
+      case 0: return const Color(0xFF666A70); 
+      case 1: return const Color(0xFF2F6BDA);
+      case 2: return const Color(0xFF66B35B); 
+      case 3: return const Color(0xFFF3A43B); 
+      default: return const Color(0xFFE25353); 
+    }
   }
-}
 
   String _zoneMessage(int idx) {
     switch (idx) {
@@ -277,24 +281,24 @@ class _DialPageState extends State<HeartratedialScreen> {
   }
 
   void _Pause() {
-  setState(() {
-    if (!_hasStarted) {
-      _hasStarted = true;
-      _isPaused = false;
-      _elapsedBeforePause = Duration.zero;
-      _sessionStart = DateTime.now();
-    } 
-    else if (_isPaused) {
-      _isPaused = false;
-      _sessionStart = DateTime.now();  
-    } 
-    else {
-      _elapsedBeforePause += DateTime.now().difference(_sessionStart);
-      _isPaused = true;
-    }
-  });
-  _saveActiveWorkout();
-}
+    setState(() {
+      if (!_hasStarted) {
+        _hasStarted = true;
+        _isPaused = false;
+        _elapsedBeforePause = Duration.zero;
+        _sessionStart = DateTime.now();
+      } 
+      else if (_isPaused) {
+        _isPaused = false;
+        _sessionStart = DateTime.now();  
+      } 
+      else {
+        _elapsedBeforePause += DateTime.now().difference(_sessionStart);
+        _isPaused = true;
+      }
+    });
+    _saveActiveWorkout();
+  }
 
   Future<void> _saveActiveWorkout() async {
     if (!_hasStarted) return;
@@ -391,13 +395,13 @@ class _DialPageState extends State<HeartratedialScreen> {
                         color: Color.fromARGB(0, 0, 0, 0),
                       ),
                       child: IconButton(
-                      icon: Icon(
-                        (!_hasStarted || _isPaused) ? Icons.play_arrow : Icons.pause,
-                        color: Colors.white,
-                        size: 53,
+                        icon: Icon(
+                          (!_hasStarted || _isPaused) ? Icons.play_arrow : Icons.pause,
+                          color: Colors.white,
+                          size: 53,
+                        ),
+                        onPressed: _hasStarted ? _Pause : null,
                       ),
-                      onPressed: _hasStarted ? _Pause : null,
-                    ),
                     ),
                   ],
                 ),
@@ -450,76 +454,83 @@ class _DialPageState extends State<HeartratedialScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          barrierDismissible: false, 
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text("End Session"),
-                              content: const Text("Are you sure you want to end your session?"),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false), 
-                                  child: const Text("No"),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(true), 
-                                  child: const Text("Yes"),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                        if (confirm != true) return;
-                        try {
-                          final elapsed = _hasStarted
-                              ? (_elapsedBeforePause +
-                                  (_isPaused ? Duration.zero : DateTime.now().difference(_sessionStart)))
-                              : Duration.zero;
-
-                          final avg = _avgHrLive;
-                          final kcal = _Caloriescal(
-                            agvHr: avg,
-                            age: userAge ?? 0,
-                            weight: userWeight ?? 0.0,
-                            gender: userGender ?? 'female',
-                            duration: elapsed,
-                          );
-
-                          _hrSub?.cancel();
-                          _conn?.cancel();
-
-                          final workout = Workout(
-                            type: _activity,
-                            start: _sessionStart,
-                            duration: elapsed,
-                            avgHr: avg,
-                            calories: kcal,
-                          );
-
-                          // write to local and Firestore
-                          await HistoryRepo.instance.add(workout, _bpmLog);
-                    
-                          hrState.setSessionActive(false);
-                          await ActiveWorkoutStore.clear();
-                          
-                          if (!mounted) return;
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => WorkoutDetailScreen(
-                                workout: workout,
-                                series: List<int>.from(_bpmLog),
+                      // Show confirmation dialog
+                      final bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('End Workout?'),
+                            content: Text(_isSimulatedWorkout 
+                                ? 'This is a simulated workout. It will not be saved to history.'
+                                : 'Are you sure you want to end this workout session?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Cancel'),
                               ),
-                            ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: Text(_isSimulatedWorkout ? 'End' : 'End Workout'),
+                              ),
+                            ],
                           );
-                        } catch (e, st) {
-                          debugPrint('End session error: $e\n$st');
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Failed to save workout: $e')),
-                          );
+                        },
+                      );
+
+                      // If user didn't confirm, return early
+                      if (confirm != true) return;
+
+                      try {
+                        final elapsed = _hasStarted
+                            ? (_elapsedBeforePause +
+                                (_isPaused ? Duration.zero : DateTime.now().difference(_sessionStart)))
+                            : Duration.zero;
+
+                        final avg = _avgHrLive;
+                        final kcal = _Caloriescal(
+                          agvHr: avg,
+                          age: userAge ?? 0,
+                          weight: userWeight ?? 0.0,
+                          gender: userGender ?? 'female',
+                          duration: elapsed,
+                        );
+
+                        _hrSub?.cancel();
+                        _conn?.cancel();
+
+                        final workout = Workout(
+                          type: _activity,
+                          start: _sessionStart,
+                          duration: elapsed,
+                          avgHr: avg,
+                          calories: kcal,
+                        );
+
+                        // Only save to history if it's NOT a simulated workout
+                        if (!_isSimulatedWorkout) {
+                          await HistoryRepo.instance.add(workout, _bpmLog);
                         }
-                      },
+                        
+                        hrState.setSessionActive(false);
+                        await ActiveWorkoutStore.clear();
+                        
+                        if (!mounted) return;
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (_) => WorkoutDetailScreen(
+                              workout: workout,
+                              series: List<int>.from(_bpmLog),
+                            ),
+                          ),
+                        );
+                      } catch (e, st) {
+                        debugPrint('End session error: $e\n$st');
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to save workout: $e')),
+                        );
+                      }
+                    },
                     child: const Text(
                       'End Session',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
@@ -550,7 +561,7 @@ class _DialPageState extends State<HeartratedialScreen> {
                           : (v) => setState(() {
                               sliderBpm = v.round();
                               _bpmLog.add(sliderBpm);
-                              _ingestReading(sliderBpm);
+                              _ingestReading(sliderBpm, fromSlider: true); // Mark as simulated
                             }),
                     ),
                     if (useBle)
@@ -558,6 +569,12 @@ class _DialPageState extends State<HeartratedialScreen> {
                         'Using BLE live data — slider disabled',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 12, color: Colors.grey),
+                      )
+                    else
+                      const Text(
+                        'Simulated workout — will not be saved to history',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12, color: Colors.orange),
                       ),
                   ],
                 ),

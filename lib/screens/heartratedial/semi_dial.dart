@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-// heart rate zone segment for dial
+// heart rate zone segment for dial (visual 0..1)
 class HrZone {
   final double start; // 0..1 on the dial
   final double end;   // 0..1 on the dial
@@ -29,12 +29,13 @@ class SemiDial extends StatefulWidget {
   State<SemiDial> createState() => _SemiDialState();
 }
 
-// handle animation and mapping to zones
+
 class _SemiDialState extends State<SemiDial>
     with SingleTickerProviderStateMixin {
   late AnimationController _beat;
   late Animation<double> _scale;
 
+  // Physical zone breakpoints (40–65–80–89–95–100%)
   final List<double> _physStops = [0.40, 0.65, 0.80, 0.89, 0.95, 1.00];
 
   // face by zone index
@@ -69,7 +70,7 @@ class _SemiDialState extends State<SemiDial>
     }
   }
 
-  // color by index
+  // full-color band color by index
   Color _zoneColorByIndex(int i) {
     switch (i) {
       case 0:
@@ -85,13 +86,15 @@ class _SemiDialState extends State<SemiDial>
     }
   }
 
+  /// Map real % (0.40–1.0) into visual 0–1 along the dial
   double _toVisual(double physFraction) {
-    const double pMin = 0.40; 
-    const double range = 1.0 - pMin; 
+    const double pMin = 0.40;
+    const double range = 1.0 - pMin;
     final double v = (physFraction - pMin) / range;
     return v.clamp(0.0, 1.0);
   }
 
+  /// Same zone segmentation as Tongshan, but used for Maria-style arcs
   List<HrZone> get _zonesVisual {
     final List<HrZone> out = [];
     for (int i = 0; i < _physStops.length - 1; i++) {
@@ -109,23 +112,21 @@ class _SemiDialState extends State<SemiDial>
   @override
   void initState() {
     super.initState();
-    // 1. create AnimationController
     _beat = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    // 2. repeat the animation
     _beat.repeat(reverse: true);
-    // 3. create a Tween：0.95 → 1.10
+
     final Tween<double> scaleTween = Tween<double>(
       begin: 0.95,
       end: 1.10,
     );
-    // 4.create a CurveTween
+
     final CurveTween curveTween = CurveTween(
       curve: Curves.easeInOut,
     );
-    // 5. chain the two curve
+
     final Animatable<double> combinedTween = scaleTween.chain(curveTween);
     _scale = combinedTween.animate(_beat);
   }
@@ -133,6 +134,7 @@ class _SemiDialState extends State<SemiDial>
   @override
   void didUpdateWidget(covariant SemiDial oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // keep same 40% baseline animation logic
     final minBpm = (widget.maxHr * 0.40).round();
     final bpm = widget.bpm.clamp(minBpm, widget.maxHr);
     final ms = (60000 / bpm).round();
@@ -148,7 +150,7 @@ class _SemiDialState extends State<SemiDial>
     super.dispose();
   }
 
-  // accurate percentage to zone index（用“真实百分比”判断区间）
+  // Accurate percentage → zone index
   int _zoneIndexFromPhysPct(double p) {
     if (p < 0.65) return 0;
     if (p < 0.80) return 1;
@@ -169,7 +171,9 @@ class _SemiDialState extends State<SemiDial>
 
     return LayoutBuilder(
       builder: (context, c) {
-        final size = math.min(c.maxWidth, c.maxHeight);
+        // slightly smaller dial so it doesn’t overflow
+        final size = math.min(c.maxWidth, c.maxHeight) * 0.95;
+
         return SizedBox(
           width: size,
           height: size,
@@ -184,11 +188,12 @@ class _SemiDialState extends State<SemiDial>
             ),
             child: Center(
               child: Padding(
-                padding: EdgeInsets.only(top: size * 0.06),
+                // move content up a bit like your original design
+                padding: EdgeInsets.only(top: size * 0.08),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    //heart-beat scaling emoji
+                    // heart-beat scaling emoji
                     ScaleTransition(
                       scale: _scale,
                       child: AnimatedSwitcher(
@@ -197,7 +202,7 @@ class _SemiDialState extends State<SemiDial>
                             FadeTransition(opacity: anim, child: child),
                         child: Text(
                           face.emoji,
-                          key: ValueKey(zoneIndex), // swap when zone changes
+                          key: ValueKey(zoneIndex),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: size * 0.16 * face.scale,
@@ -214,13 +219,13 @@ class _SemiDialState extends State<SemiDial>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: size * 0.03),
                     Text(
                       '${widget.bpm} BPM',
                       style: TextStyle(
-                        fontSize: size * 0.10,
+                        fontSize: size * 0.13,
                         fontWeight: FontWeight.w700,
-                        color: const Color.fromARGB(255, 222, 216, 216),
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -234,7 +239,7 @@ class _SemiDialState extends State<SemiDial>
   }
 }
 
-// painter for the semi-dial
+// Maria-style painter but using Tongshan’s mapping + zones
 class _SemiDialPainter extends CustomPainter {
   final List<HrZone> zones;
   final double visualPct;
@@ -254,109 +259,56 @@ class _SemiDialPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.67);
-    final radius = size.width * 0.40;
-    const startAngle = math.pi; // left
-    const sweepTotal = math.pi; // half circle
+    final double w = size.width;
+    final double h = size.height;
 
-    final arcRect = Rect.fromCircle(center: center, radius: radius);
+    // Center + radius close to your original dial
+    final center = Offset(w / 2, h * 0.52);
+    final radius = math.min(w, h) * 0.95;
 
-    // Draw zone tracks
-    final Paint trackPaint = Paint();
-    trackPaint.style = PaintingStyle.stroke;
-    trackPaint.strokeCap = StrokeCap.butt;
-    trackPaint.strokeWidth = trackWidth;
-    const double eps = 0.006;
+    // Slightly more than a half-circle, like your first design
+    const startAngle = math.pi + (math.pi / 10);      // ~198°
+    const sweepTotal = 11 * math.pi / 10;             // ~198°
+
+    final Rect arcRect =
+        Rect.fromCircle(center: center, radius: radius / 2);
+
+    // Background arc (thin grey outline behind colors)
+    final Paint bg = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = trackWidth
+      ..color = Colors.white10
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(arcRect, startAngle, sweepTotal, false, bg);
+
+    // Colored zone bands (grey → blue → green → yellow → red)
+    final Paint zonePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = trackWidth
+      ..strokeCap = StrokeCap.butt;
 
     for (final z in zones) {
-      double a0 = startAngle + sweepTotal * z.start - eps;
-      double a1 = startAngle + sweepTotal * z.end + eps;
-      final minA = startAngle, maxA = startAngle + sweepTotal;
-      a0 = a0.clamp(minA, maxA);
-      a1 = a1.clamp(minA, maxA);
-      final sweep = (a1 - a0).clamp(0.0, sweepTotal);
-      if (sweep <= 0) continue;
-      trackPaint.color = z.color;
-      canvas.drawArc(arcRect, a0, sweep, false, trackPaint);
+      final double s = startAngle + sweepTotal * z.start;
+      final double sw = sweepTotal * (z.end - z.start);
+      if (sw <= 0) continue;
+      zonePaint.color = z.color;
+      canvas.drawArc(arcRect, s, sw, false, zonePaint);
     }
 
-    // Draw progress arc in activeColor
-    final Paint progressPaint = Paint();
-    progressPaint.style = PaintingStyle.stroke;
-    progressPaint.strokeCap = StrokeCap.butt;
-    progressPaint.strokeWidth = progressWidth;
-    progressPaint.color = activeColor;
-    final progressSweep = sweepTotal * visualPct;
-    if (progressSweep > 0) {
-      canvas.drawArc(arcRect, startAngle, progressSweep, false, progressPaint);
-    }
+    // Simple white needle (like your original)
+    final double needleAngle = startAngle + sweepTotal * visualPct;
+    final double needleLen = radius / 2 + 40;
 
-    // Draw Roman numerals for zones
-    const romans = ['I', 'II', 'III', 'IV', 'V'];
-    final labelRadius = radius;
+    final Paint needlePaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
 
-    for (int i = 0; i < zones.length; i++) {
-      final z = zones[i];
-      // middle angle of this zone
-      final mid = startAngle + sweepTotal * ((z.start + z.end) / 2);
-      final pos = Offset(
-        center.dx + labelRadius * math.cos(mid),
-        center.dy + labelRadius * math.sin(mid),
-      );
-      final lum = z.color.computeLuminance();
-      final textColor = lum > 0.6 ? Colors.black87 : Colors.white;
+    final Offset needleEnd = center +
+        Offset(math.cos(needleAngle), math.sin(needleAngle)) * needleLen;
 
-      final tp = TextPainter(
-        text: TextSpan(
-          text: romans[i],
-          style: TextStyle(
-            color: textColor,
-            fontSize: trackWidth * 0.35,
-            fontWeight: FontWeight.w700,
-            shadows: const [Shadow(blurRadius: 2, color: Colors.black26)],
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
-    }
-
-    // Draw outer inverted triangle pointer
-    final needleAngle = startAngle + sweepTotal * visualPct;
-    final outerEdgeR = radius + trackWidth * 0.5;
-    const gapOut = 5.0; // distance outside the arc
-    final tipR = outerEdgeR + gapOut;
-
-    const markerW = 20.0;
-    const markerH = 16.0;
-
-    final u = Offset(math.cos(needleAngle), math.sin(needleAngle)); // radial
-    final v = Offset(-math.sin(needleAngle), math.cos(needleAngle)); // tangent
-
-    final tip = Offset(center.dx + tipR * u.dx, center.dy + tipR * u.dy);
-    final baseCenter = tip + u * markerH;
-
-    final p1 = baseCenter + v * (markerW / 2);
-    final p2 = baseCenter - v * (markerW / 2);
-
-    final Paint outline = Paint();
-    outline.style = PaintingStyle.stroke;
-    outline.strokeWidth = 1.5;
-    outline.color = Colors.black.withOpacity(0.20);
-
-    final Paint fill = Paint();
-    fill.style = PaintingStyle.fill;
-    fill.color = activeColor;
-
-    final Path tri = Path();
-    tri.moveTo(tip.dx, tip.dy);
-    tri.lineTo(p1.dx, p1.dy);
-    tri.lineTo(p2.dx, p2.dy);
-    tri.close();
-
-    canvas.drawPath(tri, outline);
-    canvas.drawPath(tri, fill);
+    canvas.drawLine(center, needleEnd, needlePaint);
   }
 
   @override
@@ -369,3 +321,4 @@ class _SemiDialPainter extends CustomPainter {
         physZoneIndex != old.physZoneIndex;
   }
 }
+
