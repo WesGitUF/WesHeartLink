@@ -18,6 +18,16 @@ class HrState extends ChangeNotifier {
     return (208 - 0.7 * a).round();
   }
 
+  // check if there are session working 
+  bool _sessionActive = false;
+  bool get sessionActive => _sessionActive;
+
+  void setSessionActive(bool active) {
+    if (_sessionActive == active) return;
+    _sessionActive = active;
+    notifyListeners();
+  }
+
   // load saved hr setting from local storage
   Future<void> load() async {
     final sp = await SharedPreferences.getInstance();

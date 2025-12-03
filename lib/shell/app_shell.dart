@@ -5,6 +5,7 @@ import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
+import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -86,12 +87,21 @@ class _AppShellState extends State<AppShell> {
       ),
       // floating action button
       floatingActionButton: FloatingActionButton(
-        // open session selection flow
-        onPressed: _openSessionFlow, 
-        shape: const CircleBorder(),
-        backgroundColor: const Color.fromARGB(255, 175, 82, 82),
-        child: const Icon(Icons.add, size: 30, color: Colors.white),
-      ),
+      onPressed: () {
+        if (hrState.sessionActive) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You can't start a new session while a workout is active."),
+            ),
+          );
+          return;
+        }
+        _openSessionFlow();
+      },
+      shape: const CircleBorder(),
+      backgroundColor: const Color.fromARGB(255, 175, 82, 82),
+      child: const Icon(Icons.add, size: 30, color: Colors.white),
+    ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // bottom navigation bar

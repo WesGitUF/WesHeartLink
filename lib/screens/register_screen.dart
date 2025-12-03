@@ -208,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               hint: 'Weight',
                               icon: Icons.monitor_weight,
                             ).copyWith(
-                              suffixText: 'kg',
+                              suffixText: 'lb',
                             ),
                             keyboardType: TextInputType.number,
                             onChanged: (InputText) => _weight = InputText,
