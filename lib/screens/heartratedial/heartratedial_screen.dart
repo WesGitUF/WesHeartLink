@@ -25,6 +25,7 @@ class _DialPageState extends State<HeartratedialScreen> {
   bool isConnecting = false;
   bool isConnected = false;
   String? _connectedDeviceId;
+  bool _recordWorkout = false; // using for diffrerentiate slider showing or real workout
 
   final UserInfoService _userInfoService = UserInfoService();
   int? userAge;
@@ -71,15 +72,21 @@ class _DialPageState extends State<HeartratedialScreen> {
   void _ingestReading(int bpm) {
     if (bpm <= 0) return;
     if (_isPaused) return;
-    if (!_hasStarted) {
-      _hasStarted = true;
-      _sessionStart = DateTime.now();
-      hrState.setSessionActive(true);
-    }
     _sumHr += bpm;
     _timesHr++;
     if (bpm > _sessionMaxHr) _sessionMaxHr = bpm;
+    
+    // only record workout if start a real session
+    if (_recordWorkout && !_hasStarted) {
+    _hasStarted = true;
+    _sessionStart = DateTime.now();
+    hrState.setSessionActive(true);
+    }
+    
+    // only save real workout 
+    if (_recordWorkout) {
     _saveActiveWorkout();
+  }
   }
 
   // refresh UI timer
@@ -186,6 +193,9 @@ class _DialPageState extends State<HeartratedialScreen> {
       // store activity type
       if (activityArg != null && activityArg.isNotEmpty) {
         _activity = activityArg; 
+        _recordWorkout = true; 
+      } else {
+        _recordWorkout = false; 
       }
 
       // connect if deviceId provided
@@ -200,6 +210,7 @@ class _DialPageState extends State<HeartratedialScreen> {
       if (restored == null) return;
 
       setState(() {
+        _recordWorkout = true;
         _hasStarted = true;
         _sessionStart = restored['start'] as DateTime;
         _elapsedBeforePause = restored['elapsed'] as Duration;
@@ -277,27 +288,30 @@ class _DialPageState extends State<HeartratedialScreen> {
   }
 
   void _Pause() {
-  setState(() {
-    if (!_hasStarted) {
-      _hasStarted = true;
-      _isPaused = false;
-      _elapsedBeforePause = Duration.zero;
-      _sessionStart = DateTime.now();
-    } 
-    else if (_isPaused) {
-      _isPaused = false;
-      _sessionStart = DateTime.now();  
-    } 
-    else {
-      _elapsedBeforePause += DateTime.now().difference(_sessionStart);
-      _isPaused = true;
-    }
-  });
-  _saveActiveWorkout();
-}
+    if (!_recordWorkout) return; // do nothing if not recording workout
+
+    setState(() {
+      if (!_hasStarted) {
+        _hasStarted = true;
+        _isPaused = false;
+        _elapsedBeforePause = Duration.zero;
+        _sessionStart = DateTime.now();
+      } 
+      else if (_isPaused) {
+        _isPaused = false;
+        _sessionStart = DateTime.now();  
+      } 
+      else {
+        _elapsedBeforePause += DateTime.now().difference(_sessionStart);
+        _isPaused = true;
+      }
+    });
+    _saveActiveWorkout();
+  }
 
   Future<void> _saveActiveWorkout() async {
     if (!_hasStarted) return;
+    if (!_recordWorkout) return; // do not save if not recording workout
 
     final elapsed = _isPaused
         ? _elapsedBeforePause
@@ -341,7 +355,7 @@ class _DialPageState extends State<HeartratedialScreen> {
         final msg = _zoneMessage(zoneIndex);
         final zoneColor = _zoneColor(zoneIndex);
 
-        final elapsed = _hasStarted
+        final elapsed = (_recordWorkout && _hasStarted)
             ? (_isPaused
                 ? _elapsedBeforePause
                 : _elapsedBeforePause + DateTime.now().difference(_sessionStart))
@@ -393,10 +407,10 @@ class _DialPageState extends State<HeartratedialScreen> {
                       child: IconButton(
                       icon: Icon(
                         (!_hasStarted || _isPaused) ? Icons.play_arrow : Icons.pause,
-                        color: Colors.white,
+                        color: _recordWorkout ? Colors.white : Colors.white38,
                         size: 53,
                       ),
-                      onPressed: _hasStarted ? _Pause : null,
+                      onPressed: _recordWorkout && (_hasStarted || !_hasStarted) ? _Pause : null,
                     ),
                     ),
                   ],
@@ -472,6 +486,22 @@ class _DialPageState extends State<HeartratedialScreen> {
                         );
                         if (confirm != true) return;
                         try {
+                          _hrSub?.cancel();
+                          _conn?.cancel();
+                          
+                          if (!_recordWorkout) {
+                            setState(() {
+                              _hasStarted = false;
+                              _isPaused = false;
+                              _elapsedBeforePause = Duration.zero;
+                              _bpmLog.clear();
+                              _sessionMaxHr = 0;
+                              _sumHr = 0;
+                              _timesHr = 0;
+                            });
+                            return; 
+                          }
+
                           final elapsed = _hasStarted
                               ? (_elapsedBeforePause +
                                   (_isPaused ? Duration.zero : DateTime.now().difference(_sessionStart)))
@@ -486,9 +516,6 @@ class _DialPageState extends State<HeartratedialScreen> {
                             duration: elapsed,
                           );
 
-                          _hrSub?.cancel();
-                          _conn?.cancel();
-
                           final workout = Workout(
                             type: _activity,
                             start: _sessionStart,
@@ -499,7 +526,6 @@ class _DialPageState extends State<HeartratedialScreen> {
 
                           // write to local and Firestore
                           await HistoryRepo.instance.add(workout, _bpmLog);
-                    
                           hrState.setSessionActive(false);
                           await ActiveWorkoutStore.clear();
                           

@@ -167,61 +167,101 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final subColor = scheme.onSurfaceVariant;
     final maxChipWidth = MediaQuery.of(context).size.width * 0.50;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: c.withOpacity(0.12),
-          foregroundColor: c,
-          child: Icon(_iconFor(w.type)),
-        ),
-        title: Text(
-          w.type,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: titleColor,
+    return Dismissible(                                     
+      key: ValueKey(entry.id ??                            
+          '${w.type}_${w.start.millisecondsSinceEpoch}'),  
+      direction: DismissDirection.endToStart,              
+      background: Container(                              
+        color: Colors.redAccent,                         
+        alignment: Alignment.centerRight,                  
+        padding: const EdgeInsets.only(right: 20),        
+        child: const Icon(Icons.delete,                    
+            color: Colors.white, size: 28),                
+      ),
+      confirmDismiss: (direction) async {                 
+        return await showDialog<bool>(                     
+          context: context,                                
+          builder: (ctx) {                                 
+            return AlertDialog(                            
+              title: const Text('Delete workout?'),        
+              content: const Text(                         
+                  'This session will be removed permanently.'), 
+              actions: [                                   
+                TextButton(                                
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancel'),             
+                ),
+                TextButton(                                
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text(                       
+                    'Delete',                              
+                    style: TextStyle(color: Colors.red),  
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ?? false;
+      },
+      onDismissed: (_) {                                   
+        HistoryRepo.instance.delete(entry);                
+      },
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          leading: CircleAvatar(
+            radius: 22,
+            backgroundColor: c.withOpacity(0.12),
+            foregroundColor: c,
+            child: Icon(_iconFor(w.type)),
           ),
-        ),
-        subtitle: Text(
-          _hm(w.start),
-          style: TextStyle(color: subColor),
-        ),
-        trailing: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxChipWidth),
-          child: Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            alignment: WrapAlignment.end,
-            children: [
-              _pill(
-                icon: Icons.favorite_rounded,
-                label: 'Avg',
-                value: '${w.avgHr} bpm',
-                color: const Color.fromARGB(255, 160, 52, 52),
-              ),
-              _pill(
-                icon: Icons.timer_rounded,
-                label: 'time',
-                value: _fmt(w.duration),
-                color: Colors.blueGrey,
-              ),
-            ],
-          ),
-        ),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => WorkoutDetailScreen(
-                workout: w,
-                series: entry.series, 
-              ),
+          title: Text(
+            w.type,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: titleColor,
             ),
-          );
-        },
+          ),
+          subtitle: Text(
+            _hm(w.start),
+            style: TextStyle(color: subColor),
+          ),
+          trailing: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxChipWidth),
+            child: Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              alignment: WrapAlignment.end,
+              children: [
+                _pill(
+                  icon: Icons.favorite_rounded,
+                  label: 'Avg',
+                  value: '${w.avgHr} bpm',
+                  color: const Color.fromARGB(255, 160, 52, 52),
+                ),
+                _pill(
+                  icon: Icons.timer_rounded,
+                  label: 'time',
+                  value: _fmt(w.duration),
+                  color: Colors.blueGrey,
+                ),
+              ],
+            ),
+          ),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => WorkoutDetailScreen(
+                  workout: w,
+                  series: entry.series, 
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

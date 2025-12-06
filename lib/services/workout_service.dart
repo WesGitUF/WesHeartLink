@@ -6,9 +6,9 @@ import 'package:heart_link_app/screens/history/history_repo.dart';
 class WorkoutService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<void> saveEntry(HistoryEntry entry) async {
+  Future<String?> saveEntry(HistoryEntry entry) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) return null;
 
     final workout = entry.workout;
     final data = {
@@ -21,11 +21,12 @@ class WorkoutService {
       'createdAt': FieldValue.serverTimestamp(),
     };
 
-    await _db
+    final ref = await _db
         .collection('users')
         .doc(user.uid)
         .collection('workout')  
         .add(data);
+    return ref.id;
   }
 
   Future<List<HistoryEntry>> loadEntriesForCurrentUser() async {
@@ -57,7 +58,20 @@ class WorkoutService {
       final series =
           rawSeries.map((e) => (e as num).toInt()).toList();
 
-      return HistoryEntry(workout: workout, series: series);
+      return HistoryEntry(id: doc.id, workout: workout, series: series);
     }).toList();
+  }
+
+  // delete a workout entry base on docid
+  Future<void> deleteEntry(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('workout')  
+        .doc(id)
+        .delete();
   }
 }
