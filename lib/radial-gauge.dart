@@ -271,6 +271,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   }
 
   void _connectToDevices() {
+    if (userDeviceId == '00:11:22:33:44:55') {
+      return;
+    }
     if (kIsWeb) {
       print("Bluetooth not supported on Web — skipping connect");
       return;
@@ -392,17 +395,31 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         return;
       }
 
-      await nearbyService.initializeNearby(
-        role: _isHost! ? "host" : "peer",
-        userName: FirebaseAuth.instance.currentUser?.displayName ?? "User",
-        sessionCode: sessionId
-      );
+      if (_isHost!) {
+        await nearbyService.initializeNearby(
+          role: "host",
+          userName: FirebaseAuth.instance.currentUser?.displayName ?? "User",
+          sessionCode: sessionId
+        );
+      }
 
-      // Keep partnerHR updated automatically
       nearbyService.partnerHeartRate.addListener(() {
+        final hr = nearbyService.partnerHeartRate.value;
         setState(() {
-          _partnerHR = nearbyService.partnerHeartRate.value;
+          _partnerHR = hr;
         });
+      });
+
+      nearbyService.guestConnectedNotifier.addListener(() {
+        final connected = nearbyService.guestConnectedNotifier.value;
+        if (connected && !_guestConnected) {
+          setState(() {
+            _guestConnected = true;
+            _showOverlay = false;
+          });
+          _stopwatch.start();
+          _startTimer();
+        }
       });
     }
 
@@ -711,7 +728,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         if (_sessionIdController.text.isEmpty) return;
 
                         sessionId = _sessionIdController.text.trim();
-                        final user = FirebaseAuth.instance.currentUser;
+                        
 
                         if (!_isOnline!) {
                           await nearbyService.initializeNearby(
@@ -720,15 +737,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                             sessionCode: sessionId,
                           );
 
-                          setState(() {
-                            _isHost = false;
-                            _guestConnected = true; // paired workout
-                            _showOverlay = false;
-                          });
-                          _stopwatch.start(); 
-                          _startTimer();
+                          // setState(() {
+                          //   _isHost = false;
+                          //   _guestConnected = true; // paired workout
+                          //   _showOverlay = false;
+                          // });
+                          // _stopwatch.start(); 
+                          // _startTimer();
                           return;
                         }
+
+                        final user = FirebaseAuth.instance.currentUser;
 
                         if (user == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
