@@ -49,8 +49,6 @@ class WorkoutDetailScreen extends StatelessWidget {
     final start = workout.start;
     final end = start.add(workout.duration);
 
-    print(series);
-
     // session max heart rate
     final int sessionMax = series.isEmpty
         ? workout.avgHr

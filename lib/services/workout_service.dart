@@ -12,7 +12,7 @@ class WorkoutService {
         .collection('users')
         .doc(user.uid)
         .collection('workouts')
-        .orderBy('timestamp', descending: true)
+        .orderBy('createdAt', descending: true)
         .get();
 
     final List<HistoryEntry> out = [];
@@ -20,10 +20,14 @@ class WorkoutService {
     for (final doc in snap.docs) {
       final data = doc.data();
 
-      final DateTime start = (data['timestamp'] as Timestamp).toDate();
-      final int avgHr = (data['avgHR'] as num?)?.toInt() ?? 0;
-      final int durationSec = data['duration'] as int? ?? 0;
-      final int calories = data['caloriesBurned'] as int? ?? 0;
+      final DateTime start = (data['createdAt'] as Timestamp).toDate();
+      final int avgHr = (data['avgHr'] as num?)?.toInt() ?? 0;
+      final int durationSec = data['durationSeconds'] as int? ?? 0;
+      final int calories = data['calories'] as int? ?? 0;
+      final List<int> series = (data['bpmSeries'] as List<dynamic>?)
+              ?.map((e) => (e as num).toInt())
+              .toList() ??
+          [];
 
       final workout = Workout(
         type: data['type'] ?? "Workout",
@@ -33,11 +37,9 @@ class WorkoutService {
         calories: calories,
       );
 
-      print("WORKOUT DURATION: ${workout.duration.inSeconds}");
-
       out.add(HistoryEntry(
         workout: workout,
-        series: const [], // not tracked yet
+        series: series,
       ));
     }
 
