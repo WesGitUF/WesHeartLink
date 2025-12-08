@@ -108,7 +108,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final photoUrl = (data['photoURL'] as String?);
 
           final hrAge = hrState.age;
-          final maxHr = hrState.maxHr;
+          //final maxHr = hrState.maxHr;
+          final maxHr = data['age'] != null
+              ? (208 - 0.7 * (data['age'] as int)).round()
+              : hrState.maxHr;
 
           // initial letter for avatar
           final initials = displayName.isNotEmpty

@@ -155,7 +155,7 @@ class _StatsBox extends StatelessWidget {
           const SizedBox(height: 24),
           Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Average Heart Rate: $avgHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Peak Heart Rate Zone: $topZone', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),

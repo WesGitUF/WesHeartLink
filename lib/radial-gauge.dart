@@ -47,13 +47,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //store device ID
   String? userDeviceId;
 
+
+  // stop watch for session timer
   final _stopwatch = Stopwatch();
 
+  //booleans to check state of session
   bool isLoading = true;
   bool _isPaused = false;
-
   bool done = false;
-
   bool isSolo = false;
 
   //define user max HR, as well as current user and partner HR values
@@ -62,6 +63,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   int _userHR = 100;
   int _partnerHR = 0;
 
+  //passed from previous screen, if hosting/joining or using online/offline mode
   bool? _isHost;
   bool? _isOnline;
   bool _showOverlay = true;
@@ -113,6 +115,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   String get currentMaxZone => userZone.name;
 
+  //getter for avg hr. hr sum is updated every second in _tickUpdate, as is hr count
   double get averageHR {
     if (_hrCount == 0) return 0;
     return _hrSum / _hrCount;
@@ -123,17 +126,22 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     Timer.periodic(const Duration(milliseconds: 1000), (_) => _tickUpdate());
   }
 
+  //update function to run every second during active session
   void _tickUpdate() {
+    //return if paused, inactive, or no max HR set
     if (_isPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
     if (_maxHeartRate == null || _showOverlay) return;
     setState(() {
+      //check if using simulated HR (device ID is placeholder)
+      //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR += ((_random.nextDouble() * 6) - 3).toInt();
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
 
+      // Determine current zones
       final prevZone = userZone;
       userZone = getZoneForHR(_userHR, _maxHeartRate!);
       if (_guestConnected) {
@@ -145,6 +153,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         workoutMessage = _pickMessage(userZone);
       }
 
+      // Send user HR to partner via Nearby or Firestore
       if (!_isOnline!) {
         nearbyService.sendHeartRate(_userHR);
         print("Sent HR via Nearby: $_userHR");
@@ -159,6 +168,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         }
       }
 
+      // Update session stats
       _hrSum += _userHR;
       _hrCount++;
 
@@ -166,6 +176,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         _maxSessionHR = _userHR;
       }
 
+      // Update time spent in current zone
       final zoneName = userZone.name;
       zoneTime[zoneName] = (zoneTime[zoneName] ?? 0) + 1000;
       hrValues.add(_userHR);
@@ -174,6 +185,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     });
   }
 
+  // Listen for partner HR updates from Firestore in online mode
   void _listenForPartnerHR() {
     if (sessionId == null) return;
 
@@ -223,6 +235,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     });
   }
 
+  // Update displayed emoji based on current zone
+  // Also called when the user clicks on the emoji to change it to their partner's
   void updateImage() {
     userImage ? currentImage = userZone.emojiImg : currentImage = partnerZone.emojiImg;
   }
@@ -297,6 +311,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _userSubscription = subscription;
   }
 
+  // Parse heart rate from characteristic data
   int _parseHeartRate(List<int> data) {
     if (data.isEmpty) return 0;
 
@@ -333,6 +348,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     });
   }
 
+  // Initialize data before calling tickupdate
   Future<void> _initAsync() async {
     // Get age from Firestore
     final user = FirebaseAuth.instance.currentUser;
@@ -352,6 +368,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _workoutMode = widget.workoutMode;
 
     setState(() {
+      // Calculate screen size ratios, based off of reference design size (412x915 emulator)
       double screenWidth = MediaQuery.of(context).size.width;
       double screenHeight = MediaQuery.of(context).size.height;
 
@@ -389,6 +406,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       });
     }
 
+    // Initialize data before calling tickupdate
     pickIcon();
     _setUserHR();
 
@@ -480,6 +498,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     });
   }
 
+  // Helper for generating session code
   String randomLetters(int length) {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     final rand = Random();
@@ -512,6 +531,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     return isRadialGauge ? _getRadialGauge() : _getLinearGauge();
   }
 
+  // Range label for radial gauge
   GaugeAnnotation _rangeLabel({
     required String text,
     required double start,
@@ -542,6 +562,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
   }
 
+  // confirmation popup to ensure users do not prematurely end workouts
   Future<void> _confirmEndWorkout(BuildContext context) async {
     final shouldEnd = await showDialog<bool>(
       context: context,
@@ -601,6 +622,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
   }
 
+  // Session overlay widget
+  // Builds on top of gauge when workout is initialized/not yet started
+  // Depending on if guest or host, generates session ID or prompts user to enter one
   Widget _buildSessionOverlay() {
     return Positioned.fill(
       child: Container(
@@ -728,7 +752,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
                           final data = doc.data()!;
                           if (data['user2Id'] == null) {
-                            // ✅ Assign this user as the partner (user2)
+                            // Assign this user as the partner (user2)
                             await doc.reference.update({'user2Id': user.uid});
                             setState(() {
                               _isHost = false;
@@ -771,6 +795,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
   }
 
+
+  // Radial gauge widget
+  // Circular gauge with colored zones and pointers for user/partner HR
   Widget _getRadialGauge() {
     return SizedBox(
       child: Stack(
@@ -789,6 +816,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   showTicks: false,
                   showLabels: false,
                   ranges: <GaugeRange>[
+                    // start and end values for each zone
                     GaugeRange(
                         startValue: _maxHeartRate! * 0.4, endValue: _maxHeartRate! * 0.65, color: Colors.blueGrey, startWidth: 60, endWidth: 60),
                     GaugeRange(
@@ -801,6 +829,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         startValue: _maxHeartRate! * 0.95, endValue: _maxHeartRate!.toDouble(), color: Colors.red, startWidth: 60, endWidth: 60),
                   ],
                   pointers: <GaugePointer>[
+                    // list of pointers - user and optional partner
+                    // is a red upside-down triangle with an emoji at the end
                     MarkerPointer(
                       value: _userHR.toDouble(),
                       enableAnimation: true,
@@ -862,6 +892,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                     ]
                   ],
                   annotations: <GaugeAnnotation>[
+                    // range labels for each zone
                     _rangeLabel(
                       text: 'I',
                       start: _maxHeartRate! * 0.4,
@@ -925,6 +956,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
   }
 
+  // unused testing widget
   Widget _getLinearGauge() {
     return Container(
       margin: EdgeInsets.all(10),
@@ -946,11 +978,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    //draw circular loading widget if still loading
     if (isLoading || _maxHeartRate == null) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
+    // App bar (heart logo w/ workout icon)
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
@@ -985,6 +1019,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         child: Stack(
           children: [
             SingleChildScrollView(
+              // ensure screen does not overflow when keyboard appears
               physics: const ClampingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.only(top: 0),
