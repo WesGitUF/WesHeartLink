@@ -183,14 +183,15 @@ class _StatsBox extends StatelessWidget {
                   .doc(user.uid)
                   .collection('workouts')
                   .add({
-                    'timestamp': FieldValue.serverTimestamp(),
-                    'duration': elapsedTime.inSeconds,
-                    'avgHR': avgHeartRate,
-                    'maxHR': maxHeartRate,
-                    'series': series,
-                    'topZone': topZone,
+                    'avgHr': avgHeartRate,
+                    'bpmSeries': series,
+                    'calories': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
+                    'createdAt': FieldValue.serverTimestamp(),
+                    'durationSeconds': elapsedTime.inSeconds,
+                    //'maxHr': maxHeartRate,
+                    //'topZone': topZone,
+                    'start': FieldValue.serverTimestamp(),
                     'type': workoutMode,
-                    'caloriesBurned': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
                   });
               }
               else {

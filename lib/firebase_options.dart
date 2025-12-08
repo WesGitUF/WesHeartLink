@@ -51,19 +51,20 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBawGSyqvAySd7pXS0QNZMCoylarmSIoJA',
-    appId: '1:717642421261:android:dc815af4cec913b0d2b144',
-    messagingSenderId: '717642421261',
-    projectId: 'heartlink-56780',
-    storageBucket: 'heartlink-56780.firebasestorage.app',
+    apiKey: 'AIzaSyDjcdoWkcE2GN1FVy53S5JU8zXDMzHnUbI',
+    appId: '1:106073814804:android:d6dae3bfe2bc35474a7401',
+    messagingSenderId: '106073814804',
+    projectId: 'heartlink-74a85',
+    storageBucket: 'heartlink-74a85.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCC0vEUcIfEFJHb2AJTq3eZsMFNBJdsYJQ',
-    appId: '1:717642421261:ios:c93be3b75a23dce0d2b144',
-    messagingSenderId: '717642421261',
-    projectId: 'heartlink-56780',
-    storageBucket: 'heartlink-56780.firebasestorage.app',
+    apiKey: 'AIzaSyBhhqIBr2PHpFihehjmUJDk6HDWAFU8ReY',
+    appId: '1:106073814804:ios:8ea73ef75c58e3524a7401',
+    messagingSenderId: '106073814804',
+    projectId: 'heartlink-74a85',
+    storageBucket: 'heartlink-74a85.firebasestorage.app',
+    androidClientId: '106073814804-9m71nsncehs9s4j5uqbt3urvi3u79lb4.apps.googleusercontent.com',
     iosBundleId: 'com.example.heartLinkApp',
   );
 

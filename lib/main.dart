@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:heart_link_app/screens/auth/auth_gate.dart';
 import 'package:heart_link_app/screens/signup_screen.dart';
 import 'firebase_options.dart';
 import 'package:heart_link_app/radial-gauge.dart';
-import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';

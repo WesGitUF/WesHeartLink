@@ -49,7 +49,7 @@ class HistoryRepo extends ChangeNotifier {
           .collection('users')
           .doc(user.uid)
           .collection('workouts')
-          .orderBy('timestamp', descending: true)
+          .orderBy('createdAt', descending: true)
           .get();
 
       final List<HistoryEntry> newEntries = [];
@@ -59,19 +59,19 @@ class HistoryRepo extends ChangeNotifier {
 
         // Required fields with safe defaults
         final DateTime start =
-            (data['timestamp'] is Timestamp)
-                ? (data['timestamp'] as Timestamp).toDate().toLocal()
+            (data['createdAt'] is Timestamp)
+                ? (data['createdAt'] as Timestamp).toDate().toLocal()
                 : DateTime.now();
 
-        final int durationSec = _asInt(data['duration'] ?? 0);
+        final int durationSec = _asInt(data['durationSeconds'] ?? 0);
         final Duration duration = Duration(seconds: durationSec);
 
-        final int avgHr = _asInt(data['avgHR'] ?? 0);
+        final int avgHr = _asInt(data['avgHr'] ?? 0);
 
         final String type =
             (data['type'] ?? 'Workout').toString();
 
-        final int calories = _asInt(data['caloriesBurned'] ?? 0);
+        final int calories = _asInt(data['calories'] ?? 0);
 
         // Build Workout object for UI
         final workout = Workout(
@@ -82,8 +82,8 @@ class HistoryRepo extends ChangeNotifier {
           calories: calories,
         );
 
-        final List<int> series = data['series'] is List
-            ? (data['series'] as List)
+        final List<int> series = data['bpmSeries'] is List
+            ? (data['bpmSeries'] as List)
                 .map((e) => _asInt(e))
                 .toList()
             : [];
