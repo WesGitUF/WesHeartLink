@@ -13,12 +13,18 @@ import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/max_hr_input_screen.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
+
   runApp(const MyApp());
 }
 
