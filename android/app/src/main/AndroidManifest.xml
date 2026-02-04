@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.heart_link_app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Required for Bluetooth operations -->
     <!-- For Android 12 (API level 31) and above: -->
