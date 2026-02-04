@@ -6,10 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 // A single workout record entry
 class HistoryEntry {
+  String? id; // Firebase document ID for delete/update
   final Workout workout;
   final List<int> series;
 
   HistoryEntry({
+    this.id,
     required this.workout,
     required this.series,
   });
@@ -89,6 +91,7 @@ class HistoryRepo extends ChangeNotifier {
             : [];
 
         newEntries.add(HistoryEntry(
+          id: doc.id, // Store Firebase doc ID for deletion
           workout: workout,
           series: series,
         ));
@@ -98,6 +101,33 @@ class HistoryRepo extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint("HistoryRepo.loadFromCloud ERROR → $e");
+    }
+  }
+
+  // Delete a workout entry
+  Future<void> delete(HistoryEntry entry) async {
+    final id = entry.id;
+
+    // Remove from local list immediately
+    _entries.remove(entry);
+    notifyListeners();
+
+    // If no ID, can't delete from Firebase
+    if (id == null) return;
+
+    // Delete from Firebase
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('workouts')
+          .doc(id)
+          .delete();
+    } catch (e) {
+      debugPrint('Failed to delete workout: $e');
     }
   }
 }
