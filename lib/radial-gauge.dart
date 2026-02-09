@@ -9,6 +9,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class GaugeChart extends StatefulWidget {
@@ -148,9 +149,16 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         partnerZone = getZoneForHR(_partnerHR, _maxHeartRate!);
         if (partnerZone == userZone) {_sameZone += Duration(milliseconds: 1000); }
       }
-      if (prevZone != userZone) { 
-        updateImage(); 
+      if (prevZone != userZone) {
+        updateImage();
         workoutMessage = _pickMessage(userZone);
+        // Haptic feedback when entering a higher zone
+        final prevNum = int.tryParse(prevZone.name.split(' ').last) ?? 0;
+        final newNum = int.tryParse(userZone.name.split(' ').last) ?? 0;
+        if (newNum > prevNum) {
+          HapticFeedback.heavyImpact();
+          print("HAPTIC: Zone $prevNum -> $newNum (HR: $_userHR)");
+        }
       }
 
       // Send user HR to partner via Nearby or Firestore
