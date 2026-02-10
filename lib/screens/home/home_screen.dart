@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/weather_service.dart';
@@ -26,6 +28,21 @@ class _HomeScreenState extends State<HomeScreen> {
   // workout
   List<HistoryEntry> _entries = [];
   bool _isLoadingWorkout = true;
+
+  bool _defaultPromptShown = false;
+
+  String? _defaultWorkout;
+
+  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
+
+  final Map<String, IconData> _activityIcons = {
+    'Running': Icons.directions_run,
+    'Cycling': Icons.directions_bike,
+    'HIIT': Icons.fitness_center,
+    'Walking': Icons.directions_walk,
+    'Swimming': Icons.pool,
+  };
+
 
   // display name
   String get name {
@@ -151,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadWeather();
     _loadWorkouts();
+    _checkDefaultWorkoutAndPrompt();
   }
 
   // load weather
@@ -189,6 +207,139 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+
+  Future<void> _checkDefaultWorkoutAndPrompt() async {
+    if (_defaultPromptShown) return;
+    _defaultPromptShown = true;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final def = doc.data()?['defaultWorkout'] as String?;
+
+      if (!mounted) return;
+
+      if (def != null && def.isNotEmpty) {
+        setState(() => _defaultWorkout = def);
+        return;
+      }
+
+      // show after first frame so UI is mounted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _showDefaultWorkoutDialog();
+      });
+    } catch (_) {
+      // If Firestore errors, just don't block the user
+    }
+  }
+
+  Future<void> _showDefaultWorkoutDialog() async {
+    String selected = _activities.first;
+
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "defaultWorkout",
+      barrierColor: Colors.black.withOpacity(0.35),
+      pageBuilder: (ctx, a1, a2) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        return Opacity(
+          opacity: anim1.value,
+          child: Stack(
+            children: [
+              BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                child: Container(color: Colors.transparent),
+              ),
+              Center(
+                child: Material(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: StatefulBuilder(
+                      builder: (context, setLocalState) {
+                        return SizedBox(
+                          width: 340,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                "Set your default workout",
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                "You can change this later in settings.",
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                value: selected,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  labelText: "Default workout",
+                                ),
+                                items: _activities.map((a) {
+                                  return DropdownMenuItem(
+                                    value: a,
+                                    child: Row(
+                                      children: [
+                                        Icon(_activityIcons[a] ?? Icons.fitness_center),
+                                        const SizedBox(width: 10),
+                                        Text(a),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (v) {
+                                  if (v == null) return;
+                                  setLocalState(() => selected = v);
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 48,
+                                child: FilledButton(
+                                  onPressed: () async {
+                                    final user = FirebaseAuth.instance.currentUser;
+                                    if (user == null) return;
+
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(user.uid)
+                                        .set(
+                                      {'defaultWorkout': selected},
+                                      SetOptions(merge: true),
+                                    );
+
+                                    if (!mounted) return;
+                                    setState(() => _defaultWorkout = selected);
+
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: const Text("Save"),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   // weather with icon
   IconData _mapConditionToIcon(String condition) {

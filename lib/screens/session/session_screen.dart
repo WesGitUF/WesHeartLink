@@ -1,6 +1,9 @@
 // TODO Implement this library.
 import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key});
@@ -10,6 +13,8 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   String? _selectedActivity;
+  String? _defaultWorkout;
+
   final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
     final Map<String, IconData> _activityIcons = {
     'Running': Icons.directions_run,
@@ -18,7 +23,76 @@ class _SessionScreenState extends State<SessionScreen> {
     'Walking': Icons.directions_walk,
     'Swimming': Icons.pool,
   };
+
+  bool _defaultApplied = false;
+
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_defaultApplied) return;
+    _defaultApplied = true;
+
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final def = args?['defaultWorkout'] as String?;
+
+    //_defaultWorkout = def;
+
+    // Preselect the default if provided and valid, otherwise pick the first option
+    if (def != null && _activities.contains(def)) {
+      _defaultWorkout = def;
+      setState(() {
+        _selectedActivity ??= def; // preselect
+      });
+    } else {
+      // fallback: load from Firestore so "Default" still shows even if args weren't passed
+      _loadDefaultWorkoutFromFirestore();
+
+    }
+    debugPrint("args defaultWorkout = $def");
+    debugPrint("defaultWorkout state = $_defaultWorkout");
+
+  }
+
+
+int _token = 0;
+
+@override
+void dispose() {
+  _token++;
+  super.dispose();
+}
+
+Future<void> _loadDefaultWorkoutFromFirestore() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    setState(() {
+      _selectedActivity ??= _activities.first;
+    });
+    return;
+  }
+
+  final t = ++_token;
+
+  try {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    if (t != _token) return;
+
+    final def = doc.data()?['defaultWorkout'] as String?;
+
+    setState(() {
+      _defaultWorkout = (def != null && _activities.contains(def)) ? def : null;
+      _selectedActivity ??= _defaultWorkout ?? _activities.first;
+    });
+  } catch (_) {
+    if (t != _token) return;
+    setState(() {
+      _selectedActivity ??= _activities.first;
+    });
+  }
+}
+
+
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Select your preferred sport')),
@@ -46,11 +120,33 @@ class _SessionScreenState extends State<SessionScreen> {
               itemCount: _activities.length,
               itemBuilder: (context, index) {
                 String activity = _activities[index];
+                final bool isSelected = _selectedActivity == activity;
+                final bool isDefault  = _defaultWorkout == activity;
                 return Card(
                   child: ListTile(
                     leading: Icon(_activityIcons[activity]),
                     title: Text(activity),
-                    tileColor: _selectedActivity == activity ? Colors.green: null,
+                    tileColor: isSelected ? Colors.green.withOpacity(0.15) : null,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isDefault)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.grey.withOpacity(0.2),
+                            ),
+                            child: const Text(
+                              'Default',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        if (isDefault) const SizedBox(width: 8),
+                        if (isSelected)
+                          const Icon(Icons.check_circle, color: Colors.green),
+                      ],
+                    ),
                     onTap: () {
                       setState(() {
                         _selectedActivity = activity;
