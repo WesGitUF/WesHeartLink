@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,10 +15,27 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
+  User? _user;
+  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
+
+  final Map<String, IconData> _activityIcons = {
+    'Running': Icons.directions_run,
+    'Cycling': Icons.directions_bike,
+    'HIIT': Icons.fitness_center,
+    'Walking': Icons.directions_walk,
+    'Swimming': Icons.pool,
+  };
+
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+  }
 
   // ───────────────────────────────────────────────────────────────
   // Edit Age dialog
-  // ───────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────
   Future<void> _editAge(int initialAge) async {
     final ctrl = TextEditingController(
       text: initialAge > 0 ? '$initialAge' : '',
@@ -68,8 +87,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ───────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final cs = Theme.of(context).colorScheme;
+    final user = _user;
+    final cs = Theme.of(context).colorScheme;  
 
     if (user == null) {
       return const Scaffold(
@@ -97,7 +116,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: Text("Profile not found."));
           }
 
+
           final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+
+          String? defaultWorkout;
+          final raw = data['defaultWorkout'];
+          if (raw is String) {
+            final trimmed = raw.trim();
+            if (_activities.contains(trimmed)) defaultWorkout = trimmed;
+          }
 
           // Extract Firestore fields
           final displayName = (data['displayName'] as String?)?.trim() ?? "";
@@ -195,33 +222,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 subtitle: Text("$maxHr bpm"),
               ),
 
+              const SizedBox(height: 20),
+
+// ───────────────────────────────────────────────
+// WORKOUT PREFERENCES
+// ───────────────────────────────────────────────
+              _sectionTitle("Workout Preferences"),
+
+              ListTile(
+                title: const Text("Default workout"),
+                subtitle: Text(defaultWorkout ?? "Not set"),
+                trailing: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: (defaultWorkout != null && _activities.contains(defaultWorkout))
+                        ? defaultWorkout
+                        : _activities.first,
+                    items: _activities.map((a) {
+                      return DropdownMenuItem(
+                        value: a,
+                        child: Row(
+                          children: [
+                            Icon(_activityIcons[a] ?? Icons.fitness_center),
+                            const SizedBox(width: 8),
+                            Text(a),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) async {
+                      if (v == null) return;
+
+                      await FirebaseFirestore.instance
+                          .collection("users")
+                          .doc(user.uid)
+                          .set({"defaultWorkout": v}, SetOptions(merge: true));
+
+                      final sp = await SharedPreferences.getInstance();
+                      await sp.setString('defaultWorkout', v);
+
+
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Default workout set to $v")),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 30),
+
 
               // ───────────────────────────────────────────────
               // SIGN OUT BUTTON
               // ───────────────────────────────────────────────
               FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: cs.primary,
-                ),
                 onPressed: () async {
                   await _authService.signOut();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.pushReplacementNamed(context, '/login');
-                },
-                child: const Text(
-                  "Sign Out",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  },
+                  style: FilledButton.styleFrom(backgroundColor: cs.primary),
+                  child: const Text("Sign Out"),
                   ),
-                ),
+                 ],
+                );
+               },
               ),
-            ],
-          );
-        },
-      ),
     );
   }
 
