@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:heart_link_app/widgets/custom_widgets.dart'; // Contains PulseHeart & HeartRateMeter
@@ -30,6 +31,20 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Timer? _timer;
 
   Duration _sameZoneDuration = Duration.zero;
+
+  HeartRateZone? _previousUserZone;
+
+  void _checkZoneTransition(int hr) {
+    final newZone = getZoneForHR(hr, maxHeartRate);
+    if (_previousUserZone != null && newZone.name != _previousUserZone!.name) {
+      final prevNum = int.tryParse(_previousUserZone!.name.split(' ').last) ?? 0;
+      final newNum = int.tryParse(newZone.name.split(' ').last) ?? 0;
+      if (newNum > prevNum) {
+        HapticFeedback.heavyImpact();
+      }
+    }
+    _previousUserZone = newZone;
+  }
 
   // Flag to indicate that initialization is complete.
   bool _isInitialized = false;
@@ -128,6 +143,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
     final subscription = _ble.subscribeToCharacteristic(characteristic).listen(
       (data) {
         int hrValue = data.length > 1 ? data[1] : 0;
+        if (isUser && _isInitialized) {
+          _checkZoneTransition(hrValue);
+        }
         setState(() {
           if (isUser) {
             _userHR = hrValue;
