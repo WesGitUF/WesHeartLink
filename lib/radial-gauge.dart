@@ -71,6 +71,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   bool _guestConnected = false;
   bool _isActiveSession = true;
 
+  bool _showPercent = false;
+
   //initialize user and partner HR zone, using heart rate zone clas
   late HeartRateZone userZone;
   late HeartRateZone partnerZone;
@@ -1047,8 +1049,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   children: [
                     const SizedBox(height: 20),
 
-                    // HR DISPLAY
-                    Center(
+                    // HR DISPLAY ( toggle HR percentage here)
+                    /*Center(
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -1065,7 +1067,40 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-
+*/
+                    //toggle heart rate percentage
+                    Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _showPercent = !_showPercent;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color.fromARGB(255, 40, 40, 41),
+                                border: Border.all(color: Colors.redAccent, width: 2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
+                                    ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
+                                    : '$_userHR bpm',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 40),
 
                     // GAUGE
