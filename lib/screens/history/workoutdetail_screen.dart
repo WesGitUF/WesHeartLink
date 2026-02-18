@@ -62,8 +62,24 @@ class WorkoutDetailScreen extends StatelessWidget {
 
     final int theoreticalMaxHr = hrState.maxHr;
 
+    // Count readings per zone for the Time in Zone chart
+    final zoneCounts = List<int>.filled(5, 0);
+    if (series.isNotEmpty && theoreticalMaxHr > 0) {
+      for (final bpm in series) {
+        final p = bpm / theoreticalMaxHr;
+        if (p <= 0.65)      zoneCounts[0]++;
+        else if (p <= 0.80) zoneCounts[1]++;
+        else if (p <= 0.89) zoneCounts[2]++;
+        else if (p <= 0.95) zoneCounts[3]++;
+        else                zoneCounts[4]++;
+      }
+    }
+    final zonePercents = [
+      for (final c in zoneCounts) series.isNotEmpty ? c / series.length : 0.0,
+    ];
+
     return Scaffold(
-      appBar: AppBar(title: Text(workout.type)),
+      appBar: AppBar(title: Text(workout.type), scrolledUnderElevation: 0),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -190,6 +206,24 @@ class WorkoutDetailScreen extends StatelessWidget {
             const SizedBox(height: 25),
           ],
 
+          // Time in Zone
+          if (series.isNotEmpty) ...[
+            const Text(
+              'Time in Zone',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _ZoneBarChart(zonePercents: zonePercents),
+            ),
+            const SizedBox(height: 25),
+          ],
+
           // Workout stats
           const Text(
             'Workout Data',
@@ -235,6 +269,81 @@ class _ZoneDot extends StatelessWidget {
         ),
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(color: Colors.white70)),
+      ],
+    );
+  }
+}
+
+class _ZoneBarChart extends StatelessWidget{
+  final List<double> zonePercents;
+
+  static const List<Color> _colors = [
+  Color(0xFF666A70), // Z1 — 40–65%                                     
+  Color(0xFF2F6BDA), // Z2 — 66–80%                                     
+  Color(0xFF66B35B), // Z3 — 81–89%                                     
+  Color(0xFFF3A43B), // Z4 — 90–95%                                     
+  Color(0xFFE25353), // Z5 — 95–100%
+  ];
+
+  const _ZoneBarChart({required this.zonePercents});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (int i = 0; i < 5; i++)
+          Padding(
+            padding: EdgeInsets.only(bottom: i < 4 ? 10 : 0),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  child: Text(
+                    'Z${i + 1}',
+                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Stack(
+                        children: [
+                          // Track
+                          Container(
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.white10,
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                          ),
+                          // Filled bar
+                          if (zonePercents[i] > 0)
+                            Container(
+                              height: 14,
+                              width: constraints.maxWidth * zonePercents[i],
+                              decoration: BoxDecoration(
+                                color: _colors[i],
+                                borderRadius: BorderRadius.circular(7),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    '${(zonePercents[i] * 100).round()}%',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
