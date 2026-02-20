@@ -1057,48 +1057,40 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   children: [
                     const SizedBox(height: 20),
 
-                    // HR DISPLAY ( toggle HR percentage here)
-                    /*Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(255, 40, 40, 41),
-                          border: Border.all(color: Colors.redAccent, width: 2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          "$_userHR bpm",
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-*/
                     //toggle heart rate percentage
                     Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _showPercent = !_showPercent;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 40, 40, 41),
-                                border: Border.all(color: Colors.redAccent, width: 2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showPercent = !_showPercent;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 40, 40, 41),
+                            border: Border.all(color: Colors.redAccent, width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: SizedBox(
+                            width: 120,
+                            height: 44,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              transitionBuilder: (child, animation){
+                                return ScaleTransition(
+                                  scale: Tween(begin: 0.9, end: 1.0).animate(animation),
+                                  child: FadeTransition(opacity: animation, child: child),
+                                );
+                              },
                               child: Text(
                                 _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
                                     ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
                                     : '$_userHR bpm',
+                                key: ValueKey(_showPercent),
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -1106,8 +1098,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      )
                     ),
                     const SizedBox(height: 40),
 
