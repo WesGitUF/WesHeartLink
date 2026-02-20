@@ -16,6 +16,8 @@
 
     
 
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
     <application
         android:label="heart_link_app"
         android:name="${applicationName}"
