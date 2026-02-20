@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:heart_link_app/widgets/custom_widgets.dart'; // Contains PulseHeart & HeartRateMeter
+import 'package:vibration/vibration.dart';
 
 class TrackingScreen extends StatefulWidget {
   const TrackingScreen({super.key});
@@ -34,13 +34,13 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   HeartRateZone? _previousUserZone;
 
-  void _checkZoneTransition(int hr) {
+  Future<void> _checkZoneTransition(int hr) async {
     final newZone = getZoneForHR(hr, maxHeartRate);
     if (_previousUserZone != null && newZone.name != _previousUserZone!.name) {
       final prevNum = int.tryParse(_previousUserZone!.name.split(' ').last) ?? 0;
       final newNum = int.tryParse(newZone.name.split(' ').last) ?? 0;
       if (newNum > prevNum) {
-        HapticFeedback.heavyImpact();
+        Vibration.vibrate(duration: 3000, amplitude: 255);
       }
     }
     _previousUserZone = newZone;

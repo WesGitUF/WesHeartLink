@@ -9,7 +9,8 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
+import 'package:vibration/vibration.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class GaugeChart extends StatefulWidget {
@@ -81,6 +82,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //current workout message based on HR zone
   late String workoutMessage;
   final _random = Random();
+  final _audioPlayer = AudioPlayer();
 
   Timer? _timer;
 
@@ -135,11 +137,15 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     if (_isPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
     if (_maxHeartRate == null || _showOverlay) return;
+
+    bool zoneBumpUp = false;
+
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
-        _userHR += ((_random.nextDouble() * 6) - 3).toInt();
+        //_userHR += ((_random.nextDouble() * 6) - 3).toInt();
+        _userHR += 5;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -154,12 +160,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       if (prevZone != userZone) {
         updateImage();
         workoutMessage = _pickMessage(userZone);
-        // Haptic feedback when entering a higher zone
         final prevNum = int.tryParse(prevZone.name.split(' ').last) ?? 0;
         final newNum = int.tryParse(userZone.name.split(' ').last) ?? 0;
         if (newNum > prevNum) {
-          HapticFeedback.heavyImpact();
-          print("HAPTIC: Zone $prevNum -> $newNum (HR: $_userHR)");
+          zoneBumpUp = true;
         }
       }
 
@@ -193,6 +197,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
       _elapsed = _stopwatch.elapsed;
     });
+
+    if (zoneBumpUp) {
+
+      Vibration.vibrate(duration: 3000, amplitude: 255);
+      _audioPlayer.play(AssetSource('audio/zone_up.wav'));
+    }
   }
 
   // Listen for partner HR updates from Firestore in online mode
@@ -548,6 +558,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _userSubscription?.cancel();
     _userConnection?.cancel();
     _timer?.cancel();
+    _audioPlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
