@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -13,9 +14,11 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   final AuthService _authService = AuthService();
   User? _user;
+  bool? _isUnrestricted;
+  bool _promptEnabled = true;
   final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
 
   final Map<String, IconData> _activityIcons = {
@@ -31,6 +34,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _user = FirebaseAuth.instance.currentUser;
+    WidgetsBinding.instance.addObserver(this);
+    _refreshBatteryOptStatus();
+    _loadPromptEnabled();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshBatteryOptStatus();
+    }
+  }
+
+  Future<void> _refreshBatteryOptStatus() async {
+    try {
+      final v = await BatteryOptimization.isIgnoringOptimization();
+      if (!mounted) return;
+      setState(() => _isUnrestricted = v);
+
+      if (v == false) {
+        final enabled = await BatteryOptimization.isPromptEnabled();
+        if (enabled) {
+          await BatteryOptimization.resetPromptOnce();
+        }
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isUnrestricted = false);
+    }
+  }
+
+  Future<void> _loadPromptEnabled() async {
+    final enabled = await BatteryOptimization.isPromptEnabled();
+    if (!mounted) return;
+    setState(() => _promptEnabled = enabled);
   }
 
   // ───────────────────────────────────────────────────────────────
@@ -268,6 +311,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                 ),
+              ),
+
+              _sectionTitle("Background Tracking"),
+
+              ListTile(
+                title: const Text("Battery usage"),
+                subtitle: Text(
+                  _isUnrestricted == null
+                      ? "Checking…"
+                      : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
+                ),
+                trailing: FilledButton(
+                  onPressed: _isUnrestricted == null
+                      ? null
+                      : () async {
+                    if (_isUnrestricted == true) {
+                      if (!context.mounted) return;
+
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Switch back to Optimized"),
+                          content: const Text(
+                            "You'll be taken to Android settings.\n\n"
+                            "In the list, find Heart Link and turn OFF the battery exemption "
+                                "(choose Optimized / Battery optimized).",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                await BatteryOptimization.openBatteryOptimizationSettings();
+                              },
+                              child: const Text("Open Settings"),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      // Optimized -> request Unrestricted using existing flow
+                      await BatteryOptimization.requestIgnoreOptimization();
+                      await _refreshBatteryOptStatus();
+                    }
+                  },
+                  child: Text(
+                    _isUnrestricted == true ? "Change to Optimized" : "Set Unrestricted",
+                  ),
+                ),
+              ),
+
+              SwitchListTile(
+                title: const Text("Prompt me to enable background tracking"),
+                subtitle: const Text("Shows a reminder when starting a new session (Android only)."),
+                value: _promptEnabled,
+                onChanged: (v) async {
+                  setState(() => _promptEnabled = v);
+                  await BatteryOptimization.setPromptEnabled(v);
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(v ? "Session prompt enabled" : "Session prompt disabled")),
+                  );
+                },
               ),
 
               const SizedBox(height: 30),

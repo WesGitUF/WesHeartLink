@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
@@ -279,6 +280,9 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
 
                           bool isOnline = result == 'online' ? true : false;
 
+                          await BatteryOptimization.maybePromptOnce(context);
+                          if (!context.mounted) return;
+
                           if (context.mounted) {
                             Navigator.pushNamed(
                               context,
@@ -343,6 +347,9 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                         if (result == null) return;
 
                         bool isOnline = result == 'online' ? true : false;
+
+                        await BatteryOptimization.maybePromptOnce(context);
+                        if (!context.mounted) return;
 
                           Navigator.pushNamed(
                             context,
