@@ -149,7 +149,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR += ((_random.nextDouble() * 6) - 3).toInt();
-        _userHR += 5; //use this for guarantee zone bumps in testing
+        //_userHR += 5; use this for guarantee zone bumps in testing
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
