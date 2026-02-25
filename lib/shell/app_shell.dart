@@ -17,12 +17,16 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   // current selected index
   int _index = 0;
+  final ValueNotifier<int> _historyTabs = ValueNotifier(0);
 
   // use this key to manage the inner navigator of Heart tab
   final GlobalKey<NavigatorState> _heartNavKey = GlobalKey<NavigatorState>();
 
   // switch tab
-  void _go(int i) => setState(() => _index = i);
+  void _go(int i) => setState(() {
+    if (i == 1) _historyTabs.value++;
+    _index = i;
+  });
 
   // floating action button opens the session selection flow
   void _openSessionFlow() {
@@ -73,7 +77,7 @@ class _AppShellState extends State<AppShell> {
     // four main pages
     final pages = <Widget>[
       const HomeScreen(),
-      const HistoryScreen(),
+      HistoryScreen(onTabVisible: _historyTabs),
       // Heart rate tab with inner navigator
       //HeartTabNavigator(navKey: _heartNavKey),
       const ProfileScreen(),

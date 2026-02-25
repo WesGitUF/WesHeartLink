@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/screens/history/workoutdetail_screen.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
@@ -29,7 +30,8 @@ class Workout {
 
 class HistoryScreen extends StatefulWidget {
   final DateTime? filterDate;
-  const HistoryScreen({super.key, this.filterDate});
+  final ValueNotifier<int>? onTabVisible;
+  const HistoryScreen({super.key, this.filterDate, this.onTabVisible});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -45,8 +47,12 @@ class _HistoryScreenState extends State<HistoryScreen>
   late final Animation<Offset> _nudgeOffset;
 
   // show the swipe hint every 2 weeks
-  static const _kHintKey = 'swipe_hint_last_shown';
   static const _kHintIntervalMs = 14 * 24 * 60 * 60 * 1000; // 2 weeks
+
+  String get _kHintKey {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+    return 'swipe_hint_last_shown_$uid';
+  }
 
   @override
   void initState() {
@@ -60,22 +66,41 @@ class _HistoryScreenState extends State<HistoryScreen>
       end: const Offset(-0.15, 0),
     ).animate(CurvedAnimation(parent: _nudgeCtl, curve: Curves.easeInOut));
     _loadHistory();
+    widget.onTabVisible?.addListener(_onTabVisible);
   }
 
   @override
   void dispose() {
+    widget.onTabVisible?.removeListener(_onTabVisible);
     _nudgeCtl.dispose();
     super.dispose();
   }
 
+  Future<void> _onTabVisible() async {
+    if (!mounted) return;
+    final sp = await SharedPreferences.getInstance();
+    final lastShown = sp.getInt(_kHintKey) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final items = _filteredEntries(HistoryRepo.instance.entries);
+    final shouldNudge = items.isNotEmpty && (now - lastShown >= _kHintIntervalMs);
+    if (!shouldNudge || !mounted) return;
+    await sp.setInt(_kHintKey, now);
+    setState(() => _showSwipeHint = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _playNudge());
+  }
+
   // load data from historyrepo(invoke firebase)
   Future<void> _loadHistory() async {
-    await HistoryRepo.instance.loadFromCloud();
+    try {
+      await HistoryRepo.instance.loadFromCloud()
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // network unavailable or timed out — proceed with cached entries
+    }
     if (!mounted) return;
 
-    // check if 2 weeks have passed since last swipe hint
+    // check if interval has passed since last swipe hint
     final sp = await SharedPreferences.getInstance();
-    //await sp.remove(_kHintKey); // remove this line after testing
     final lastShown = sp.getInt(_kHintKey) ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
     final items = _filteredEntries(HistoryRepo.instance.entries);
