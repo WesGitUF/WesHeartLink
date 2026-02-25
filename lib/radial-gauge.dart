@@ -267,9 +267,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               maxHeartRate: _maxSessionHR, 
               avgHeartRate: averageHR.toDouble(), 
               series: hrValues,
-              topZone: mostFrequentZone,
-              isSolo: isSolo
-            )),
               topZone: peakZoneName,
                 theoreticalMaxHr: _maxHeartRate!)),
             (_) => false, 
@@ -679,9 +676,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         maxHeartRate: _maxSessionHR, 
         avgHeartRate: averageHR.toDouble(), 
         series: hrValues, 
-        topZone: mostFrequentZone,
-        isSolo: isSolo
-      )),
         topZone: peakZoneName,
           theoreticalMaxHr: _maxHeartRate!)),
       (_) => false,
@@ -715,19 +709,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       valueListenable: nearbyService.guestConnectedNotifier,
                       builder: (context, guestConnected, _) {
                         return ElevatedButton(
-                          onPressed: (_isOnline! && !guestConnected)
-                            ? null
-                            : () {
-                              setState(() {
-                                _showOverlay = false;
+                          onPressed: () {
+                            setState(() {
+                              _showOverlay = false;
 
-                                if (guestConnected) {
-                                  _guestConnected = true;      // paired workout
-                                } else {
-                                  _guestConnected = false;
-                                  isSolo = true;   // solo fallback
-                                }
-                              });
+                              if (guestConnected) {
+                                _guestConnected = true;      // paired workout
+                              } else {
+                                _guestConnected = false;  
+                                isSolo = true;   // solo fallback
+                              }
+                            });
 
                             _stopwatch.start();
                             _startTimer();
@@ -738,9 +730,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                             textStyle: const TextStyle(fontSize: 24),
                           ),
                           child: Text(
-                            guestConnected
-                                ? 'Start Workout'
-                                : (_isOnline! ? 'Waiting for partner...' : 'Start Solo Workout'),
+                            guestConnected ? 'Start Workout' : 'Start Solo Workout',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
