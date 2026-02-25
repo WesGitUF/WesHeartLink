@@ -13,6 +13,7 @@ class TrackingResultScreen extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
   final int theoreticalMaxHr; // use for history graph screen to show accurate
   // max HR for that session
 
@@ -26,6 +27,7 @@ class TrackingResultScreen extends StatelessWidget {
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
+    required this.isSolo,
     required this.theoreticalMaxHr,
     });
 
@@ -77,6 +79,7 @@ class TrackingResultScreen extends StatelessWidget {
                   avgHeartRate: avgHeartRate,
                   series: series,
                   topZone: topZone,
+                  isSolo: isSolo,
                     theoreticalMaxHr: theoreticalMaxHr),
               ),
             ),
@@ -96,6 +99,7 @@ class _StatsBox extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
   final int theoreticalMaxHr;
   const _StatsBox({required this.elapsedTime, 
     required this.sameZoneTime, 
@@ -105,6 +109,7 @@ class _StatsBox extends StatelessWidget {
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
+    required this.isSolo,
     required this.theoreticalMaxHr});
 
   String _formatDuration(Duration duration) {
@@ -157,8 +162,9 @@ class _StatsBox extends StatelessWidget {
           const SizedBox(height: 24),
           Text('Elapsed Time: ${_formatDuration(elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
-          const SizedBox(height: 24),
+          if (!isSolo) ...[
+            Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+            const SizedBox(height: 24)],
           Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
