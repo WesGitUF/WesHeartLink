@@ -57,10 +57,10 @@ class WorkoutDetailScreen extends StatelessWidget {
     final end   = start.add(workout.duration);
 
     final int sessionMaxHr = series.isEmpty
-        ? workout.avgHr
+        ? (workout.maxSessionHr ?? workout.avgHr)
         : series.reduce((a, b) => a > b ? a : b);
 
-    final int theoreticalMaxHr = hrState.maxHr;
+    final int theoreticalMaxHr = workout.theoreticalMaxHr ?? hrState.maxHr;
 
     // Count readings per zone for the Time in Zone chart
     final zoneCounts = List<int>.filled(5, 0);

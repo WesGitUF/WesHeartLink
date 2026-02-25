@@ -75,6 +75,15 @@ class HistoryRepo extends ChangeNotifier {
 
         final int calories = _asInt(data['calories'] ?? 0);
 
+        final int? theoreticalMaxHr =
+        (data['theoreticalMaxHr'] == null) ? null : _asInt(data['theoreticalMaxHr']);
+
+        final int? maxSessionHr =
+        (data['maxSessionHr'] == null) ? null : _asInt(data['maxSessionHr']);
+
+        final String? topZone =
+        (data['topZone'] == null) ? null : data['topZone'].toString();
+
         // Build Workout object for UI
         final workout = Workout(
           type: type,
@@ -82,6 +91,9 @@ class HistoryRepo extends ChangeNotifier {
           duration: duration,
           avgHr: avgHr,
           calories: calories,
+          theoreticalMaxHr: theoreticalMaxHr,
+          maxSessionHr: maxSessionHr,
+          topZone: topZone,
         );
 
         final List<int> series = data['bpmSeries'] is List
