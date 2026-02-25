@@ -205,6 +205,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     }
   }
 
+  // use to get peak zone for workout max HR
+  String get peakZoneName {
+    if (_maxHeartRate == null) return 'Unknown';
+    return getZoneForHR(_maxSessionHR, _maxHeartRate!).name;
+  }
+
   // Listen for partner HR updates from Firestore in online mode
   void _listenForPartnerHR() {
     if (sessionId == null) return;
@@ -247,7 +253,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               maxHeartRate: _maxSessionHR, 
               avgHeartRate: averageHR.toDouble(), 
               series: hrValues,
-              topZone: mostFrequentZone)),
+              topZone: peakZoneName,
+                theoreticalMaxHr: _maxHeartRate!)),
             (_) => false, 
           );
         }
@@ -655,7 +662,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         maxHeartRate: _maxSessionHR, 
         avgHeartRate: averageHR.toDouble(), 
         series: hrValues, 
-        topZone: mostFrequentZone)),
+        topZone: peakZoneName,
+          theoreticalMaxHr: _maxHeartRate!)),
       (_) => false,
     );
   }
