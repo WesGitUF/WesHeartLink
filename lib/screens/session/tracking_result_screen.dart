@@ -27,7 +27,7 @@ class TrackingResultScreen extends StatelessWidget {
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
-    required this.isSolo
+    required this.isSolo,
     required this.theoreticalMaxHr,
     });
 
@@ -80,7 +80,6 @@ class TrackingResultScreen extends StatelessWidget {
                   series: series,
                   topZone: topZone,
                   isSolo: isSolo,
-                ),
                     theoreticalMaxHr: theoreticalMaxHr),
               ),
             ),
@@ -110,8 +109,7 @@ class _StatsBox extends StatelessWidget {
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
-    required this.isSolo
-  });
+    required this.isSolo,
     required this.theoreticalMaxHr});
 
   String _formatDuration(Duration duration) {

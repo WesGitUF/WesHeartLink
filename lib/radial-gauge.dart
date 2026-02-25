@@ -267,9 +267,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               maxHeartRate: _maxSessionHR, 
               avgHeartRate: averageHR.toDouble(), 
               series: hrValues,
-              topZone: mostFrequentZone,
-              isSolo: isSolo
-            )),
+              isSolo: isSolo,
               topZone: peakZoneName,
                 theoreticalMaxHr: _maxHeartRate!)),
             (_) => false, 
@@ -679,11 +677,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         maxHeartRate: _maxSessionHR, 
         avgHeartRate: averageHR.toDouble(), 
         series: hrValues, 
-        topZone: mostFrequentZone,
-        isSolo: isSolo
-      )),
+        isSolo: isSolo,
         topZone: peakZoneName,
-          theoreticalMaxHr: _maxHeartRate!)),
+        theoreticalMaxHr: _maxHeartRate!)),
       (_) => false,
     );
   }
