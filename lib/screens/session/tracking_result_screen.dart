@@ -13,7 +13,8 @@ class TrackingResultScreen extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
-  final int theoreticalMaxHr;
+  final int theoreticalMaxHr; // use for history graph screen to show accurate
+  // max HR for that session
 
   const TrackingResultScreen({
     super.key, 

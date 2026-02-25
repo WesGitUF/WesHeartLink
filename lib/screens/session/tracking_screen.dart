@@ -73,13 +73,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
     final elapsed = _stopwatch.elapsed;
 
-    // Minimal series for now (if you aren't recording it here yet)
-    final List<int> series = []; // TODO: store readings each second if you want a real graph
+    final List<int> series = [];
 
-    // Compute avgHR from what you have (or keep 0 if you don't track it)
     final double avgHR = _userHR.toDouble();
 
-    // Peak zone based on current user HR (or compute from max during session if you track it)
     final String topZone = getZoneForHR(_userHR, maxHeartRate).name;
 
     Navigator.pushNamedAndRemoveUntil(
@@ -91,9 +88,9 @@ class _TrackingScreenState extends State<TrackingScreen> {
         'sameZone': _sameZoneDuration,
 
         // Required by route builder:
-        'workoutMode': 'Workout',                 // or pass from args if you have it
-        'workoutModeIcon': Icons.fitness_center,  // pick something reasonable
-        'maxHR': _userHR,                         // session max (better: track a true max)
+        'workoutMode': 'Workout',
+        'workoutModeIcon': Icons.fitness_center,
+        'maxHR': _userHR,
         'avgHR': avgHR,
         'series': series,
         'topZone': topZone,
