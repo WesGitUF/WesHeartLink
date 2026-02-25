@@ -13,6 +13,7 @@ class TrackingResultScreen extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
 
   const TrackingResultScreen({
     super.key, 
@@ -23,7 +24,8 @@ class TrackingResultScreen extends StatelessWidget {
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
-    required this.topZone
+    required this.topZone,
+    required this.isSolo
     });
 
   @override
@@ -73,7 +75,9 @@ class TrackingResultScreen extends StatelessWidget {
                   maxHeartRate: maxHeartRate,
                   avgHeartRate: avgHeartRate,
                   series: series,
-                  topZone: topZone),
+                  topZone: topZone,
+                  isSolo: isSolo,
+                ),
               ),
             ),
           ],
@@ -92,6 +96,7 @@ class _StatsBox extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
   const _StatsBox({required this.elapsedTime, 
     required this.sameZoneTime, 
     required this.workoutMode, 
@@ -99,7 +104,9 @@ class _StatsBox extends StatelessWidget {
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
-    required this.topZone});
+    required this.topZone,
+    required this.isSolo
+  });
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -151,8 +158,9 @@ class _StatsBox extends StatelessWidget {
           const SizedBox(height: 24),
           Text('Elapsed Time: ${_formatDuration(elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
-          const SizedBox(height: 24),
+          if (!isSolo) ...[
+            Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+            const SizedBox(height: 24)],
           Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
