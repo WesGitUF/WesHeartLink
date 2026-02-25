@@ -113,6 +113,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   Map<String, int> zoneTime = {};   // time spent in each zone in milliseconds
   List<int> hrValues = [];      // store HR values over time
 
+  // for haptic zone feedback increments (prevents ding spam)
+  DateTime? _lastZoneUpFeedbackAt;
+  static const Duration _zoneUpCooldown = Duration(milliseconds: 1500);
+
   String get mostFrequentZone {
     if (zoneTime.isEmpty) return 'Unknown';
     return zoneTime.entries.reduce((a, b) => a.value > b.value ? a : b).key;
@@ -132,7 +136,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   }
 
   //update function to run every second during active session
-  void _tickUpdate() {
+  Future<void> _tickUpdate() async {
     //return if paused, inactive, or no max HR set
     if (_isPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
@@ -199,10 +203,26 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     });
 
     if (zoneBumpUp) {
+      final now = DateTime.now();
 
-      Vibration.vibrate(duration: 3000, amplitude: 255);
-      _audioPlayer.play(AssetSource('audio/zone_up.wav'));
+      final canFire = _lastZoneUpFeedbackAt == null ||
+          now.difference(_lastZoneUpFeedbackAt!) >= _zoneUpCooldown;
+
+      if (canFire) {
+        _lastZoneUpFeedbackAt = now;
+
+        Vibration.vibrate(duration: 1070, amplitude: 255);
+
+        await _audioPlayer.stop();
+        await _audioPlayer.play(AssetSource('audio/zone_up.m4a'));
+      }
     }
+  }
+
+  // use to get peak zone for workout max HR
+  String get peakZoneName {
+    if (_maxHeartRate == null) return 'Unknown';
+    return getZoneForHR(_maxSessionHR, _maxHeartRate!).name;
   }
 
   // Listen for partner HR updates from Firestore in online mode
@@ -250,6 +270,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               topZone: mostFrequentZone,
               isSolo: isSolo
             )),
+              topZone: peakZoneName,
+                theoreticalMaxHr: _maxHeartRate!)),
             (_) => false, 
           );
         }
@@ -660,6 +682,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         topZone: mostFrequentZone,
         isSolo: isSolo
       )),
+        topZone: peakZoneName,
+          theoreticalMaxHr: _maxHeartRate!)),
       (_) => false,
     );
   }

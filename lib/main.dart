@@ -133,6 +133,7 @@ class MyApp extends StatelessWidget {
             series: args['series'] as List<int>,
             topZone: args['topZone'] as String,
             isSolo: args['isSolo'] as bool,
+            theoreticalMaxHr: args['theoreticalMaxHr'] as int
           );
         },
       },

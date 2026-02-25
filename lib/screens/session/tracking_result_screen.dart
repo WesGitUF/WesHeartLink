@@ -14,6 +14,8 @@ class TrackingResultScreen extends StatelessWidget {
   final List<int> series;
   final String topZone;
   final bool isSolo;
+  final int theoreticalMaxHr; // use for history graph screen to show accurate
+  // max HR for that session
 
   const TrackingResultScreen({
     super.key, 
@@ -26,6 +28,7 @@ class TrackingResultScreen extends StatelessWidget {
     required this.series,
     required this.topZone,
     required this.isSolo
+    required this.theoreticalMaxHr,
     });
 
   @override
@@ -78,6 +81,7 @@ class TrackingResultScreen extends StatelessWidget {
                   topZone: topZone,
                   isSolo: isSolo,
                 ),
+                    theoreticalMaxHr: theoreticalMaxHr),
               ),
             ),
           ],
@@ -97,6 +101,7 @@ class _StatsBox extends StatelessWidget {
   final List<int> series;
   final String topZone;
   final bool isSolo;
+  final int theoreticalMaxHr;
   const _StatsBox({required this.elapsedTime, 
     required this.sameZoneTime, 
     required this.workoutMode, 
@@ -107,6 +112,7 @@ class _StatsBox extends StatelessWidget {
     required this.topZone,
     required this.isSolo
   });
+    required this.theoreticalMaxHr});
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -196,10 +202,11 @@ class _StatsBox extends StatelessWidget {
                     'calories': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
                     'createdAt': FieldValue.serverTimestamp(),
                     'durationSeconds': elapsedTime.inSeconds,
-                    //'maxHr': maxHeartRate,
-                    //'topZone': topZone,
+                    'maxSessionHr': maxHeartRate,
+                    'topZone': topZone,
                     'start': FieldValue.serverTimestamp(),
                     'type': workoutMode,
+                    'theoreticalMaxHr': theoreticalMaxHr,
                   });
               }
               else {

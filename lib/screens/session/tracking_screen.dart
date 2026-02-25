@@ -70,14 +70,31 @@ class _TrackingScreenState extends State<TrackingScreen> {
   void _stopTimerAndNavigate() {
     _stopwatch.stop();
     _timer?.cancel();
+
     final elapsed = _stopwatch.elapsed;
+
+    final List<int> series = [];
+
+    final double avgHR = _userHR.toDouble();
+
+    final String topZone = getZoneForHR(_userHR, maxHeartRate).name;
+
     Navigator.pushNamedAndRemoveUntil(
       context,
       '/trackingResult',
-      (Route<dynamic> route) => false,
+          (Route<dynamic> route) => false,
       arguments: {
         'elapsed': elapsed,
         'sameZone': _sameZoneDuration,
+
+        // Required by route builder:
+        'workoutMode': 'Workout',
+        'workoutModeIcon': Icons.fitness_center,
+        'maxHR': _userHR,
+        'avgHR': avgHR,
+        'series': series,
+        'topZone': topZone,
+        'theoreticalMaxHr': maxHeartRate,
       },
     );
   }

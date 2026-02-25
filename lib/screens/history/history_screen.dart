@@ -11,12 +11,19 @@ class Workout {
   final int avgHr;
   final int calories;
 
+  final int? maxSessionHr;
+  final int? theoreticalMaxHr;
+  final String? topZone;
+
   const Workout({
     required this.type,
     required this.start,
     required this.duration,
     required this.avgHr,
     required this.calories,
+    this.maxSessionHr,
+    this.theoreticalMaxHr,
+    this.topZone,
   });
 }
 
