@@ -64,6 +64,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   int userAge = 0;
   int _userHR = 100;
   int _partnerHR = 0;
+  int _sliderHR = 100;
 
   //passed from previous screen, if hosting/joining or using online/offline mode
   bool? _isHost;
@@ -132,11 +133,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   void _startTimer() {
     _timer?.cancel();
-    Timer.periodic(const Duration(milliseconds: 1000), (_) => _tickUpdate());
+    _timer = Timer.periodic(const Duration(milliseconds: 1000), (_) => _tickUpdate());
   }
 
   //update function to run every second during active session
   Future<void> _tickUpdate() async {
+    if (!mounted) return;
     //return if paused, inactive, or no max HR set
     if (_isPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
@@ -148,8 +150,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
-        _userHR += ((_random.nextDouble() * 6) - 3).toInt();
-        //_userHR += 5; use this for guarantee zone bumps in testing
+        _userHR = _sliderHR;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -1255,6 +1256,33 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         ],
                       ),
                     ),
+
+                    // debug slider — only shown when using fake device
+                    if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'BPM: $_sliderHR',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                            ),
+                            Slider(
+                              value: _sliderHR.clamp(
+                                (_maxHeartRate! * 0.40).round(),
+                                _maxHeartRate!,
+                              ).toDouble(),
+                              min: (_maxHeartRate! * 0.40).roundToDouble(),
+                              max: _maxHeartRate!.toDouble(),
+                              divisions: (_maxHeartRate! - (_maxHeartRate! * 0.40).round()),
+                              label: '$_sliderHR',
+                              onChanged: (v) => setState(() => _sliderHR = v.round()),
+                            ),
+                          ],
+                        ),
+                      ),
 
                   ],
                 ),
