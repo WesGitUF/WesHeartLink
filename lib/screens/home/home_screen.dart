@@ -882,7 +882,7 @@ class _AreaStrokePainter extends CustomPainter {
       Offset(left, bottom),
       Offset(right, bottom),
       Paint()
-        ..color = Colors.black.withOpacity(0.28)
+        ..color = Colors.black.withValues()
         ..strokeWidth = 2,
     );
 

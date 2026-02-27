@@ -190,7 +190,7 @@ class _StatsBox extends StatelessWidget {
                   }
                 }
 
-                FirebaseFirestore.instance
+                await FirebaseFirestore.instance
                   .collection('users')
                   .doc(user.uid)
                   .collection('workouts')
