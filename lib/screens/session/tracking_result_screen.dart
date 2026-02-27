@@ -134,7 +134,7 @@ class _StatsBox extends StatelessWidget {
     if (gender == 'female') {
       perMin = ((0.4472 * avgHr - 0.1263 * weight + 0.074 * age - 20.4022) / 4.184);
     } else {
-      perMin = ((0.6309 * avgHr - 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
+      perMin = ((0.6309 * avgHr + 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
     }
 
     // prevent negative calories
