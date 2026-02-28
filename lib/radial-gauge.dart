@@ -83,7 +83,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //current workout message based on HR zone
   late String workoutMessage;
   final _random = Random();
-  final _audioPlayer = AudioPlayer();
+  late final AudioPlayer _audioPlayer;
 
   Timer? _timer;
 
@@ -215,7 +215,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         Vibration.vibrate(duration: 1070, amplitude: 255);
 
         await _audioPlayer.stop();
-        await _audioPlayer.play(AssetSource('audio/zone_up.m4a'));
+        await _audioPlayer.play(AssetSource('audio/zone_up.m4a'), volume: 1.0);
       }
     }
   }
@@ -571,6 +571,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
 
     _initAsync();
   }
