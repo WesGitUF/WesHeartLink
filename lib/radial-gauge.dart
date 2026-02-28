@@ -84,7 +84,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //current workout message based on HR zone
   late String workoutMessage;
   final _random = Random();
-  final _audioPlayer = AudioPlayer();
+  late final AudioPlayer _audioPlayer;
 
   Timer? _timer;
 
@@ -576,6 +576,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _audioPlayer = AudioPlayer();
+    _audioPlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
 
     _initAsync();
   }
