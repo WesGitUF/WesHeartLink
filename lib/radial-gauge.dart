@@ -215,7 +215,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
         Vibration.vibrate(duration: 1070, amplitude: 255);
 
-        await _audioPlayer.stop();
         final enabled = await WorkoutAudioSettings.isEnabled();
         if (!enabled) return;
 
@@ -578,6 +577,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     _audioPlayer = AudioPlayer();
+
     _audioPlayer.setAudioContext(
       AudioContext(
         android: AudioContextAndroid(
@@ -589,6 +589,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         ),
       ),
     );
+
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
 
     _initAsync();
   }
