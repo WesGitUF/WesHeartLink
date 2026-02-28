@@ -6,6 +6,7 @@ import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
 import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:heart_link_app/services/workout_audio_settings.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -19,6 +20,19 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   User? _user;
   bool? _isUnrestricted;
   bool _promptEnabled = true;
+
+  // Audio File Settings
+  bool _zoneAudioEnabled = true;
+  String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
+
+  final Map<String, String> _zoneSounds = {
+    'Classic': 'audio/zone_up.m4a',
+    'Chimes': 'audio/zone_up_chime.m4a',
+    'Popcorn': 'audio/zone_up_popcorn.m4a',
+    'Radar': 'audio/zone_up_radar.m4a',
+    'Soft Ding': 'audio/zone_up_ding.m4a',
+  };
+
   final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
 
   final Map<String, IconData> _activityIcons = {
@@ -37,6 +51,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     WidgetsBinding.instance.addObserver(this);
     _refreshBatteryOptStatus();
     _loadPromptEnabled();
+
+    _loadZoneAudioPrefs();
   }
 
   @override
@@ -50,6 +66,17 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     if (state == AppLifecycleState.resumed) {
       _refreshBatteryOptStatus();
     }
+  }
+
+  Future<void> _loadZoneAudioPrefs() async {
+    final enabled = await WorkoutAudioSettings.isEnabled();
+    final asset = await WorkoutAudioSettings.getAsset();
+
+    if (!mounted) return;
+    setState(() {
+      _zoneAudioEnabled = enabled;
+      _zoneAudioAsset = asset;
+    });
   }
 
   Future<void> _refreshBatteryOptStatus() async {
@@ -74,6 +101,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     final enabled = await BatteryOptimization.isPromptEnabled();
     if (!mounted) return;
     setState(() => _promptEnabled = enabled);
+  }
+
+  String _labelForAsset(String asset) {
+    return _zoneSounds.entries
+        .firstWhere(
+          (e) => e.value == asset,
+      orElse: () => _zoneSounds.entries.first,
+    )
+        .key;
   }
 
   // ───────────────────────────────────────────────────────────────
@@ -367,7 +403,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
               SwitchListTile(
                 title: const Text("Prompt me to enable background tracking"),
-                subtitle: const Text("Shows a reminder when starting a new session (Android only)."),
+                subtitle: const Text("Shows a reminder for new sessions"),
                 value: _promptEnabled,
                 onChanged: (v) async {
                   setState(() => _promptEnabled = v);
@@ -381,6 +417,42 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
 
               const SizedBox(height: 30),
+
+              // Audio Feedback Settings
+              _sectionTitle("Audio Feedback"),
+
+              SwitchListTile(
+                title: const Text("Mute alerts when my heart rate zone increases"),
+                value: !_zoneAudioEnabled,
+                onChanged: (v) async {
+                  final newEnabled = !v;
+                  setState(() => _zoneAudioEnabled = newEnabled);
+                  await WorkoutAudioSettings.setEnabled(newEnabled);
+                },
+              ),
+
+              ListTile(
+                title: const Text("Sound"),
+                subtitle: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _labelForAsset(_zoneAudioAsset),
+                    items: _zoneSounds.keys.map((label) {
+                      return DropdownMenuItem(
+                        value: label,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: !_zoneAudioEnabled
+                        ? null
+                        : (label) async {
+                      if (label == null) return;
+                      final asset = _zoneSounds[label]!;
+                      setState(() => _zoneAudioAsset = asset);
+                      await WorkoutAudioSettings.setAsset(asset);
+                    },
+                  ),
+                ),
+              ),
 
 
               // ───────────────────────────────────────────────

@@ -12,6 +12,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/services/workout_audio_settings.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -215,7 +216,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         Vibration.vibrate(duration: 1070, amplitude: 255);
 
         await _audioPlayer.stop();
-        await _audioPlayer.play(AssetSource('audio/zone_up.m4a'));
+        final enabled = await WorkoutAudioSettings.isEnabled();
+        if (!enabled) return;
+
+        final asset = await WorkoutAudioSettings.getAsset();
+        await _audioPlayer.play(AssetSource(asset));
       }
     }
   }
