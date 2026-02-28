@@ -1,6 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.heart_link_app">
 
+    <!-- Battery optimization prompt -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- Peristant Notifications -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- Required for Bluetooth operations -->
     <!-- For Android 12 (API level 31) and above: -->
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
@@ -15,6 +22,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" android:maxSdkVersion="30" />
 
     
+
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:label="heart_link_app"

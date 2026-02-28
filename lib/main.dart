@@ -131,7 +131,9 @@ class MyApp extends StatelessWidget {
             maxHeartRate: args['maxHR'] as int,
             avgHeartRate: (args['avgHR'] as num).toDouble(),
             series: args['series'] as List<int>,
-            topZone: args['topZone'] as String
+            topZone: args['topZone'] as String,
+            isSolo: args['isSolo'] as bool, //changed this
+            theoreticalMaxHr: args['theoreticalMaxHr'] as int
           );
         },
       },

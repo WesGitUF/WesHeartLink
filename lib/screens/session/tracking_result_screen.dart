@@ -13,6 +13,9 @@ class TrackingResultScreen extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
+  final int theoreticalMaxHr; // use for history graph screen to show accurate
+  // max HR for that session
 
   const TrackingResultScreen({
     super.key, 
@@ -23,7 +26,9 @@ class TrackingResultScreen extends StatelessWidget {
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
-    required this.topZone
+    required this.topZone,
+    required this.isSolo,
+    required this.theoreticalMaxHr,
     });
 
   @override
@@ -73,7 +78,9 @@ class TrackingResultScreen extends StatelessWidget {
                   maxHeartRate: maxHeartRate,
                   avgHeartRate: avgHeartRate,
                   series: series,
-                  topZone: topZone),
+                  topZone: topZone,
+                  isSolo: isSolo,
+                    theoreticalMaxHr: theoreticalMaxHr),
               ),
             ),
           ],
@@ -92,6 +99,8 @@ class _StatsBox extends StatelessWidget {
   final double avgHeartRate;
   final List<int> series;
   final String topZone;
+  final bool isSolo;
+  final int theoreticalMaxHr;
   const _StatsBox({required this.elapsedTime, 
     required this.sameZoneTime, 
     required this.workoutMode, 
@@ -99,7 +108,9 @@ class _StatsBox extends StatelessWidget {
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
-    required this.topZone});
+    required this.topZone,
+    required this.isSolo,
+    required this.theoreticalMaxHr});
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -123,7 +134,7 @@ class _StatsBox extends StatelessWidget {
     if (gender == 'female') {
       perMin = ((0.4472 * avgHr - 0.1263 * weight + 0.074 * age - 20.4022) / 4.184);
     } else {
-      perMin = ((0.6309 * avgHr - 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
+      perMin = ((0.6309 * avgHr + 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
     }
 
     // prevent negative calories
@@ -151,8 +162,9 @@ class _StatsBox extends StatelessWidget {
           const SizedBox(height: 24),
           Text('Elapsed Time: ${_formatDuration(elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
-          const SizedBox(height: 24),
+          if (!isSolo) ...[
+            Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+            const SizedBox(height: 24)],
           Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
@@ -188,10 +200,11 @@ class _StatsBox extends StatelessWidget {
                     'calories': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
                     'createdAt': FieldValue.serverTimestamp(),
                     'durationSeconds': elapsedTime.inSeconds,
-                    //'maxHr': maxHeartRate,
-                    //'topZone': topZone,
+                    'maxSessionHr': maxHeartRate,
+                    'topZone': topZone,
                     'start': FieldValue.serverTimestamp(),
                     'type': workoutMode,
+                    'theoreticalMaxHr': theoreticalMaxHr,
                   });
               }
               else {

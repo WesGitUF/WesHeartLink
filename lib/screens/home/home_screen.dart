@@ -1,7 +1,9 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
@@ -27,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // workout
   List<HistoryEntry> _entries = [];
   bool _isLoadingWorkout = true;
+
 
   Map<String, dynamic>? _userData;
   bool _isLoadingUser = true;
@@ -168,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadUserData();
     _loadWeather();
     _loadWorkouts();
+    //_checkDefaultWorkoutAndPrompt();
   }
 
 
@@ -878,7 +882,7 @@ class _AreaStrokePainter extends CustomPainter {
       Offset(left, bottom),
       Offset(right, bottom),
       Paint()
-        ..color = Colors.black.withOpacity(0.28)
+        ..color = Colors.black.withValues()
         ..strokeWidth = 2,
     );
 

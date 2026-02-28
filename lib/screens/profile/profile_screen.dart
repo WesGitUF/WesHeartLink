@@ -3,6 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/services/battery_optimization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:heart_link_app/services/workout_audio_settings.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,12 +15,106 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   final AuthService _authService = AuthService();
+  User? _user;
+  bool? _isUnrestricted;
+  bool _promptEnabled = true;
+
+  // Audio File Settings
+  bool _zoneAudioEnabled = true;
+  String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
+
+  final Map<String, String> _zoneSounds = {
+    'Classic': 'audio/zone_up.m4a',
+    'Chimes': 'audio/zone_up_chime.m4a',
+    'Popcorn': 'audio/zone_up_popcorn.m4a',
+    'Radar': 'audio/zone_up_radar.m4a',
+    'Soft Ding': 'audio/zone_up_ding.m4a',
+  };
+
+  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
+
+  final Map<String, IconData> _activityIcons = {
+    'Running': Icons.directions_run,
+    'Cycling': Icons.directions_bike,
+    'HIIT': Icons.fitness_center,
+    'Walking': Icons.directions_walk,
+    'Swimming': Icons.pool,
+  };
+
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+    WidgetsBinding.instance.addObserver(this);
+    _refreshBatteryOptStatus();
+    _loadPromptEnabled();
+
+    _loadZoneAudioPrefs();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshBatteryOptStatus();
+    }
+  }
+
+  Future<void> _loadZoneAudioPrefs() async {
+    final enabled = await WorkoutAudioSettings.isEnabled();
+    final asset = await WorkoutAudioSettings.getAsset();
+
+    if (!mounted) return;
+    setState(() {
+      _zoneAudioEnabled = enabled;
+      _zoneAudioAsset = asset;
+    });
+  }
+
+  Future<void> _refreshBatteryOptStatus() async {
+    try {
+      final v = await BatteryOptimization.isIgnoringOptimization();
+      if (!mounted) return;
+      setState(() => _isUnrestricted = v);
+
+      if (v == false) {
+        final enabled = await BatteryOptimization.isPromptEnabled();
+        if (enabled) {
+          await BatteryOptimization.resetPromptOnce();
+        }
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isUnrestricted = false);
+    }
+  }
+
+  Future<void> _loadPromptEnabled() async {
+    final enabled = await BatteryOptimization.isPromptEnabled();
+    if (!mounted) return;
+    setState(() => _promptEnabled = enabled);
+  }
+
+  String _labelForAsset(String asset) {
+    return _zoneSounds.entries
+        .firstWhere(
+          (e) => e.value == asset,
+      orElse: () => _zoneSounds.entries.first,
+    )
+        .key;
+  }
 
   // ───────────────────────────────────────────────────────────────
   // Edit Age dialog
-  // ───────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────
   Future<void> _editAge(int initialAge) async {
     final ctrl = TextEditingController(
       text: initialAge > 0 ? '$initialAge' : '',
@@ -68,8 +166,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ───────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final cs = Theme.of(context).colorScheme;
+    final user = _user;
+    final cs = Theme.of(context).colorScheme;  
 
     if (user == null) {
       return const Scaffold(
@@ -97,7 +195,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: Text("Profile not found."));
           }
 
+
           final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+
+          String? defaultWorkout;
+          final raw = data['defaultWorkout'];
+          if (raw is String) {
+            final trimmed = raw.trim();
+            if (_activities.contains(trimmed)) defaultWorkout = trimmed;
+          }
 
           // Extract Firestore fields
           final displayName = (data['displayName'] as String?)?.trim() ?? "";
@@ -195,33 +301,176 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 subtitle: Text("$maxHr bpm"),
               ),
 
+              const SizedBox(height: 20),
+
+// ───────────────────────────────────────────────
+// WORKOUT PREFERENCES
+// ───────────────────────────────────────────────
+              _sectionTitle("Workout Preferences"),
+
+              ListTile(
+                title: const Text("Default workout"),
+                subtitle: Text(defaultWorkout ?? "Not set"),
+                trailing: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: (defaultWorkout != null && _activities.contains(defaultWorkout))
+                        ? defaultWorkout
+                        : _activities.first,
+                    items: _activities.map((a) {
+                      return DropdownMenuItem(
+                        value: a,
+                        child: Row(
+                          children: [
+                            Icon(_activityIcons[a] ?? Icons.fitness_center),
+                            const SizedBox(width: 8),
+                            Text(a),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (v) async {
+                      if (v == null) return;
+
+                      await FirebaseFirestore.instance
+                          .collection("users")
+                          .doc(user.uid)
+                          .set({"defaultWorkout": v}, SetOptions(merge: true));
+
+                      final sp = await SharedPreferences.getInstance();
+                      await sp.setString('defaultWorkout', v);
+
+
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Default workout set to $v")),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              _sectionTitle("Background Tracking"),
+
+              ListTile(
+                title: const Text("Battery usage"),
+                subtitle: Text(
+                  _isUnrestricted == null
+                      ? "Checking…"
+                      : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
+                ),
+                trailing: FilledButton(
+                  onPressed: _isUnrestricted == null
+                      ? null
+                      : () async {
+                    if (_isUnrestricted == true) {
+                      if (!context.mounted) return;
+
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Switch back to Optimized"),
+                          content: const Text(
+                            "You'll be taken to Android settings.\n\n"
+                            "In the list, find Heart Link and turn OFF the battery exemption "
+                                "(choose Optimized / Battery optimized).",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                await BatteryOptimization.openBatteryOptimizationSettings();
+                              },
+                              child: const Text("Open Settings"),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      // Optimized -> request Unrestricted using existing flow
+                      await BatteryOptimization.requestIgnoreOptimization();
+                      await _refreshBatteryOptStatus();
+                    }
+                  },
+                  child: Text(
+                    _isUnrestricted == true ? "Change to Optimized" : "Set Unrestricted",
+                  ),
+                ),
+              ),
+
+              SwitchListTile(
+                title: const Text("Prompt me to enable background tracking"),
+                subtitle: const Text("Shows a reminder for new sessions"),
+                value: _promptEnabled,
+                onChanged: (v) async {
+                  setState(() => _promptEnabled = v);
+                  await BatteryOptimization.setPromptEnabled(v);
+
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(v ? "Session prompt enabled" : "Session prompt disabled")),
+                  );
+                },
+              ),
+
               const SizedBox(height: 30),
+
+              // Audio Feedback Settings
+              _sectionTitle("Audio Feedback"),
+
+              SwitchListTile(
+                title: const Text("Mute alerts when my heart rate zone increases"),
+                value: !_zoneAudioEnabled,
+                onChanged: (v) async {
+                  final newEnabled = !v;
+                  setState(() => _zoneAudioEnabled = newEnabled);
+                  await WorkoutAudioSettings.setEnabled(newEnabled);
+                },
+              ),
+
+              ListTile(
+                title: const Text("Sound"),
+                subtitle: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _labelForAsset(_zoneAudioAsset),
+                    items: _zoneSounds.keys.map((label) {
+                      return DropdownMenuItem(
+                        value: label,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: !_zoneAudioEnabled
+                        ? null
+                        : (label) async {
+                      if (label == null) return;
+                      final asset = _zoneSounds[label]!;
+                      setState(() => _zoneAudioAsset = asset);
+                      await WorkoutAudioSettings.setAsset(asset);
+                    },
+                  ),
+                ),
+              ),
+
 
               // ───────────────────────────────────────────────
               // SIGN OUT BUTTON
               // ───────────────────────────────────────────────
               FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: cs.primary,
-                ),
                 onPressed: () async {
                   await _authService.signOut();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.pushReplacementNamed(context, '/login');
-                },
-                child: const Text(
-                  "Sign Out",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                  },
+                  style: FilledButton.styleFrom(backgroundColor: cs.primary),
+                  child: const Text("Sign Out"),
                   ),
-                ),
+                 ],
+                );
+               },
               ),
-            ],
-          );
-        },
-      ),
     );
   }
 

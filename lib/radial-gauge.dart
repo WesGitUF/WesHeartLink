@@ -9,7 +9,10 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:vibration/vibration.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/services/workout_audio_settings.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -62,6 +65,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   int userAge = 0;
   int _userHR = 100;
   int _partnerHR = 0;
+  int _sliderHR = 100;
 
   //passed from previous screen, if hosting/joining or using online/offline mode
   bool? _isHost;
@@ -71,6 +75,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   bool _guestConnected = false;
   bool _isActiveSession = true;
 
+  bool _showPercent = false;
+
   //initialize user and partner HR zone, using heart rate zone clas
   late HeartRateZone userZone;
   late HeartRateZone partnerZone;
@@ -78,6 +84,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //current workout message based on HR zone
   late String workoutMessage;
   final _random = Random();
+  late final AudioPlayer _audioPlayer;
 
   Timer? _timer;
 
@@ -108,6 +115,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   Map<String, int> zoneTime = {};   // time spent in each zone in milliseconds
   List<int> hrValues = [];      // store HR values over time
 
+  // for haptic zone feedback increments (prevents ding spam)
+  DateTime? _lastZoneUpFeedbackAt;
+  static const Duration _zoneUpCooldown = Duration(milliseconds: 1500);
+
   String get mostFrequentZone {
     if (zoneTime.isEmpty) return 'Unknown';
     return zoneTime.entries.reduce((a, b) => a.value > b.value ? a : b).key;
@@ -123,20 +134,24 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   void _startTimer() {
     _timer?.cancel();
-    Timer.periodic(const Duration(milliseconds: 1000), (_) => _tickUpdate());
+    _timer = Timer.periodic(const Duration(milliseconds: 1000), (_) => _tickUpdate());
   }
 
   //update function to run every second during active session
-  void _tickUpdate() {
+  Future<void> _tickUpdate() async {
+    if (!mounted) return;
     //return if paused, inactive, or no max HR set
     if (_isPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
     if (_maxHeartRate == null || _showOverlay) return;
+
+    bool zoneBumpUp = false;
+
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
-        _userHR += ((_random.nextDouble() * 6) - 3).toInt();
+        _userHR = _sliderHR;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -148,9 +163,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         partnerZone = getZoneForHR(_partnerHR, _maxHeartRate!);
         if (partnerZone == userZone) {_sameZone += Duration(milliseconds: 1000); }
       }
-      if (prevZone != userZone) { 
-        updateImage(); 
+      if (prevZone != userZone) {
+        updateImage();
         workoutMessage = _pickMessage(userZone);
+        final prevNum = int.tryParse(prevZone.name.split(' ').last) ?? 0;
+        final newNum = int.tryParse(userZone.name.split(' ').last) ?? 0;
+        if (newNum > prevNum) {
+          zoneBumpUp = true;
+        }
       }
 
       // Send user HR to partner via Nearby or Firestore
@@ -183,6 +203,31 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
       _elapsed = _stopwatch.elapsed;
     });
+
+    if (zoneBumpUp) {
+      final now = DateTime.now();
+
+      final canFire = _lastZoneUpFeedbackAt == null ||
+          now.difference(_lastZoneUpFeedbackAt!) >= _zoneUpCooldown;
+
+      if (canFire) {
+        _lastZoneUpFeedbackAt = now;
+
+        Vibration.vibrate(duration: 1070, amplitude: 255);
+
+        final enabled = await WorkoutAudioSettings.isEnabled();
+        if (!enabled) return;
+
+        final asset = await WorkoutAudioSettings.getAsset();
+        await _audioPlayer.play(AssetSource(asset));
+      }
+    }
+  }
+
+  // use to get peak zone for workout max HR
+  String get peakZoneName {
+    if (_maxHeartRate == null) return 'Unknown';
+    return getZoneForHR(_maxSessionHR, _maxHeartRate!).name;
   }
 
   // Listen for partner HR updates from Firestore in online mode
@@ -227,7 +272,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               maxHeartRate: _maxSessionHR, 
               avgHeartRate: averageHR.toDouble(), 
               series: hrValues,
-              topZone: mostFrequentZone)),
+              isSolo: isSolo,
+              topZone: peakZoneName,
+                theoreticalMaxHr: _maxHeartRate!)),
             (_) => false, 
           );
         }
@@ -529,6 +576,22 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    _audioPlayer = AudioPlayer();
+
+    _audioPlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
+
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+
     _initAsync();
   }
 
@@ -538,6 +601,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _userSubscription?.cancel();
     _userConnection?.cancel();
     _timer?.cancel();
+    _audioPlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
@@ -634,7 +698,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         maxHeartRate: _maxSessionHR, 
         avgHeartRate: averageHR.toDouble(), 
         series: hrValues, 
-        topZone: mostFrequentZone)),
+        isSolo: isSolo,
+        topZone: peakZoneName,
+        theoreticalMaxHr: _maxHeartRate!)),
       (_) => false,
     );
   }
@@ -666,17 +732,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       valueListenable: nearbyService.guestConnectedNotifier,
                       builder: (context, guestConnected, _) {
                         return ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _showOverlay = false;
+                          onPressed: (_isOnline! && !guestConnected)
+                            ? null
+                            : () {
+                              setState(() {
+                                _showOverlay = false;
 
-                              if (guestConnected) {
-                                _guestConnected = true;      // paired workout
-                              } else {
-                                _guestConnected = false;  
-                                isSolo = true;   // solo fallback
-                              }
-                            });
+                                if (guestConnected) {
+                                  _guestConnected = true;      // paired workout
+                                } else {
+                                  _guestConnected = false;
+                                  isSolo = true;   // solo fallback
+                                }
+                              });
 
                             _stopwatch.start();
                             _startTimer();
@@ -687,7 +755,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                             textStyle: const TextStyle(fontSize: 24),
                           ),
                           child: Text(
-                            guestConnected ? 'Start Workout' : 'Start Solo Workout',
+                            guestConnected
+                                ? 'Start Workout'
+                                : (_isOnline! ? 'Waiting for partner...' : 'Start Solo Workout'),
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -1047,25 +1117,50 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   children: [
                     const SizedBox(height: 20),
 
-                    // HR DISPLAY
+                    //toggle heart rate percentage
                     Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(255, 40, 40, 41),
-                          border: Border.all(color: Colors.redAccent, width: 2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          "$_userHR bpm",
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
+                      child: InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showPercent = !_showPercent;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 40, 40, 41),
+                            border: Border.all(color: Colors.redAccent, width: 2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: SizedBox(
+                            width: 120,
+                            height: 44,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              transitionBuilder: (child, animation){
+                                return ScaleTransition(
+                                  scale: Tween(begin: 0.9, end: 1.0).animate(animation),
+                                  child: FadeTransition(opacity: animation, child: child),
+                                );
+                              },
+                              child: Text(
+                                _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
+                                    ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
+                                    : '$_userHR bpm',
+                                key: ValueKey(_showPercent),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      )
                     ),
-
                     const SizedBox(height: 40),
 
                     // GAUGE
@@ -1181,6 +1276,33 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         ],
                       ),
                     ),
+
+                    // debug slider — only shown when using fake device
+                    if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'BPM: $_sliderHR',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                            ),
+                            Slider(
+                              value: _sliderHR.clamp(
+                                (_maxHeartRate! * 0.40).round(),
+                                _maxHeartRate!,
+                              ).toDouble(),
+                              min: (_maxHeartRate! * 0.40).roundToDouble(),
+                              max: _maxHeartRate!.toDouble(),
+                              divisions: (_maxHeartRate! - (_maxHeartRate! * 0.40).round()),
+                              label: '$_sliderHR',
+                              onChanged: (v) => setState(() => _sliderHR = v.round()),
+                            ),
+                          ],
+                        ),
+                      ),
 
                   ],
                 ),

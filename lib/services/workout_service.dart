@@ -20,7 +20,9 @@ class WorkoutService {
     for (final doc in snap.docs) {
       final data = doc.data();
 
-      final DateTime start = (data['createdAt'] as Timestamp).toDate();
+      final createdAt = data['createdAt'];
+      if (createdAt == null) continue;
+      final DateTime start = (createdAt as Timestamp).toDate();
       final int avgHr = (data['avgHr'] as num?)?.toInt() ?? 0;
       final int durationSec = data['durationSeconds'] as int? ?? 0;
       final int calories = data['calories'] as int? ?? 0;
