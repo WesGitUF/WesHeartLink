@@ -298,10 +298,10 @@ class _HrCurvePainter extends CustomPainter {
   Color _zoneColorByTheoryMax(int bpm) {
     if (theoreticalMaxHr <= 0) return _grey;
     final p = bpm / theoreticalMaxHr;
-    if (p < 0.65) return _grey;
-    if (p < 0.80) return _blue;
-    if (p < 0.89) return _green;
-    if (p < 0.95) return _yellow;
+    if (p < 0.60) return _grey;
+    if (p < 0.70) return _blue;
+    if (p < 0.80) return _green;
+    if (p < 0.90) return _yellow;
     return _red;
   }
 

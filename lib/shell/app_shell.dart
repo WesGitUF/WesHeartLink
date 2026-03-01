@@ -5,7 +5,7 @@ import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
-import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/screens/session/tracking_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -26,10 +26,10 @@ class _AppShellState extends State<AppShell> {
 
   // floating action button opens the session selection flow
   void _openSessionFlow() {
-  if (_index != 2) _go(2);
-  // 
-  _heartNavKey.currentState?.pushNamed('/session');
-}
+    if (_index != 3) _go(3);
+    // 
+    _heartNavKey.currentState?.pushNamed('/session');
+  }
 
   // bottom navigation item
   Widget _navItem({
@@ -75,8 +75,9 @@ class _AppShellState extends State<AppShell> {
       const HomeScreen(),
       const HistoryScreen(),
       // Heart rate tab with inner navigator
-      HeartTabNavigator(navKey: _heartNavKey), 
+      //HeartTabNavigator(navKey: _heartNavKey),
       const ProfileScreen(),
+      const SessionScreen(),
     ];
 
     return Scaffold(
@@ -87,21 +88,12 @@ class _AppShellState extends State<AppShell> {
       ),
       // floating action button
       floatingActionButton: FloatingActionButton(
-      onPressed: () {
-        if (hrState.sessionActive) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("You can't start a new session while a workout is active."),
-            ),
-          );
-          return;
-        }
-        _openSessionFlow();
-      },
-      shape: const CircleBorder(),
-      backgroundColor: const Color.fromARGB(255, 175, 82, 82),
-      child: const Icon(Icons.add, size: 30, color: Colors.white),
-    ),
+        // open session selection flow
+        onPressed: _openSessionFlow, 
+        shape: const CircleBorder(),
+        backgroundColor: const Color.fromARGB(255, 175, 82, 82),
+        child: const Icon(Icons.add, size: 30, color: Colors.white),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
       // bottom navigation bar
@@ -119,9 +111,9 @@ class _AppShellState extends State<AppShell> {
               children: [
                 Expanded(child: _navItem(i: 0, icon: Icons.home_rounded,    label: 'Home')),
                 Expanded(child: _navItem(i: 1, icon: Icons.history_rounded, label: 'History')),
-                const SizedBox(width: 64),
-                Expanded(child: _navItem(i: 2, icon: Icons.favorite_rounded,label: 'Workout')),
-                Expanded(child: _navItem(i: 3, icon: Icons.person_rounded,  label: 'Profile')),
+                const SizedBox(width: 110),
+                Expanded(child: _navItem(i: 2, icon: Icons.person_rounded,  label: 'Profile')),
+                const SizedBox(width: 30),
               ],
             ),
           ),
@@ -148,7 +140,7 @@ class HeartTabNavigator extends StatelessWidget {
           case '/dial': 
           case '/':
             return MaterialPageRoute(
-              builder: (_) => const HeartratedialScreen(),
+              builder: (_) => const TrackingScreen(),
               settings: settings,
             );
           case '/session':
@@ -158,13 +150,13 @@ class HeartTabNavigator extends StatelessWidget {
             );
           case '/sensor':
             return MaterialPageRoute(
-              builder: (_) => const SensorSelectionScreen(),
+              builder: (_) => const SessionScreen(),
               settings: settings,
             );
           default:
             // fallback to heartrate screen
             return MaterialPageRoute(
-              builder: (_) => const HeartratedialScreen(),
+              builder: (_) => const TrackingScreen(),
               settings: settings,
             );
         }

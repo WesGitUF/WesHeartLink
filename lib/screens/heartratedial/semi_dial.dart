@@ -200,7 +200,7 @@ class _SemiDialState extends State<SemiDial>
                           key: ValueKey(zoneIndex), // swap when zone changes
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: size * 0.16 * face.scale,
+                            fontSize: size * 0.12 * face.scale,
                             height: 1.0,
                             shadows: const [
                               Shadow(
@@ -214,7 +214,7 @@ class _SemiDialState extends State<SemiDial>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     Text(
                       '${widget.bpm} BPM',
                       style: TextStyle(
@@ -254,8 +254,8 @@ class _SemiDialPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.67);
-    final radius = size.width * 0.40;
+    final center = Offset(size.width / 2, size.height * 0.62);
+    final radius = size.width * 0.38;
     const startAngle = math.pi; // left
     const sweepTotal = math.pi; // half circle
 

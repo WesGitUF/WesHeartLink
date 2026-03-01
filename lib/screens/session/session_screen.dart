@@ -1,5 +1,6 @@
 // TODO Implement this library.
-import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
+//
+
 import 'package:flutter/material.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -21,10 +22,51 @@ class _SessionScreenState extends State<SessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Select your preferred sport')),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60), // height of your appbar
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+          ),
+          child: AppBar(
+            backgroundColor: Colors.redAccent,
+            centerTitle: true,
+            leading: IconButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/home');
+              }, 
+              icon: const Icon(Icons.arrow_back, color: Colors.white,),
+            ),
+            title: Image.asset(
+              'assets/images/logo.png',
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
       body: Column(
         // mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: 20),
+          Text(
+            "Select Your Exercise",
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.bold
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          const Divider(
+            color: Colors.grey, // Optional: Set the color of the divider
+            thickness: 1,      // Optional: Set the thickness of the line
+            indent: 16,        // Optional: Set the empty space at the start
+            endIndent: 16,     // Optional: Set the empty space at the end
+          ),
+          const SizedBox(height: 20),
           // DropdownButton<String>(
           //   hint: const Text('Select Activity'),
           //   value: _selectedActivity,
@@ -48,9 +90,9 @@ class _SessionScreenState extends State<SessionScreen> {
                 String activity = _activities[index];
                 return Card(
                   child: ListTile(
-                    leading: Icon(_activityIcons[activity]),
-                    title: Text(activity),
-                    tileColor: _selectedActivity == activity ? Colors.green: null,
+                    leading: Icon(_activityIcons[activity], color: _selectedActivity == activity ? Colors.white : Colors.grey),
+                    title: Text(activity, style: TextStyle(color: _selectedActivity == activity ? Colors.white : Colors.grey)),
+                    tileColor: _selectedActivity == activity ? Colors.redAccent[100] : null,
                     onTap: () {
                       setState(() {
                         _selectedActivity = activity;
@@ -71,30 +113,35 @@ class _SessionScreenState extends State<SessionScreen> {
           // ),
           // Changing the UI element of the button to have a green like big button similar to our Lowfi design
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(34),
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedActivity == null
-      ? null
-      : () {
-          // Navigate to Sensor Selection Screen with selected activity
-          Navigator.pushNamed(
-            context,
-            '/sensor',
-            arguments: {'activity': _selectedActivity}, 
-          );
-        },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: const Color.fromARGB(255, 76, 175, 80),
-    padding: const EdgeInsets.symmetric(vertical: 20),
-    textStyle: const TextStyle(fontSize: 24),
-  ),
-  child: const Text(
-    'Let\'s get your sensors set up',
-    style: TextStyle(color: Colors.white),
-),
-            ),)
+                onPressed: _selectedActivity == null ? null : () {
+                  Navigator.pushNamed(
+                    context, 
+                    '/sensorSelection',
+                    arguments: {
+                      'workoutMode': _selectedActivity
+                    }
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  textStyle: const TextStyle(fontSize: 24),
+                ),
+                // child: const Text('Next: Select Sensors'),
+                child: Text(
+                  'Set Up Your Sensors',
+                  style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: _selectedActivity == null ? Colors.grey : Colors.white
+                  )
+                ),
+              ),
+            ),
           ),
         ],
       ),
