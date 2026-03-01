@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'history_screen.dart' show Workout;
 import 'package:heart_link_app/services/workout_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 // A single workout record entry
 class HistoryEntry {
@@ -21,123 +19,70 @@ class HistoryRepo extends ChangeNotifier {
   HistoryRepo._();
   static final HistoryRepo instance = HistoryRepo._();
 
-  List<HistoryEntry> _entries = [];
+  final List<HistoryEntry> _entries = [];
   final WorkoutService _service = WorkoutService();
 
   List<HistoryEntry> get entries => List.unmodifiable(_entries);
 
-  int _asInt(dynamic v) {
-    if (v == null) return 0;
-    if (v is int) return v;
-    if (v is double) return v.round();
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
+  Future<void> add({
+    required double avgHr,
+    required List<int> bpmSeries,
+    required Duration elapsed,
+    required String workoutMode,
+    required int maxSessionHr,
+    required String topZone,
+    required int theoreticalMaxHr,
+  }) async {
+    final entry = HistoryEntry(
+      workout: Workout(
+        type: workoutMode,
+        start: DateTime.now(),
+        duration: elapsed,
+        avgHr: avgHr.round(),
+        calories: 0,
+        maxSessionHr: maxSessionHr,
+        theoreticalMaxHr: theoreticalMaxHr,
+        topZone: topZone,
+      ),
+      series: List<int>.from(bpmSeries),
+    );
+
+    _entries.insert(0, entry);
+    notifyListeners();
+
+    final docId = await _service.saveEntry(
+      avgHr: avgHr,
+      bpmSeries: bpmSeries,
+      elapsed: elapsed,
+      workoutMode: workoutMode,
+      maxSessionHr: maxSessionHr,
+      topZone: topZone,
+      theoreticalMaxHr: theoreticalMaxHr,
+    );
+    entry.id = docId;
   }
 
-  // Load cloud workouts for logged-in user
   Future<void> loadFromCloud() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    // If not logged in, clear data
-    if (user == null) {
-      _entries = [];
-      notifyListeners();
-      return;
-    }
-
     try {
-      // Load workouts for this user
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('workouts')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      final List<HistoryEntry> newEntries = [];
-
-      for (final doc in snap.docs) {
-        final data = doc.data();
-
-        // Required fields with safe defaults
-        final DateTime start =
-            (data['createdAt'] is Timestamp)
-                ? (data['createdAt'] as Timestamp).toDate().toLocal()
-                : DateTime.now();
-
-        final int durationSec = _asInt(data['durationSeconds'] ?? 0);
-        final Duration duration = Duration(seconds: durationSec);
-
-        final int avgHr = _asInt(data['avgHr'] ?? 0);
-
-        final String type =
-            (data['type'] ?? 'Workout').toString();
-
-        final int calories = _asInt(data['calories'] ?? 0);
-
-        final int? theoreticalMaxHr =
-        (data['theoreticalMaxHr'] == null) ? null : _asInt(data['theoreticalMaxHr']);
-
-        final int? maxSessionHr =
-        (data['maxSessionHr'] == null) ? null : _asInt(data['maxSessionHr']);
-
-        final String? topZone =
-        (data['topZone'] == null) ? null : data['topZone'].toString();
-
-        // Build Workout object for UI
-        final workout = Workout(
-          type: type,
-          start: start,
-          duration: duration,
-          avgHr: avgHr,
-          calories: calories,
-          theoreticalMaxHr: theoreticalMaxHr,
-          maxSessionHr: maxSessionHr,
-          topZone: topZone,
-        );
-
-        final List<int> series = data['bpmSeries'] is List
-            ? (data['bpmSeries'] as List)
-                .map((e) => _asInt(e))
-                .toList()
-            : [];
-
-        newEntries.add(HistoryEntry(
-          id: doc.id, // Store Firebase doc ID for deletion
-          workout: workout,
-          series: series,
-        ));
-      }
-
-      _entries = newEntries;
+      final loaded = await _service.loadEntriesForCurrentUser();
+      _entries.clear();
+      _entries.addAll(loaded);
       notifyListeners();
     } catch (e) {
       debugPrint("HistoryRepo.loadFromCloud ERROR → $e");
     }
   }
 
-  // Delete a workout entry
   Future<void> delete(HistoryEntry entry) async {
     final id = entry.id;
 
-    // Remove from local list immediately
     _entries.remove(entry);
     notifyListeners();
 
-    // If no ID, can't delete from Firebase
     if (id == null) return;
 
-    // Delete from Firebase
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('workouts')
-          .doc(id)
-          .delete();
+      await _service.deleteEntry(id);
     } catch (e) {
       debugPrint('Failed to delete workout: $e');
     }
