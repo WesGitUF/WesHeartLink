@@ -1,5 +1,8 @@
 import 'dart:math';
+import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
@@ -27,16 +30,32 @@ class _HomeScreenState extends State<HomeScreen> {
   List<HistoryEntry> _entries = [];
   bool _isLoadingWorkout = true;
 
-  // display name
+
+  Map<String, dynamic>? _userData;
+  bool _isLoadingUser = true;
+
+  // display name (prefer Firestore)
   String get name {
+    // 🔹 1) Try Firestore user document first
+    final firestoreName = _userData?['name'];
+    if (firestoreName is String && firestoreName.trim().isNotEmpty) {
+      return firestoreName.trim(); // "Test User"
+    }
+
+    // 🔹 2) Fallback to FirebaseAuth displayName
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userName = user.displayName;
-      if (userName != null && userName.isNotEmpty) 
+      if (userName != null && userName.isNotEmpty) {
         return userName;
+      }
     }
+
+    // 🔹 3) Final fallback
     return 'User';
   }
+
+
 
   // capitalize in the circle
   String get capitalize {
@@ -149,9 +168,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserData();
     _loadWeather();
     _loadWorkouts();
+    //_checkDefaultWorkoutAndPrompt();
   }
+
 
   // load weather
   Future<void> _loadWeather() async {
@@ -189,6 +211,36 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
   }
+
+  // load Firestore user document
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      setState(() => _isLoadingUser = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!mounted) return;
+
+      setState(() {
+        _userData = doc.data();
+        _isLoadingUser = false;
+      });
+    } catch (e) {
+      debugPrint('User load error: $e');
+      if (!mounted) return;
+      setState(() {
+        _isLoadingUser = false;
+      });
+    }
+  }
+
 
   // weather with icon
   IconData _mapConditionToIcon(String condition) {
@@ -830,7 +882,7 @@ class _AreaStrokePainter extends CustomPainter {
       Offset(left, bottom),
       Offset(right, bottom),
       Paint()
-        ..color = Colors.black.withOpacity(0.28)
+        ..color = Colors.black.withValues()
         ..strokeWidth = 2,
     );
 
