@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:heart_link_app/services/auth_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
@@ -16,9 +15,9 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final AuthService _authService = AuthService();
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-
   final _formKey = GlobalKey<FormState>();
+
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   String _email = '';
   String _password = '';
@@ -26,7 +25,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String _ageForMaxHr = '';
   String _weight = '';
   String? _gender;
-
   bool _isLoading = false;
 
   InputDecoration _inputDeco(
@@ -34,20 +32,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required String hint,
     required IconData icon,
   }) {
-    final cs = Theme.of(context).colorScheme;
+    final ColorScheme = Theme.of(context).colorScheme;
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: cs.primary),
+      prefixIcon: Icon(icon, color: ColorScheme.primary),
       filled: true,
-      fillColor: cs.surface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      fillColor: ColorScheme.surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 14,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide(color: cs.outline.withOpacity(.3)),
+        borderSide: BorderSide(
+          color: ColorScheme.outline.withOpacity(.3),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide(color: cs.primary, width: 1.4),
+        borderSide: BorderSide(
+          color: ColorScheme.primary,
+          width: 1.4,
+        ),
       ),
     );
   }
@@ -55,12 +61,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
       body: SafeArea(
         child: Stack(
           children: [
-            // Background circle
+            // background circles
             Positioned(
               right: -150,
               top: -100,
@@ -86,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back
+                  // back button
                   IconButton.filledTonal(
                     style: IconButton.styleFrom(
                       backgroundColor: cs.primary.withOpacity(.15),
@@ -94,10 +99,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onPressed: () => Navigator.pop(context),
                     icon: Icon(Icons.arrow_back, color: cs.primary),
                   ),
-
                   const SizedBox(height: 16),
 
-                  // Title
+                  // title
                   Text(
                     'Heart Link',
                     style: Theme.of(context)
@@ -115,7 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 28),
 
-                  // Card
+                  // registration form card
                   Container(
                     decoration: BoxDecoration(
                       color: cs.background,
@@ -143,21 +147,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Name
+                          // user name input
                           TextFormField(
                             decoration: _inputDeco(
                               context,
                               hint: 'User Name',
                               icon: Icons.person,
                             ),
-                            onChanged: (v) => _displayName = v.trim(),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? 'Enter name'
-                                : null,
-                          ),
+                            onChanged: (InputText) => _displayName = InputText.trim(),
+                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter name' : null,),
                           const SizedBox(height: 14),
 
-                          // Email
+                          // email input
                           TextFormField(
                             decoration: _inputDeco(
                               context,
@@ -165,14 +166,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               icon: Icons.mail_outline,
                             ),
                             keyboardType: TextInputType.emailAddress,
-                            onChanged: (v) => _email = v.trim(),
-                            validator: (v) => (v == null || v.isEmpty)
-                                ? 'Enter email'
-                                : null,
-                          ),
+                            onChanged: (InputText) => _email = InputText.trim(),
+                            validator: (InputText) => InputText == null || InputText.isEmpty ? 'Enter email' : null,),
                           const SizedBox(height: 14),
 
-                          // Password
+                          // text form
                           TextFormField(
                             decoration: _inputDeco(
                               context,
@@ -180,14 +178,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               icon: Icons.lock_outline,
                             ),
                             obscureText: true,
-                            onChanged: (v) => _password = v,
-                            validator: (v) => (v == null || v.length < 6)
-                                ? 'Min 6 chars'
-                                : null,
-                          ),
+                            onChanged: (InputText) => _password = InputText,
+                            validator: (InputText) => InputText == null || InputText.length < 6 ? 'Min 6 chars' : null,),
                           const SizedBox(height: 14),
 
-                          // Age
+                          // age input
                           TextFormField(
                             decoration: _inputDeco(
                               context,
@@ -195,9 +190,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               icon: Icons.cake,
                             ),
                             keyboardType: TextInputType.number,
-                            onChanged: (v) => _ageForMaxHr = v,
-                            validator: (v) {
-                              final age = int.tryParse(v ?? '');
+                            onChanged: (InputText) => _ageForMaxHr = InputText,
+                            validator: (InputText) {
+                              final age = int.tryParse(InputText ?? '');
                               if (age == null || age <= 0 || age >= 200) {
                                 return 'Enter valid age';
                               }
@@ -206,17 +201,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Weight
+                          // weight input
                           TextFormField(
                             decoration: _inputDeco(
                               context,
                               hint: 'Weight',
                               icon: Icons.monitor_weight,
-                            ).copyWith(suffixText: 'kg'),
+                            ).copyWith(
+                              suffixText: 'lb',
+                            ),
                             keyboardType: TextInputType.number,
-                            onChanged: (v) => _weight = v,
-                            validator: (v) {
-                              final weight = int.tryParse(v ?? '');
+                            onChanged: (InputText) => _weight = InputText,
+                            validator: (InputText) {
+                              final weight = int.tryParse(InputText ?? '');
                               if (weight == null || weight <= 0 || weight >= 500) {
                                 return 'Enter valid weight';
                               }
@@ -225,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          // Gender
+                          // gender
                           DropdownButtonFormField<String>(
                             value: _gender,
                             decoration: _inputDeco(
@@ -243,13 +240,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 child: Text('Female'),
                               ),
                             ],
-                            onChanged: (v) => setState(() => _gender = v),
-                            validator: (v) =>
-                                v == null ? 'Select gender' : null,
-                          ),
+                            onChanged: (value) => setState(() => _gender = value),
+                            validator: (value) => value == null ? 'Select gender' : null,),
                           const SizedBox(height: 20),
 
-                          // Create Account Button
+                          // register button
                           SizedBox(
                             width: double.infinity,
                             height: 56,
@@ -262,32 +257,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       }
                                       setState(() => _isLoading = true);
                                       try {
-                                        final user = await _authService
-                                            .signUpWithEmail(
-                                          email: _email,
-                                          password: _password,
-                                          name: _displayName,
-                                          age: int.parse(_ageForMaxHr.trim()),
+                                        final user =
+                                            await _authService
+                                                .signUpWithEmail(
+                                          _email,
+                                          _password,
                                         );
 
                                         if (user != null) {
-                                          // Set display name
                                           if (_displayName.isNotEmpty) {
                                             await user.updateDisplayName(
                                                 _displayName);
                                             await user.reload();
                                           }
 
-                                          final age =
-                                              int.parse(_ageForMaxHr.trim());
+                                          final age = int.parse(
+                                              _ageForMaxHr.trim());
                                           final weight =
                                               int.parse(_weight.trim());
 
-                                          // Update HR state
                                           await hrState.updateAge(age);
                                           await hrState.setCustomMaxHr(null);
 
-                                          // Firestore write
                                           await _db
                                               .collection('users')
                                               .doc(user.uid)
@@ -302,15 +293,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           }, SetOptions(merge: true));
 
                                           if (!mounted) return;
-
-                                          // Navigate into AppShell
                                           Navigator.of(context)
                                               .pushAndRemoveUntil(
                                             MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const AppShell(),
-                                            ),
-                                            (route) => false,
+                                              builder: (_) => const AppShell(),),
+                                              (route) => false,
                                           );
                                         }
                                       } catch (e) {
@@ -343,10 +330,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                             ),
                           ),
-
                           const SizedBox(height: 18),
 
-                          // Already have account
+                          // already have account then back to login screen
                           Center(
                             child: TextButton(
                               onPressed: () {

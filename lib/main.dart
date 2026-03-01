@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:heart_link_app/screens/signup_screen.dart';
-import 'firebase_options.dart';
-import 'package:heart_link_app/radial-gauge.dart';
+import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';
@@ -11,20 +9,14 @@ import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/max_hr_input_screen.dart';
+import 'package:heart_link_app/shell/app_shell.dart';    
 import 'package:heart_link_app/screens/login_screen.dart';
-import 'package:heart_link_app/shell/app_shell.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
-
+  await Firebase.initializeApp();
+  await hrState.load();
   runApp(const MyApp());
 }
 
@@ -77,7 +69,7 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<firebase_auth.User?>(
         stream: authService.userChanges,
         builder: (context, snapshot) {
-          // If the connection is active, check for a logged-in user
+          // If the connection is active, check for a logged in user
           if (snapshot.connectionState == ConnectionState.active) {
             final firebase_auth.User? user = snapshot.data;
             if (user == null) {
@@ -94,47 +86,18 @@ class MyApp extends StatelessWidget {
         },
       ),
       routes: {
-        '/login': (context) => const LoginScreen(),
-        '/signup': (context) => const RegisterScreen(),
-        '/home': (context) => const AppShell(),
+        '/home': (context) => const HomeScreen(),
         '/session': (context) => const SessionScreen(),
-        '/sensorSelection': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return SensorSelectionScreen(
-            workoutMode: args['workoutMode'] as String
-          );
-        },
+        '/sensorSelection': (context) => const SensorSelectionScreen(),
         '/tracking': (context) => const TrackingScreen(),
-        '/radialGauge': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return GaugeChart(
-            userDeviceId: args['userDeviceId'],
-            isOnline: args['isOnline'] as bool,
-            isHost: args['isHost'] as bool,
-            workoutMode: args['workoutMode'] as String
-          );
-        },
         '/profile': (context) => const ProfileScreen(),
-        '/maxHR': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return MaxHRInputScreen(
-            workoutMode: args['workoutMode'] as String
-          );
-        },
+        '/maxHR': (context) => const MaxHRInputScreen(),
         '/trackingResult': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args = ModalRoute.of(context)!.settings.arguments as Map;
           return TrackingResultScreen(
-            elapsedTime: args['elapsed'] as Duration,
-            sameZoneTime: args['sameZone'] as Duration,
-            workoutMode: args['workoutMode'] as String,
-            workoutModeIcon: args['workoutModeIcon'] as IconData,
-            maxHeartRate: args['maxHR'] as int,
-            avgHeartRate: (args['avgHR'] as num).toDouble(),
-            series: args['series'] as List<int>,
-            topZone: args['topZone'] as String,
-            isSolo: args['isSolo'] as bool, //changed this
-            theoreticalMaxHr: args['theoreticalMaxHr'] as int
-          );
+              elapsedTime: args['elapsed'] as Duration,
+              sameZoneTime: args['sameZone'] as Duration,
+            );
         },
       },
     );

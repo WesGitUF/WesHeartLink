@@ -2,17 +2,11 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
-import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
-  final String workoutMode;
-
-  const SensorSelectionScreen({
-    Key? key,
-    required this.workoutMode,
-  }) : super(key: key);
-
+  const SensorSelectionScreen({super.key});
   @override
   _SensorSelectionScreenState createState() => _SensorSelectionScreenState();
 }
@@ -23,16 +17,22 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   DiscoveredDevice? _selectedUserDevice;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
 
-  IconData? _workoutModeIcon;
-
-  late String _workoutMode;
-
+  // connection subscription
+  StreamSubscription<ConnectionStateUpdate>? _connectSubscription;
+  bool _connecting = false;
+  bool _navigated = false;
+  String _activity = '';
   @override
   void initState() {
     super.initState();
-    _workoutMode = widget.workoutMode;
-    pickIcon();
-    // Dummy device for testing
+     WidgetsBinding.instance.addPostFrameCallback((_) {
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
+    final act = args?['activity'] as String?;
+    if (act != null && act.isNotEmpty) {
+      setState(() => _activity = act);
+    }
+  });
+    // For testing, add a dummy device (this is optional and can be removed later).
     setState(() {
       _devicesList.add(DiscoveredDevice(
         id: '00:11:22:33:44:55', // Valid Bluetooth address format.
@@ -52,14 +52,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
         print("Permissions not granted.");
       }
     });
-  }
-
-  void pickIcon() {
-    if (_workoutMode == "Running") { _workoutModeIcon = Icons.directions_run; }
-    else if (_workoutMode == "Cycling") { _workoutModeIcon = Icons.directions_bike; }
-    else if (_workoutMode == "HIIT") { _workoutModeIcon = Icons.fitness_center; }
-    else if (_workoutMode == "Walking") { _workoutModeIcon = Icons.directions_walk; }
-    else if (_workoutMode == "Swimming") { _workoutModeIcon = Icons.pool; }
   }
 
   Future<bool> requestPermissions() async {
@@ -92,8 +84,71 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   @override
   void dispose() {
     _scanSubscription?.cancel();
+    _connectSubscription?.cancel(); //remove connection subscription
     super.dispose();
   }
+
+  // connect ble device and skip to dial screen
+  Future<void> _connectAndGo(DiscoveredDevice device) async {
+    // cancel any ongoing scan
+    await _scanSubscription?.cancel();
+
+    setState(() => _connecting = true);
+
+    // show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    _connectSubscription = _ble
+        .connectToDevice(
+          id: device.id,
+          connectionTimeout: const Duration(seconds: 12),
+        )
+        .listen((update) async {
+      if (_navigated) return;
+
+      if (update.connectionState == DeviceConnectionState.connected) {
+        _navigated = true;
+        // close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+        setState(() => _connecting = false);
+
+        // navigate to dial screen
+        Navigator.pushReplacementNamed(
+          context,
+          '/dial',
+          arguments: {
+            'deviceId': device.id,
+            'deviceName': device.name.isNotEmpty ? device.name : device.id,
+            'activity': _activity,
+          },
+        );
+
+        await _connectSubscription?.cancel();
+      } else if (update.connectionState ==
+              DeviceConnectionState.disconnected &&
+          !_navigated) {
+        // close loading dialog
+        Navigator.of(context, rootNavigator: true).pop();
+        setState(() => _connecting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to connect. Please try again.')),
+        );
+        _startScan();
+      }
+    }, onError: (e) {
+      Navigator.of(context, rootNavigator: true).pop();
+      setState(() => _connecting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Connect error: $e')),
+      );
+      _startScan();
+    });
+  }
+
 
   Future<void> _showDeviceSelectionMenu(bool forUser) async {
     final selected = await showModalBottomSheet<DiscoveredDevice>(
@@ -129,10 +184,10 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
         _showDeviceSelectionMenu(forUser);
       },
       child: Container(
-        width: 160,
-        height: 160,
+        width: 120,
+        height: 120,
         decoration: BoxDecoration(
-          color: Colors.grey,
+          color: Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.black26, width: 2),
           boxShadow: const [
@@ -146,15 +201,15 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(Icons.favorite, size: 110, color: Colors.red),
+            Icon(Icons.favorite, size: 80, color: Colors.red),
             if (device == null)
               Positioned(
                 right: 8,
                 bottom: 8,
                 child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.redAccent,
-                  child: const Icon(Icons.add, size: 30, color: Colors.white),
+                  radius: 15,
+                  backgroundColor: Colors.green,
+                  child: const Icon(Icons.add, size: 20, color: Colors.white),
                 ),
               ),
             if (device != null)
@@ -163,12 +218,12 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.redAccent,
+                    color: Colors.yellowAccent,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     device.name.isNotEmpty ? device.name : device.id,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -182,201 +237,73 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60), // height of your appbar
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.redAccent,
-            centerTitle: true,
-            leading: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              }, 
-              icon: const Icon(Icons.arrow_back, color: Colors.white,),
-            ),
-            title: Image.asset(
-              'assets/images/logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12.0),
-                child: Icon(
-                  _workoutModeIcon,
-                  size: 50,
-                  color: Colors.black
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Select Sensors')),
       body: Column(
         children: [
+          const Divider(thickness: 2, color: Colors.grey),
           // Top half: Your sensor selection.
-          const SizedBox(height: 20),
-          Text(
-            "Set Up New Session",
-            style: TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const Divider(
-            color: Colors.grey,
-            thickness: 1,     
-            indent: 16,        
-            endIndent: 16,     
-          ),
           Expanded(
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Your Sensor", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const Text("Tap to select your Sensor", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 10),
                   _buildSensorSelectButton(device: _selectedUserDevice, forUser: true),
                 ],
               ),
             ),
           ),
+          const Divider(thickness: 2, color: Colors.grey),
+          // Navigation button: Go to Max HR Input Screen.
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
               children: [
-                //Create Session Button
-                ElevatedButton(
-                  onPressed: (_selectedUserDevice == null)
-                      ? null
-                      : () async{
-                          final result = await showDialog<String>(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: const Text('Choose Mode'),
-                                content: const Text('Would you like to start in Online or Offline mode (Not Supported on iPhone)?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, 'offline'),
-                                    child: const Text('Offline'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context, 'online'),
-                                    child: const Text('Online'),
-                                  ),
-                                ],
-                              );
-                            },
-                          );
-
-                          if (result == null) return;
-
-                          bool isOnline = result == 'online' ? true : false;
-
-                          await BatteryOptimization.maybePromptOnce(context);
-                          if (!context.mounted) return;
-
-                          if (context.mounted) {
-                            Navigator.pushNamed(
-                              context,
-                              '/radialGauge',
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _selectedUserDevice == null
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HeartratedialScreen(),
+                            settings: RouteSettings(
                               arguments: {
-                                'userDeviceId': _selectedUserDevice!.id,
-                                'isOnline': isOnline,
-                                'isHost': true,       
-                                'workoutMode': _workoutMode,
+                                'deviceId': _selectedUserDevice!.id,
+                                'deviceName': _selectedUserDevice!.name.isNotEmpty
+                                    ? _selectedUserDevice!.name
+                                    : _selectedUserDevice!.id,
+                                'activity': _activity,
                               },
-                            );
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: (_selectedUserDevice == null)
-                        ? Colors.grey
-                        : Colors.redAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-                    textStyle: const TextStyle(
-                      fontSize: 20,
+                            ),
+                          ),
+                        );
+                      },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: (_selectedUserDevice == null)
+                          ? Colors.grey
+                          : Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      textStyle: const TextStyle(fontSize: 24),
                     ),
-                  ),
-                  child: Text(
-                    'Create New Session',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: (_selectedUserDevice == null)
-                        ? Colors.black
-                        : Colors.white,
-                    ),
+                    child: const Text('Let''s get started!',
+                    style: TextStyle(color: Colors.white),)
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // Join Session Button
-                ElevatedButton(
-                  onPressed: (_selectedUserDevice == null)
-                      ? null
-                      : () async {
-                        final result = await showDialog<String>(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: const Text('Choose Mode'),
-                              content: const Text('Would you like to start in Online or Offline mode?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, 'offline'),
-                                  child: const Text('Offline'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context, 'online'),
-                                  child: const Text('Online'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-
-                        if (result == null) return;
-
-                        bool isOnline = result == 'online' ? true : false;
-
-                        await BatteryOptimization.maybePromptOnce(context);
-                        if (!context.mounted) return;
-
-                          Navigator.pushNamed(
-                            context,
-                            '/radialGauge',
-                            arguments: {
-                              'userDeviceId': _selectedUserDevice!.id,
-                              'isOnline': isOnline,
-                              'isHost': false,    
-                              'workoutMode': _workoutMode,
-                            },
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
-                    textStyle: const TextStyle(fontSize: 20),
-                  ),
-                  child: Text(
-                    'Join Session',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: (_selectedUserDevice == null)
-                        ? Colors.black
-                        : Colors.white,
-                    ),
-                  ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 32, color: Colors.blue),
+                  onPressed: () {
+                    setState(() {
+                      _devicesList.clear();
+                      _selectedUserDevice = null;
+                    }
+                    );
+                    
+                    _startScan();
+                  },
                 ),
               ],
             ),

@@ -1,80 +1,33 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<User?> signUpWithEmail({
-    required String email,
-    required String password,
-    required String name,
-    int? age,
-    String? photoUrl,
-  }) async {
+  // Email & Password Sign Up
+  Future<User?> signUpWithEmail(String email, String password) async {
     try {
-      final result = await _auth.createUserWithEmailAndPassword(
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      final user = result.user!;
-
-      // Update Auth profile (name/photo)
-      await user.updateDisplayName(name);
-      if (photoUrl != null) await user.updatePhotoURL(photoUrl);
-      await user.reload();
-
-      // Create Firestore profile
-      await _firestore.collection('users').doc(user.uid).set({
-        'name': name,
-        'email': user.email ?? '',
-        if (age != null) 'age': age,
-        if (photoUrl != null) 'photoURL': photoUrl,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw e.message ?? 'Sign up failed.';
+      return result.user;
+    } catch (e) {
+      rethrow;
     }
   }
 
-
-
+  // Email & Password Sign In
   Future<User?> signInWithEmail(String email, String password) async {
     try {
-      final result = await _auth.signInWithEmailAndPassword(
+      UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      final user = result.user!;
-      await _ensureUserDoc(user);  // <-- only creates minimal doc if missing
-      return user;
-    } on FirebaseAuthException catch (e) {
-      throw e.message ?? 'Login failed.';
+      return result.user;
+    } catch (e) {
+      rethrow;
     }
-  }
-
-  Future<void> _ensureUserDoc(User user) async {
-    final docRef = _firestore.collection('users').doc(user.uid);
-    final doc = await docRef.get();
-    if (!doc.exists) {
-      await docRef.set({
-        'email': user.email ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-        // do NOT set name/age defaults here — avoid wrong values
-      });
-    }
-  }
-
-  Future<void> saveUserProfile(User user, {required int age}) async {
-    await _firestore.collection('users').doc(user.uid).set({
-      'name': user.displayName ?? '',
-      'email': user.email ?? '',
-      'photoURL': user.photoURL ?? '',
-      'age': age,
-    }, SetOptions(merge: true)); // merge to avoid overwriting
   }
 
   // Google Sign In
@@ -100,24 +53,4 @@ class AuthService {
 
   // Auth State Changes Stream
   Stream<User?> get userChanges => _auth.authStateChanges();
-
-  Future<void> updateProfileData(User user, {
-    String? name,
-    int? age,
-    String? photoUrl,
-  }) async {
-    // Auth
-    if (name != null) await user.updateDisplayName(name);
-    if (photoUrl != null) await user.updatePhotoURL(photoUrl);
-    await user.reload();
-
-    // Firestore (merge)
-    await _firestore.collection('users').doc(user.uid).set({
-      if (name != null) 'name': name,
-      if (age != null) 'age': age,
-      if (photoUrl != null) 'photoURL': photoUrl,
-      'email': user.email ?? '',
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-  }
 }

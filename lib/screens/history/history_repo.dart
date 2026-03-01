@@ -1,145 +1,51 @@
 import 'package:flutter/foundation.dart';
 import 'history_screen.dart' show Workout;
 import 'package:heart_link_app/services/workout_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
-// A single workout record entry
+// a single workout record entry
 class HistoryEntry {
-  String? id; // Firebase document ID for delete/update
+  String ? id; // using for delete or update 
   final Workout workout;
   final List<int> series;
-
-  HistoryEntry({
-    this.id,
-    required this.workout,
-    required this.series,
-  });
+  HistoryEntry({this.id, required this.workout, required this.series});
 }
 
 class HistoryRepo extends ChangeNotifier {
   HistoryRepo._();
   static final HistoryRepo instance = HistoryRepo._();
 
-  List<HistoryEntry> _entries = [];
+  final List<HistoryEntry> _entries = [];
   final WorkoutService _service = WorkoutService();
-
   List<HistoryEntry> get entries => List.unmodifiable(_entries);
 
-  int _asInt(dynamic v) {
-    if (v == null) return 0;
-    if (v is int) return v;
-    if (v is double) return v.round();
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
+// add a workout entry
+Future<void> add(Workout workout, List<int> series) async {
+    final entry = HistoryEntry(workout:workout, series: List<int>.from(series));
+    _entries.insert(0, entry);
+    notifyListeners(); 
+    final docId = await _service.saveEntry(entry);
+    entry.id = docId;
   }
 
-  // Load cloud workouts for logged-in user
+  // load all workout entries
   Future<void> loadFromCloud() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    // If not logged in, clear data
-    if (user == null) {
-      _entries = [];
-      notifyListeners();
-      return;
-    }
-
-    try {
-      // Load workouts for this user
-      final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('workouts')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      final List<HistoryEntry> newEntries = [];
-
-      for (final doc in snap.docs) {
-        final data = doc.data();
-
-        // Required fields with safe defaults
-        final DateTime start =
-            (data['createdAt'] is Timestamp)
-                ? (data['createdAt'] as Timestamp).toDate().toLocal()
-                : DateTime.now();
-
-        final int durationSec = _asInt(data['durationSeconds'] ?? 0);
-        final Duration duration = Duration(seconds: durationSec);
-
-        final int avgHr = _asInt(data['avgHr'] ?? 0);
-
-        final String type =
-            (data['type'] ?? 'Workout').toString();
-
-        final int calories = _asInt(data['calories'] ?? 0);
-
-        final int? theoreticalMaxHr =
-        (data['theoreticalMaxHr'] == null) ? null : _asInt(data['theoreticalMaxHr']);
-
-        final int? maxSessionHr =
-        (data['maxSessionHr'] == null) ? null : _asInt(data['maxSessionHr']);
-
-        final String? topZone =
-        (data['topZone'] == null) ? null : data['topZone'].toString();
-
-        // Build Workout object for UI
-        final workout = Workout(
-          type: type,
-          start: start,
-          duration: duration,
-          avgHr: avgHr,
-          calories: calories,
-          theoreticalMaxHr: theoreticalMaxHr,
-          maxSessionHr: maxSessionHr,
-          topZone: topZone,
-        );
-
-        final List<int> series = data['bpmSeries'] is List
-            ? (data['bpmSeries'] as List)
-                .map((e) => _asInt(e))
-                .toList()
-            : [];
-
-        newEntries.add(HistoryEntry(
-          id: doc.id, // Store Firebase doc ID for deletion
-          workout: workout,
-          series: series,
-        ));
-      }
-
-      _entries = newEntries;
-      notifyListeners();
-    } catch (e) {
-      debugPrint("HistoryRepo.loadFromCloud ERROR → $e");
-    }
-  }
-
-  // Delete a workout entry
-  Future<void> delete(HistoryEntry entry) async {
-    final id = entry.id;
-
-    // Remove from local list immediately
-    _entries.remove(entry);
+    final loadedEntries = await _service.loadEntriesForCurrentUser();
+    _entries.clear();
+    _entries.addAll(loadedEntries);
     notifyListeners();
-
-    // If no ID, can't delete from Firebase
-    if (id == null) return;
-
-    // Delete from Firebase
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('workouts')
-          .doc(id)
-          .delete();
-    } catch (e) {
-      debugPrint('Failed to delete workout: $e');
-    }
   }
+
+  // delete a workout entry
+  Future<void> delete(HistoryEntry entry) async {    
+    final id = entry.id;                            
+    _entries.remove(entry);                       
+    notifyListeners();                              
+
+    if (id == null) return;                         
+    try {                                           
+      await _service.deleteEntry(id);                
+    } catch (e) {                                    
+      debugPrint('Failed to delete workout: $e');  
+    }                                               
+  }     
 }
