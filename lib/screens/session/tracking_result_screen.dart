@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:heart_link_app/screens/home/home_screen.dart';
+import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
 
 class TrackingResultScreen extends StatelessWidget {
@@ -120,29 +118,6 @@ class _StatsBox extends StatelessWidget {
     return "$hours:$minutes:$seconds";
   }
 
-  int _caloriesCal({
-    required int avgHr,
-    required int age,
-    required double weight,
-    required String gender,
-    required Duration duration,
-  }) {
-    final minutes = duration.inSeconds / 60.0;
-
-    double perMin;
-
-    if (gender == 'female') {
-      perMin = ((0.4472 * avgHr - 0.1263 * weight + 0.074 * age - 20.4022) / 4.184);
-    } else {
-      perMin = ((0.6309 * avgHr + 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
-    }
-
-    // prevent negative calories
-    if (perMin < 0) perMin = 0;
-
-    return (perMin * minutes).round();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -173,47 +148,20 @@ class _StatsBox extends StatelessWidget {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                print("USER NAME: $user");
-                int userAge = 0;
-                double weight = 70.0;
-                String gender = "";
-                // Fetch additional user data from Firestore
-                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                  final userData = userDoc.data();
-                  if (userData != null) {
-                    userAge = userData['age'] ?? 0;
-                    weight = (userData['weight'] != null) ? double.tryParse(userData['weight'].toString()) ?? 70.0 : 70.0;
-                    gender = userData['gender'] ?? "";
-                  }
-                }
+              await WorkoutService().saveEntry(
+                avgHr: avgHeartRate,
+                bpmSeries: series,
+                elapsed: elapsedTime,
+                workoutMode: workoutMode,
+                maxSessionHr: maxHeartRate,
+                topZone: topZone,
+                theoreticalMaxHr: theoreticalMaxHr,
+              );
 
-                FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .collection('workouts')
-                  .add({
-                    'avgHr': avgHeartRate,
-                    'bpmSeries': series,
-                    'calories': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
-                    'createdAt': FieldValue.serverTimestamp(),
-                    'durationSeconds': elapsedTime.inSeconds,
-                    'maxSessionHr': maxHeartRate,
-                    'topZone': topZone,
-                    'start': FieldValue.serverTimestamp(),
-                    'type': workoutMode,
-                    'theoreticalMaxHr': theoreticalMaxHr,
-                  });
-              }
-              else {
-                print("USER IS NULL");
-              }
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const AppShell()),
-                (_) => false, // This predicate ensures all previous routes are removed
+                (_) => false,
               );
             },
             style: ElevatedButton.styleFrom(
