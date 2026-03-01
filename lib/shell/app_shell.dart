@@ -159,9 +159,12 @@ class HeartTabNavigator extends StatelessWidget {
               builder: (_) => const SessionScreen(),
               settings: settings,
             );
-          case '/sensor':
+          case '/sensorSelection':
+            final args = settings.arguments as Map<String, dynamic>?;
             return MaterialPageRoute(
-              builder: (_) => const SensorSelectionScreen(),
+              builder: (_) => SensorSelectionScreen(
+                workoutMode: args?['workoutMode'] as String? ?? '',
+              ),
               settings: settings,
             );
           default:
