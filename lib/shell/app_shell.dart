@@ -31,8 +31,7 @@ class _AppShellState extends State<AppShell> {
 
   // floating action button opens the session selection flow
   void _openSessionFlow() {
-    if (_index != 3) _go(3);
-    // 
+    if (_index != 2) _go(2);
     _heartNavKey.currentState?.pushNamed('/session');
   }
 
@@ -79,10 +78,8 @@ class _AppShellState extends State<AppShell> {
     final pages = <Widget>[
       const HomeScreen(),
       HistoryScreen(onTabVisible: _historyTabs),
-      // Heart rate tab with inner navigator
-      //HeartTabNavigator(navKey: _heartNavKey),
+      HeartTabNavigator(navKey: _heartNavKey),
       const ProfileScreen(),
-      const SessionScreen(),
     ];
 
     return Scaffold(
@@ -125,9 +122,9 @@ class _AppShellState extends State<AppShell> {
               children: [
                 Expanded(child: _navItem(i: 0, icon: Icons.home_rounded,    label: 'Home')),
                 Expanded(child: _navItem(i: 1, icon: Icons.history_rounded, label: 'History')),
-                const SizedBox(width: 110),
-                Expanded(child: _navItem(i: 2, icon: Icons.person_rounded,  label: 'Profile')),
-                const SizedBox(width: 30),
+                const SizedBox(width: 64),
+                Expanded(child: _navItem(i: 2, icon: Icons.favorite_rounded,label: 'Workout')),
+                Expanded(child: _navItem(i: 3, icon: Icons.person_rounded,  label: 'Profile')),
               ],
             ),
           ),
@@ -164,7 +161,7 @@ class HeartTabNavigator extends StatelessWidget {
             );
           case '/sensor':
             return MaterialPageRoute(
-              builder: (_) => const SessionScreen(),
+              builder: (_) => const SensorSelectionScreen(),
               settings: settings,
             );
           default:
