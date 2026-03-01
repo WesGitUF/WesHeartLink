@@ -86,30 +86,60 @@ class WorkoutService {
 
       final createdAt = data['createdAt'];
       if (createdAt == null) continue;
-      final DateTime start = (createdAt as Timestamp).toDate();
-      final int avgHr = (data['avgHr'] as num?)?.toInt() ?? 0;
-      final int durationSec = data['durationSeconds'] as int? ?? 0;
-      final int calories = data['calories'] as int? ?? 0;
+      final DateTime start = (createdAt as Timestamp).toDate().toLocal();
+      final int avgHr = _asInt(data['avgHr']);
+      final int durationSec = _asInt(data['durationSeconds']);
+      final int calories = _asInt(data['calories']);
+      final int? theoreticalMaxHr =
+          data['theoreticalMaxHr'] == null ? null : _asInt(data['theoreticalMaxHr']);
+      final int? maxSessionHr =
+          data['maxSessionHr'] == null ? null : _asInt(data['maxSessionHr']);
+      final String? topZone =
+          data['topZone'] == null ? null : data['topZone'].toString();
       final List<int> series = (data['bpmSeries'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           [];
 
       final workout = Workout(
-        type: data['type'] ?? "Workout",
+        type: (data['type'] ?? 'Workout').toString(),
         start: start,
         duration: Duration(seconds: durationSec),
         avgHr: avgHr,
         calories: calories,
+        theoreticalMaxHr: theoreticalMaxHr,
+        maxSessionHr: maxSessionHr,
+        topZone: topZone,
       );
 
       out.add(HistoryEntry(
+        id: doc.id,
         workout: workout,
         series: series,
       ));
     }
 
     return out;
+  }
+
+  Future<void> deleteEntry(String id) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('workouts')
+        .doc(id)
+        .delete();
+  }
+
+  static int _asInt(dynamic v) {
+    if (v == null) return 0;
+    if (v is int) return v;
+    if (v is double) return v.round();
+    if (v is String) return int.tryParse(v) ?? 0;
+    return 0;
   }
 
   static int _calculateCalories({
