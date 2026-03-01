@@ -3,10 +3,10 @@ import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
-import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
-import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';
+import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/radial-gauge.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -164,6 +164,17 @@ class HeartTabNavigator extends StatelessWidget {
             return MaterialPageRoute(
               builder: (_) => SensorSelectionScreen(
                 workoutMode: args?['workoutMode'] as String? ?? '',
+              ),
+              settings: settings,
+            );
+          case '/radialGauge':
+            final args = settings.arguments as Map<String, dynamic>;
+            return MaterialPageRoute(
+              builder: (_) => GaugeChart(
+                userDeviceId: args['userDeviceId'],
+                isOnline: args['isOnline'] as bool,
+                isHost: args['isHost'] as bool,
+                workoutMode: args['workoutMode'] as String,
               ),
               settings: settings,
             );
