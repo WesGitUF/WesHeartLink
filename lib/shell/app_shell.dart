@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
-import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
-import 'package:heart_link_app/screens/session/tracking_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
-import 'package:heart_link_app/radial-gauge.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -20,9 +17,6 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
   final ValueNotifier<int> _historyTabs = ValueNotifier(0);
 
-  // use this key to manage the inner navigator of Heart tab
-  final GlobalKey<NavigatorState> _heartNavKey = GlobalKey<NavigatorState>();
-
   // switch tab
   void _go(int i) => setState(() {
     if (i == 1) _historyTabs.value++;
@@ -31,8 +25,7 @@ class _AppShellState extends State<AppShell> {
 
   // floating action button opens the session selection flow
   void _openSessionFlow() {
-    if (_index != 2) _go(2);
-    _heartNavKey.currentState?.pushNamed('/session');
+    if (_index != 3) _go(3);
   }
 
   // bottom navigation item
@@ -74,12 +67,11 @@ class _AppShellState extends State<AppShell> {
   // main interface structure
   @override
   Widget build(BuildContext context) {
-    // four main pages
     final pages = <Widget>[
       const HomeScreen(),
       HistoryScreen(onTabVisible: _historyTabs),
-      HeartTabNavigator(navKey: _heartNavKey),
       const ProfileScreen(),
+      const SessionScreen(),
     ];
 
     return Scaffold(
@@ -122,70 +114,14 @@ class _AppShellState extends State<AppShell> {
               children: [
                 Expanded(child: _navItem(i: 0, icon: Icons.home_rounded,    label: 'Home')),
                 Expanded(child: _navItem(i: 1, icon: Icons.history_rounded, label: 'History')),
-                const SizedBox(width: 64),
-                Expanded(child: _navItem(i: 2, icon: Icons.favorite_rounded,label: 'Workout')),
-                Expanded(child: _navItem(i: 3, icon: Icons.person_rounded,  label: 'Profile')),
+                const SizedBox(width: 110),
+                Expanded(child: _navItem(i: 2, icon: Icons.person_rounded,  label: 'Profile')),
+                const SizedBox(width: 30),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-// Navigator for Heart Rate tab
-class HeartTabNavigator extends StatelessWidget {
-  final GlobalKey<NavigatorState> navKey;
-  const HeartTabNavigator({super.key, required this.navKey});
-
-  @override
-  Widget build(BuildContext context) {
-    return Navigator(
-      key: navKey,
-      initialRoute: '/heartrate',
-      onGenerateRoute: (settings) {
-        // apply routing based on route name
-        switch (settings.name) {
-          case '/heartrate':
-          case '/dial': 
-          case '/':
-            return MaterialPageRoute(
-              builder: (_) => const TrackingScreen(),
-              settings: settings,
-            );
-          case '/session':
-            return MaterialPageRoute(
-              builder: (_) => const SessionScreen(),
-              settings: settings,
-            );
-          case '/sensorSelection':
-            final args = settings.arguments as Map<String, dynamic>?;
-            return MaterialPageRoute(
-              builder: (_) => SensorSelectionScreen(
-                workoutMode: args?['workoutMode'] as String? ?? '',
-              ),
-              settings: settings,
-            );
-          case '/radialGauge':
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (_) => GaugeChart(
-                userDeviceId: args['userDeviceId'],
-                isOnline: args['isOnline'] as bool,
-                isHost: args['isHost'] as bool,
-                workoutMode: args['workoutMode'] as String,
-              ),
-              settings: settings,
-            );
-          default:
-            // fallback to heartrate screen
-            return MaterialPageRoute(
-              builder: (_) => const TrackingScreen(),
-              settings: settings,
-            );
-        }
-      },
     );
   }
 }
