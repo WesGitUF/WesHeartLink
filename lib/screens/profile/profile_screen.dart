@@ -7,6 +7,8 @@ import 'package:heart_link_app/shell/app_shell.dart';
 import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
+  late final AudioPlayer _previewPlayer;
+  Timer? _previewStopTimer;
   final AuthService _authService = AuthService();
   User? _user;
   bool? _isUnrestricted;
@@ -24,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   // Audio File Settings
   bool _zoneAudioEnabled = true;
   String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
+
+  String? _previewingAsset;
 
   final Map<String, String> _zoneSounds = {
     'Classic': 'audio/zone_up.m4a',
@@ -47,16 +53,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   @override
   void initState() {
     super.initState();
+    _previewPlayer = AudioPlayer();
+
+    _previewPlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
+
     _user = FirebaseAuth.instance.currentUser;
     WidgetsBinding.instance.addObserver(this);
     _refreshBatteryOptStatus();
     _loadPromptEnabled();
-
     _loadZoneAudioPrefs();
+
   }
 
   @override
   void dispose() {
+    _previewStopTimer?.cancel();
+    _previewPlayer.dispose();
+
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -94,6 +115,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     } catch (_) {
       if (!mounted) return;
       setState(() => _isUnrestricted = false);
+    }
+  }
+
+  Future<void> _previewSound(String asset) async {
+    if (!_zoneAudioEnabled) return;
+
+    try {
+      _previewStopTimer?.cancel();
+      setState(() => _previewingAsset = asset);
+
+      // Restart the preview cleanly
+      await _previewPlayer.stop();
+      await _previewPlayer.play(AssetSource(asset));
+
+      _previewStopTimer = Timer(const Duration(milliseconds: 1070), () async {
+        await _previewPlayer.stop();
+        if (mounted) setState(() => _previewingAsset = null);
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _previewingAsset = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Preview failed: $e")),
+        );
+      }
     }
   }
 
@@ -433,25 +479,51 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
               ListTile(
                 title: const Text("Sound"),
-                subtitle: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _labelForAsset(_zoneAudioAsset),
-                    items: _zoneSounds.keys.map((label) {
-                      return DropdownMenuItem(
-                        value: label,
-                        child: Text(label),
+                subtitle: Text(_labelForAsset(_zoneAudioAsset)),
+                enabled: _zoneAudioEnabled,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: !_zoneAudioEnabled
+                    ? null
+                    : () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    builder: (context) {
+                      return SafeArea(
+                        child: ListView(
+                          children: _zoneSounds.entries.map((entry) {
+                            final label = entry.key;
+                            final asset = entry.value;
+                            final selected = asset == _zoneAudioAsset;
+                            final previewing = asset == _previewingAsset;
+
+                            return ListTile(
+                              title: Text(label),
+                              leading: selected ? const Icon(Icons.check) : null,
+                              trailing: IconButton(
+                                icon: Icon(previewing ? Icons.stop : Icons.play_arrow),
+                                onPressed: () async {
+                                  if (previewing) {
+                                    await _previewPlayer.stop();
+                                    if (mounted) setState(() => _previewingAsset = null);
+                                  } else {
+                                    await _previewSound(asset);
+                                  }
+                                },
+                              ),
+                              onTap: () async {
+                                // Select + preview
+                                setState(() => _zoneAudioAsset = asset);
+                                await WorkoutAudioSettings.setAsset(asset);
+                                await _previewSound(asset);
+                                if (context.mounted) Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        ),
                       );
-                    }).toList(),
-                    onChanged: !_zoneAudioEnabled
-                        ? null
-                        : (label) async {
-                      if (label == null) return;
-                      final asset = _zoneSounds[label]!;
-                      setState(() => _zoneAudioAsset = asset);
-                      await WorkoutAudioSettings.setAsset(asset);
                     },
-                  ),
-                ),
+                  );
+                },
               ),
 
 
