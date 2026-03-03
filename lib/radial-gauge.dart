@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/services/nearby_stream_service.dart';
+import 'package:heart_link_app/services/session_service.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -36,6 +36,7 @@ class GaugeChart extends StatefulWidget {
 
 class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
+  final SessionService _sessionService = SessionService();
 
   final refHeight = 915; //reference height in px
   final refWidth = 412;  //reference width in px
@@ -88,7 +89,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   Timer? _timer;
 
-  StreamSubscription<DocumentSnapshot>? _sessionListener;
+  StreamSubscription<Map<String, dynamic>?>? _sessionListener;
 
   //keep track of if displayed emoji is user or partner
   bool userImage = true;
@@ -176,16 +177,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       // Send user HR to partner via Nearby or Firestore
       if (!_isOnline!) {
         nearbyService.sendHeartRate(_userHR);
-        print("Sent HR via Nearby: $_userHR");
-      } else {
-        // Write current user heart rate to Firestore
-        if (sessionId != null) {
-          FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
-            _isHost! ? 'user1HR' : 'user2HR': _userHR,
-          });
-        } else {
-          print("Session id is null");
-        }
+      } else if (sessionId != null) {
+        _sessionService.updateHeartRate(
+          sessionId!,
+          isHost: _isHost!,
+          hr: _userHR,
+        );
       }
 
       // Update session stats
@@ -234,13 +231,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   void _listenForPartnerHR() {
     if (sessionId == null) return;
 
-    _sessionListener = FirebaseFirestore.instance
-        .collection('sessions')
-        .doc(sessionId)
-        .snapshots()
-        .listen((snapshot) async {
-      if (!snapshot.exists) return;
-      final data = snapshot.data();
+    _sessionListener = _sessionService.sessionStream(sessionId!).listen((data) async {
       if (data == null) return;
 
       // Update partner HR logic
@@ -257,7 +248,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         _stopwatch.stop();
         _isActiveSession = false;
 
-        // Cancel listener before navigating
         await _sessionListener?.cancel();
         _sessionListener = null;
 
@@ -265,17 +255,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => TrackingResultScreen(
-              elapsedTime: _elapsed, 
-              sameZoneTime: _sameZone, 
-              workoutMode: _workoutMode, 
-              workoutModeIcon: _workoutModeIcon!, 
-              maxHeartRate: _maxSessionHR, 
-              avgHeartRate: averageHR.toDouble(), 
+              elapsedTime: _elapsed,
+              sameZoneTime: _sameZone,
+              workoutMode: _workoutMode,
+              workoutModeIcon: _workoutModeIcon!,
+              maxHeartRate: _maxSessionHR,
+              avgHeartRate: averageHR.toDouble(),
               series: hrValues,
               isSolo: isSolo,
               topZone: peakZoneName,
-                theoreticalMaxHr: _maxHeartRate!)),
-            (_) => false, 
+              theoreticalMaxHr: _maxHeartRate!)),
+            (_) => false,
           );
         }
       }
@@ -379,40 +369,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
 
   Future<void> _setUserHR() async {
-    // Asynchronously get current user data from firebase
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final age = await _sessionService.fetchUserAge();
+    if (age == 0) return;
 
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    final data = doc.data();
-    if (data == null || data['age'] == null) return;
-
-    userAge = data['age'];
-
+    userAge = age;
     setState(() {
-      _maxHeartRate = (208 - (userAge * 0.7)).toInt();
+      _maxHeartRate = SessionService.computeMaxHr(userAge);
     });
   }
 
   // Initialize data before calling tickupdate
   Future<void> _initAsync() async {
-    // Get age from Firestore
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      userAge = doc.data()?['age'] ?? 0;
-    }
-
-    // Compute max HR
-    _maxHeartRate = (208 - (userAge * 0.7)).toInt();
+    userAge = await _sessionService.fetchUserAge();
+    _maxHeartRate = SessionService.computeMaxHr(userAge);
 
     userDeviceId = widget.userDeviceId;
     _workoutMode = widget.workoutMode;
@@ -518,57 +487,25 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
 
   Future<void> createSession() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Generate sessionId
-    Random random = new Random();
-    int rand = random.nextInt(1000);
-    String sessionuid = randomLetters(3);
-    sessionId = sessionuid+rand.toString();
-
-    await FirebaseFirestore.instance.collection('sessions').doc(sessionId).set({
-      'user1Id': user.uid,
-      'user2Id': null,
-      'user1HR': 0,
-      'user2HR': 0,
-      'startTime': FieldValue.serverTimestamp(),
-      'sessionActive': true
-    });
-
+    sessionId = _sessionService.generateSessionId();
+    await _sessionService.createSession(sessionId!);
     _isActiveSession = true;
-
-    print('Share this Session Code with partner: $sessionId');
   }
 
   void _listenForGuestJoin() {
     if (!_isHost! || sessionId == null) return;
 
-    FirebaseFirestore.instance
-        .collection('sessions')
-        .doc(sessionId)
-        .snapshots()
-        .listen((doc) {
-      final data = doc.data();
+    _sessionService.sessionStream(sessionId!).listen((data) {
       if (data != null && data['user2Id'] != null && !_guestConnected) {
         setState(() {
           _guestConnected = true;
-          _showOverlay = false;   
+          _showOverlay = false;
           _listenForPartnerHR();
-          _stopwatch.start();     
-          _startTimer();          
+          _stopwatch.start();
+          _startTimer();
         });
       }
     });
-  }
-
-  // Helper for generating session code
-  String randomLetters(int length) {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    final rand = Random();
-    return String.fromCharCodes(
-      Iterable.generate(length, (_) => letters.codeUnitAt(rand.nextInt(letters.length))),
-    );
   }
 
   @override
@@ -670,15 +607,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     }
   }
 
-  void _endWorkout(BuildContext context ) {
+  void _endWorkout(BuildContext context) {
     setState(() {
       _isActiveSession = false;
     });
 
     if (_isOnline! && sessionId != null) {
-      FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
-        'sessionActive': false,
-      });
+      _sessionService.endSession(sessionId!);
     }
 
     _timer?.cancel();
@@ -806,61 +741,27 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                             userName: FirebaseAuth.instance.currentUser?.displayName ?? "Guest",
                             sessionCode: sessionId,
                           );
-
-                          // setState(() {
-                          //   _isHost = false;
-                          //   _guestConnected = true; // paired workout
-                          //   _showOverlay = false;
-                          // });
-                          // _stopwatch.start(); 
-                          // _startTimer();
                           return;
                         }
 
-                        final user = FirebaseAuth.instance.currentUser;
-
-                        if (user == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please log in first.')),
-                          );
+                        final result = await _sessionService.joinSession(sessionId!);
+                        if (result is String) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result)),
+                            );
+                          }
                           return;
                         }
 
-                        try {
-                          final doc = await FirebaseFirestore.instance
-                              .collection('sessions')
-                              .doc(sessionId)
-                              .get();
-
-                          if (!doc.exists) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Session not found.')),
-                            );
-                            return;
-                          }
-
-                          final data = doc.data()!;
-                          if (data['user2Id'] == null) {
-                            // Assign this user as the partner (user2)
-                            await doc.reference.update({'user2Id': user.uid});
-                            setState(() {
-                              _isHost = false;
-                              _guestConnected = true; // paired workout
-                              _showOverlay = false;  // Hide overlay after success
-                            });
-                            _listenForPartnerHR();
-                            _stopwatch.start(); 
-                            _startTimer();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Session is already full!')),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
-                          );
-                        }
+                        setState(() {
+                          _isHost = false;
+                          _guestConnected = true;
+                          _showOverlay = false;
+                        });
+                        _listenForPartnerHR();
+                        _stopwatch.start();
+                        _startTimer();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,

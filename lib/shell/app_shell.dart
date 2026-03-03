@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:heart_link_app/screens/home/home_screen.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
-import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
-import 'package:heart_link_app/screens/heartratedial/heartratedial_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
-import 'package:heart_link_app/screens/session/tracking_screen.dart';
+import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -19,9 +17,6 @@ class _AppShellState extends State<AppShell> {
   int _index = 0;
   final ValueNotifier<int> _historyTabs = ValueNotifier(0);
 
-  // use this key to manage the inner navigator of Heart tab
-  final GlobalKey<NavigatorState> _heartNavKey = GlobalKey<NavigatorState>();
-
   // switch tab
   void _go(int i) => setState(() {
     if (i == 1) _historyTabs.value++;
@@ -31,8 +26,6 @@ class _AppShellState extends State<AppShell> {
   // floating action button opens the session selection flow
   void _openSessionFlow() {
     if (_index != 3) _go(3);
-    // 
-    _heartNavKey.currentState?.pushNamed('/session');
   }
 
   // bottom navigation item
@@ -74,12 +67,9 @@ class _AppShellState extends State<AppShell> {
   // main interface structure
   @override
   Widget build(BuildContext context) {
-    // four main pages
     final pages = <Widget>[
       const HomeScreen(),
       HistoryScreen(onTabVisible: _historyTabs),
-      // Heart rate tab with inner navigator
-      //HeartTabNavigator(navKey: _heartNavKey),
       const ProfileScreen(),
       const SessionScreen(),
     ];
@@ -92,8 +82,17 @@ class _AppShellState extends State<AppShell> {
       ),
       // floating action button
       floatingActionButton: FloatingActionButton(
-        // open session selection flow
-        onPressed: _openSessionFlow, 
+        onPressed: () {
+          if (hrState.sessionActive) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("You can't start a new session while a workout is active."),
+              ),
+            );
+            return;
+          }
+          _openSessionFlow();
+        },
         shape: const CircleBorder(),
         backgroundColor: const Color.fromARGB(255, 175, 82, 82),
         child: const Icon(Icons.add, size: 30, color: Colors.white),
@@ -123,48 +122,6 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-    );
-  }
-}
-
-// Navigator for Heart Rate tab
-class HeartTabNavigator extends StatelessWidget {
-  final GlobalKey<NavigatorState> navKey;
-  const HeartTabNavigator({super.key, required this.navKey});
-
-  @override
-  Widget build(BuildContext context) {
-    return Navigator(
-      key: navKey,
-      initialRoute: '/heartrate',
-      onGenerateRoute: (settings) {
-        // apply routing based on route name
-        switch (settings.name) {
-          case '/heartrate':
-          case '/dial': 
-          case '/':
-            return MaterialPageRoute(
-              builder: (_) => const TrackingScreen(),
-              settings: settings,
-            );
-          case '/session':
-            return MaterialPageRoute(
-              builder: (_) => const SessionScreen(),
-              settings: settings,
-            );
-          case '/sensor':
-            return MaterialPageRoute(
-              builder: (_) => const SessionScreen(),
-              settings: settings,
-            );
-          default:
-            // fallback to heartrate screen
-            return MaterialPageRoute(
-              builder: (_) => const TrackingScreen(),
-              settings: settings,
-            );
-        }
-      },
     );
   }
 }

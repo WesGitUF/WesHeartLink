@@ -280,7 +280,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
               ListTile(
                 title: const Text("Weight"),
-                subtitle: Text(weight != null ? "$weight kg" : "Not set"),
+                subtitle: Text(weight != null ? "$weight lb" : "Not set"),
               ),
 
               const SizedBox(height: 10),
