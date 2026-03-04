@@ -24,6 +24,10 @@ class HistoryRepo extends ChangeNotifier {
 
   List<HistoryEntry> get entries => List.unmodifiable(_entries);
 
+  bool _hasDeletions = false;
+  bool get hasDeletions => _hasDeletions;
+  void clearDeletions() => _hasDeletions = false;
+
   Future<void> add({
     required double avgHr,
     required List<int> bpmSeries,
@@ -77,6 +81,7 @@ class HistoryRepo extends ChangeNotifier {
     final id = entry.id;
 
     _entries.remove(entry);
+    _hasDeletions = true;
     notifyListeners();
 
     if (id == null) return;
