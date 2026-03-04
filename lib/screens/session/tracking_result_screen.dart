@@ -88,7 +88,7 @@ class TrackingResultScreen extends StatelessWidget {
   }
 }
 
-class _StatsBox extends StatelessWidget {
+class _StatsBox extends StatefulWidget {
   final Duration elapsedTime;
   final Duration sameZoneTime;
   final String workoutMode;
@@ -99,16 +99,25 @@ class _StatsBox extends StatelessWidget {
   final String topZone;
   final bool isSolo;
   final int theoreticalMaxHr;
-  const _StatsBox({required this.elapsedTime, 
-    required this.sameZoneTime, 
-    required this.workoutMode, 
+  const _StatsBox({
+    required this.elapsedTime,
+    required this.sameZoneTime,
+    required this.workoutMode,
     required this.workoutModeIcon,
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
     required this.isSolo,
-    required this.theoreticalMaxHr});
+    required this.theoreticalMaxHr,
+  });
+
+  @override
+  State<_StatsBox> createState() => _StatsBoxState();
+}
+
+class _StatsBoxState extends State<_StatsBox> {
+  bool _pressed = false;
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -129,35 +138,33 @@ class _StatsBox extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            workoutModeIcon,
-            size: 50
-          ),
-          Text('Workout Type: $workoutMode', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Icon(widget.workoutModeIcon, size: 50),
+          Text('Workout Type: ${widget.workoutMode}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Elapsed Time: ${_formatDuration(elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Elapsed Time: ${_formatDuration(widget.elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          if (!isSolo) ...[
-            Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
-            const SizedBox(height: 24)],
-          Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          if (!widget.isSolo) ...[
+            Text('Time in Same Zone: ${_formatDuration(widget.sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+          ],
+          Text('Max Heart Rate: ${widget.maxHeartRate}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Average Heart Rate: ${widget.avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Peak Heart Rate Zone: $topZone', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Peak Heart Rate Zone: ${widget.topZone}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () {
+            onPressed: _pressed ? null : () {
+              setState(() => _pressed = true);
               WorkoutService().saveEntry(
-                avgHr: avgHeartRate,
-                bpmSeries: series,
-                elapsed: elapsedTime,
-                workoutMode: workoutMode,
-                maxSessionHr: maxHeartRate,
-                topZone: topZone,
-                theoreticalMaxHr: theoreticalMaxHr,
+                avgHr: widget.avgHeartRate,
+                bpmSeries: widget.series,
+                elapsed: widget.elapsedTime,
+                workoutMode: widget.workoutMode,
+                maxSessionHr: widget.maxHeartRate,
+                topZone: widget.topZone,
+                theoreticalMaxHr: widget.theoreticalMaxHr,
               );
-
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const AppShell()),
