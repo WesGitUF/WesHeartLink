@@ -12,7 +12,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/services/background_setup.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
+import 'package:heart_link_app/services/workout_notification_service.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -51,6 +53,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //store device ID
   String? userDeviceId;
 
+  // background tracking
+  bool _bgGateBypassed = false;        // user explicitly chose "Continue anyway"
+  bool _bgGateDialogOpen = false;      // prevents dialog stacking
+  bool _notifListenerBound = false;
+  bool _attemptedBatteryFix = false;
+  bool _attemptedNotifFix = false;
 
   // stop watch for session timer
   final _stopwatch = Stopwatch();
@@ -131,6 +139,154 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   double get averageHR {
     if (_hrCount == 0) return 0;
     return _hrSum / _hrCount;
+  }
+
+  Future<bool> _ensureBackgroundSetupBeforeStart() async {
+    if (kIsWeb) return true;
+    if (_bgGateBypassed) return true;
+
+    // Avoid stacking dialogs
+    if (_bgGateDialogOpen) return false;
+
+    _attemptedBatteryFix = false;
+    _attemptedNotifFix = false;
+    _bgGateDialogOpen = true;
+
+    try {
+      while (mounted) {
+        final s = await BackgroundSetup.check();
+        if (s.allOk) return true;
+
+        final result = await showDialog<String>(
+          context: context,
+          barrierDismissible: false, // MUST answer before starting
+          builder: (context) {
+            final problems = <String>[];
+            if (!s.batteryOk) problems.add("Switch battery optimization to unrestricted");
+            if (!s.notifOk) problems.add("Allow workout in progress notifications");
+
+            return AlertDialog(
+              title: const Text("Enable background tracking"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Before you start, we recommend fixing:"),
+                  const SizedBox(height: 10),
+                  ...problems.map((p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("• "),
+                        Expanded(child: Text(p)),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "This helps keep tracking running in the background.",
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, "bypass"),
+                  child: const Text("Continue anyway"),
+                ),
+
+                // Show battery button only if:
+                // - battery still not ok
+                // - AND user hasn't already attempted battery fix in this gating session
+                if (!s.batteryOk && !_attemptedBatteryFix)
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, "battery"),
+                    child: const Text("Fix battery"),
+                  ),
+
+                // Show notif button only if:
+                // - notifications still not ok
+                // - AND user hasn't already attempted notif fix in this gating session
+                if (!s.notifOk && !_attemptedNotifFix)
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, "notif"),
+                    child: const Text("Allow notifications"),
+                  ),
+              ],
+            );
+          },
+        );
+
+        if (result == "bypass") {
+          _bgGateBypassed = true;
+          return true;
+        }
+
+        if (result == "battery") {
+          _attemptedBatteryFix = true;
+          await BackgroundSetup.fixBattery();
+          continue;
+        }
+
+        if (result == "notif") {
+          _attemptedNotifFix = true;
+          await BackgroundSetup.fixNotifications();
+          await _onPermissionsPossiblyChanged();
+          continue;
+        }
+
+        // If dialog closed oddly, do not start.
+        return false;
+      }
+
+      return false;
+    } finally {
+      _bgGateDialogOpen = false;
+    }
+  }
+
+  Future<void> _onPermissionsPossiblyChanged() async {
+    if (kIsWeb) return;
+
+    // Only care if workout is actually running (overlay dismissed and active session)
+    final workoutRunning = _isActiveSession && !_showOverlay;
+
+    if (!workoutRunning) return;
+
+    final s = await BackgroundSetup.check();
+    if (!mounted) return;
+
+    // If notifications are now allowed, ensure the foreground notification is running NOW
+    if (s.notifOk) {
+      // A safe way: stop then start to force notification to appear immediately
+      await WorkoutNotificationService.stop();
+      await _startWorkoutNotification();
+    }
+  }
+
+
+  Future<void> _stopWorkoutNotification() async {
+    if (kIsWeb) return;
+    await WorkoutNotificationService.stop();
+  }
+
+  Future<void> _startWorkoutNotification() async {
+    if (kIsWeb) return;
+
+    if (!_notifListenerBound) {
+      _notifListenerBound = true;
+      WorkoutNotificationService.listenForActions(() async {
+        if (!mounted) return;
+        await _confirmEndWorkout(context);
+      });
+    }
+
+    await WorkoutNotificationService.start(
+      title: "Workout in progress",
+      text: "End workout to stop tracking",
+    );
+
   }
 
   void _startTimer() {
@@ -243,6 +399,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
       // End session check
       if (data['sessionActive'] == false) {
+        await _stopWorkoutNotification();
         final averageHR = _hrCount > 0 ? _hrSum ~/ _hrCount : 0;
         _timer?.cancel();
         _stopwatch.stop();
@@ -426,15 +583,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         });
       });
 
-      nearbyService.guestConnectedNotifier.addListener(() {
+      nearbyService.guestConnectedNotifier.addListener(() async {
         final connected = nearbyService.guestConnectedNotifier.value;
         if (connected && !_guestConnected) {
+          final ok = await _ensureBackgroundSetupBeforeStart();
+          if (!ok) return;
+
           setState(() {
             _guestConnected = true;
             _showOverlay = false;
           });
           _stopwatch.start();
           _startTimer();
+          await _startWorkoutNotification();
         }
       });
     }
@@ -495,8 +656,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   void _listenForGuestJoin() {
     if (!_isHost! || sessionId == null) return;
 
-    _sessionService.sessionStream(sessionId!).listen((data) {
+    _sessionService.sessionStream(sessionId!).listen((data) async {
       if (data != null && data['user2Id'] != null && !_guestConnected) {
+        final ok = await _ensureBackgroundSetupBeforeStart();
+        if (!ok) return;
         setState(() {
           _guestConnected = true;
           _showOverlay = false;
@@ -504,6 +667,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           _stopwatch.start();
           _startTimer();
         });
+        await _startWorkoutNotification();
       }
     });
   }
@@ -542,7 +706,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
+
+    WorkoutNotificationService.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      // If user just changed settings/permissions, react immediately
+      await _onPermissionsPossiblyChanged();
+    }
   }
 
   Widget _getGauge({bool isRadialGauge = true}) {
@@ -603,11 +778,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
 
     if (shouldEnd == true) {
-      _endWorkout(context);
+      await _endWorkout(context);
     }
   }
 
-  void _endWorkout(BuildContext context) {
+  Future<void> _endWorkout(BuildContext context) async {
+    await _stopWorkoutNotification();
+
     setState(() {
       _isActiveSession = false;
     });
@@ -669,7 +846,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         return ElevatedButton(
                           onPressed: (_isOnline! && !guestConnected)
                             ? null
-                            : () {
+                            : () async {
+                            final ok = await _ensureBackgroundSetupBeforeStart();
+                            if (!ok) return;
                               setState(() {
                                 _showOverlay = false;
 
@@ -681,8 +860,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                                 }
                               });
 
-                            _stopwatch.start();
-                            _startTimer();
+                              _stopwatch.start();
+                              _startTimer();
+                              await _startWorkoutNotification();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -754,6 +934,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                           return;
                         }
 
+                        final ok = await _ensureBackgroundSetupBeforeStart();
+                        if (!ok) return;
                         setState(() {
                           _isHost = false;
                           _guestConnected = true;
@@ -762,6 +944,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         _listenForPartnerHR();
                         _stopwatch.start();
                         _startTimer();
+                        await _startWorkoutNotification();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
