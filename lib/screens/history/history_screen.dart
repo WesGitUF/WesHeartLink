@@ -143,12 +143,16 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   // format datetime
-  String _hm(DateTime dt) {
-    final mm = dt.month.toString().padLeft(2, '0');
-    final dd = dt.day.toString().padLeft(2, '0');
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return '$mm/$dd  $hh:$mi';
+  String _hm(BuildContext context, DateTime dt) {
+
+    final mq = MediaQuery.of(context);
+    final time = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(dt),
+      alwaysUse24HourFormat: mq.alwaysUse24HourFormat,
+    );
+    final mm = dt.month;
+    final dd = dt.day;
+    return '$mm/$dd  $time';
   }
 
   // format duration
@@ -270,7 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen>
           ),
         ),
         subtitle: Text(
-          _hm(w.start),
+          _hm(context,w.start),
           style: TextStyle(color: subColor),
         ),
         trailing: ConstrainedBox(
