@@ -4,8 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class BatteryOptimization {
   static const _channel = MethodChannel('heart_link/battery_optimization');
-  static const _askedKey = 'askedBatteryOpt_v1';
-  static const _promptEnabledKey = 'batteryOptPromptEnabled';
 
 
   /// Check if battery optimization is already disabled
@@ -27,76 +25,5 @@ class BatteryOptimization {
 
   static Future<void> openBatteryOptimizationSettings() async {
     await _channel.invokeMethod('openBatteryOptimizationSettings');
-  }
-
-  static Future<bool> isPromptEnabled() async {
-    final sp = await SharedPreferences.getInstance();
-    return sp.getBool(_promptEnabledKey) ?? true; // default ON
-  }
-
-  static Future<void> setPromptEnabled(bool enabled) async {
-    final sp = await SharedPreferences.getInstance();
-    await sp.setBool(_promptEnabledKey, enabled);
-
-    // If turning prompts back ON, also allow prompting again next session
-    if (enabled) {
-      await sp.setBool(_askedKey, false);
-    }
-  }
-
-  static Future<void> resetPromptOnce() async {
-    final sp = await SharedPreferences.getInstance();
-    await sp.setBool(_askedKey, false);
-  }
-
-  /// Show prompt once when user starts a session
-  static Future<void> maybePromptOnce(BuildContext context) async {
-    final sp = await SharedPreferences.getInstance();
-
-    final enabled = sp.getBool(_promptEnabledKey) ?? true;
-    if (!enabled) return;
-
-    final alreadyAsked = sp.getBool(_askedKey) ?? false;
-    if (alreadyAsked) return;
-
-    bool ignoring;
-    try {
-      ignoring = await isIgnoringOptimization();
-    } catch (_) {
-      return;
-    }
-    if (ignoring) return;
-
-
-    if (!context.mounted) return;
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Allow background workout tracking'),
-        content: const Text(
-          'To keep your session running while using other apps, '
-              'set Battery usage to Unrestricted for HeartLink.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Not now'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await requestIgnoreOptimization();
-              } catch (_) {
-                await openAppSettings();
-              }
-            },
-            child: const Text('Open settings'),
-          ),
-        ],
-      ),
-    );
-    await sp.setBool(_askedKey, true);
   }
 }

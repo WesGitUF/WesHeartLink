@@ -86,10 +86,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       setState(() => _isUnrestricted = v);
 
       if (v == false) {
-        final enabled = await BatteryOptimization.isPromptEnabled();
-        if (enabled) {
-          await BatteryOptimization.resetPromptOnce();
-        }
+        //final enabled = await BatteryOptimization.isPromptEnabled();
+        //if (enabled) {
+          //await BatteryOptimization.resetPromptOnce();
+        //}
       }
     } catch (_) {
       if (!mounted) return;
@@ -98,9 +98,9 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 
   Future<void> _loadPromptEnabled() async {
-    final enabled = await BatteryOptimization.isPromptEnabled();
+    //final enabled = await BatteryOptimization.isPromptEnabled();
     if (!mounted) return;
-    setState(() => _promptEnabled = enabled);
+    //setState(() => _promptEnabled = enabled);
   }
 
   String _labelForAsset(String asset) {
@@ -407,7 +407,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 value: _promptEnabled,
                 onChanged: (v) async {
                   setState(() => _promptEnabled = v);
-                  await BatteryOptimization.setPromptEnabled(v);
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
