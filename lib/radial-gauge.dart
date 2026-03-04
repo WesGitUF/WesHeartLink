@@ -986,6 +986,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           child: AppBar(
             backgroundColor: Colors.redAccent,
             centerTitle: true,
+            automaticallyImplyLeading: false,
             title: Image.asset(
               'assets/images/logo.png',
               width: 80,
