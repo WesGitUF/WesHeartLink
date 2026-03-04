@@ -26,11 +26,18 @@ class WorkoutDetailScreen extends StatelessWidget {
     return 'User';
   }
 
-  String _timeRange(DateTime start, DateTime end) {
-    String pad(int n) => n.toString().padLeft(2, '0');
-    final date      = '${start.year}/${pad(start.month)}/${pad(start.day)}';
-    final startTime = '${pad(start.hour)}:${pad(start.minute)}';
-    final endTime   = '${pad(end.hour)}:${pad(end.minute)}';
+  String _timeRange(BuildContext context, DateTime start, DateTime end) {
+    final mq = MediaQuery.of(context);
+    final startTime = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(start),
+      alwaysUse24HourFormat: mq.alwaysUse24HourFormat,
+    );
+    final endTime = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(end),
+      alwaysUse24HourFormat: mq.alwaysUse24HourFormat,
+    );
+    final date =
+        '${start.month}/${start.day}/${start.year.toString().substring(2)} ';
     return '$date $startTime – $endTime';
   }
 
@@ -107,7 +114,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _timeRange(start, end),
+                      _timeRange(context, start, end),
                       style: const TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                   ],
