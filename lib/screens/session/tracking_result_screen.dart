@@ -147,8 +147,8 @@ class _StatsBox extends StatelessWidget {
           Text('Peak Heart Rate Zone: $topZone', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () async {
-              await WorkoutService().saveEntry(
+            onPressed: () {
+              WorkoutService().saveEntry(
                 avgHr: avgHeartRate,
                 bpmSeries: series,
                 elapsed: elapsedTime,
