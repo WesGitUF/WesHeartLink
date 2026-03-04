@@ -11,7 +11,8 @@ import 'package:heart_link_app/screens/history/history_repo.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, required this.onTabVisible});
+  final ValueNotifier<int> onTabVisible;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -171,7 +172,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadUserData();
     _loadWeather();
     _loadWorkouts();
+    widget.onTabVisible.addListener(_onTabVisible);
     //_checkDefaultWorkoutAndPrompt();
+  }
+
+  @override
+  void dispose() {
+    widget.onTabVisible.removeListener(_onTabVisible);
+    super.dispose();
+  }
+
+  void _onTabVisible() {
+    if (HistoryRepo.instance.hasDeletions) {
+      HistoryRepo.instance.clearDeletions();
+      _loadWorkouts();
+    }
   }
 
 

@@ -16,10 +16,12 @@ class _AppShellState extends State<AppShell> {
   // current selected index
   int _index = 0;
   final ValueNotifier<int> _historyTabs = ValueNotifier(0);
+  final ValueNotifier<int> _homeTabs = ValueNotifier(0);
 
   // switch tab
   void _go(int i) => setState(() {
     if (i == 1) _historyTabs.value++;
+    if (i == 0) _homeTabs.value++;
     _index = i;
   });
 
@@ -68,7 +70,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final pages = <Widget>[
-      const HomeScreen(),
+      HomeScreen(onTabVisible: _homeTabs),
       HistoryScreen(onTabVisible: _historyTabs),
       const ProfileScreen(),
       const SessionScreen(),
