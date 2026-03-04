@@ -159,21 +159,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 
   // ───────────────────────────────────────────────────────────────
-  // Edit Age dialog
+  // Edit number dialog
   // ───────────────────────────────────────────────
-  Future<void> _editAge(int initialAge) async {
+  Future<void> _editNumberField({
+    required String title,
+    required String fieldName,
+    required int initialValue,
+    required int min,
+    required int max,
+    String unit = "",
+  }) async {
     final ctrl = TextEditingController(
-      text: initialAge > 0 ? '$initialAge' : '',
+      text: initialValue > 0 ? '$initialValue' : '',
     );
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Set Age"),
+        title: Text(title),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: "Enter your age"),
+          decoration: InputDecoration(
+            hintText: "Enter value",
+            suffixText: unit.isNotEmpty ? unit : null,
+          ),
         ),
         actions: [
           TextButton(
@@ -184,9 +194,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             child: const Text("Save"),
             onPressed: () async {
               final val = int.tryParse(ctrl.text.trim());
-              if (val == null || val <= 0 || val > 120) {
+              if (val == null || val < min || val > max) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Invalid age")));
+                  const SnackBar(content: Text("Invalid value")),
+                );
                 return;
               }
 
@@ -195,10 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 await FirebaseFirestore.instance
                     .collection("users")
                     .doc(user.uid)
-                    .update({"age": val});
+                    .update({fieldName: val});
               }
 
-              await hrState.updateAge(val);
               if (mounted) Navigator.pop(context);
             },
           ),
@@ -327,6 +337,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ListTile(
                 title: const Text("Weight"),
                 subtitle: Text(weight != null ? "$weight lb" : "Not set"),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _editNumberField(
+                  title: "Set Weight",
+                  fieldName: "weight",
+                  initialValue: int.tryParse(weight ?? "0") ?? 0,
+                  min: 1,
+                  max: 1000,
+                  unit: "lb",
+                ),
               ),
 
               const SizedBox(height: 10),
@@ -340,7 +359,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 title: const Text("Age"),
                 subtitle: Text(age != null ? "$age years" : "Not set"),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editAge(age ?? 0),
+                onTap: () => _editNumberField(
+                  title: "Set Age",
+                  fieldName: "age",
+                  initialValue: age ?? 0,
+                  min: 1,
+                  max: 120,
+                  unit: "years",
+                ),
               ),
               ListTile(
                 title: const Text("Max HR"),
