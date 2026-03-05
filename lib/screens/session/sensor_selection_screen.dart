@@ -279,8 +279,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                           if (result == null) return;
 
                           bool isOnline = result == 'online' ? true : false;
-
-                          await BatteryOptimization.maybePromptOnce(context);
                           if (!context.mounted) return;
 
                           if (context.mounted) {
@@ -347,8 +345,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                         if (result == null) return;
 
                         bool isOnline = result == 'online' ? true : false;
-
-                        await BatteryOptimization.maybePromptOnce(context);
                         if (!context.mounted) return;
 
                           Navigator.pushNamed(

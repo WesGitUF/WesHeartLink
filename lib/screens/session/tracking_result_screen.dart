@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:heart_link_app/screens/home/home_screen.dart';
+import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
 
 class TrackingResultScreen extends StatelessWidget {
@@ -90,7 +88,7 @@ class TrackingResultScreen extends StatelessWidget {
   }
 }
 
-class _StatsBox extends StatelessWidget {
+class _StatsBox extends StatefulWidget {
   final Duration elapsedTime;
   final Duration sameZoneTime;
   final String workoutMode;
@@ -101,16 +99,25 @@ class _StatsBox extends StatelessWidget {
   final String topZone;
   final bool isSolo;
   final int theoreticalMaxHr;
-  const _StatsBox({required this.elapsedTime, 
-    required this.sameZoneTime, 
-    required this.workoutMode, 
+  const _StatsBox({
+    required this.elapsedTime,
+    required this.sameZoneTime,
+    required this.workoutMode,
     required this.workoutModeIcon,
     required this.maxHeartRate,
     required this.avgHeartRate,
     required this.series,
     required this.topZone,
     required this.isSolo,
-    required this.theoreticalMaxHr});
+    required this.theoreticalMaxHr,
+  });
+
+  @override
+  State<_StatsBox> createState() => _StatsBoxState();
+}
+
+class _StatsBoxState extends State<_StatsBox> {
+  bool _pressed = false;
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -118,29 +125,6 @@ class _StatsBox extends StatelessWidget {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$hours:$minutes:$seconds";
-  }
-
-  int _caloriesCal({
-    required int avgHr,
-    required int age,
-    required double weight,
-    required String gender,
-    required Duration duration,
-  }) {
-    final minutes = duration.inSeconds / 60.0;
-
-    double perMin;
-
-    if (gender == 'female') {
-      perMin = ((0.4472 * avgHr - 0.1263 * weight + 0.074 * age - 20.4022) / 4.184);
-    } else {
-      perMin = ((0.6309 * avgHr + 0.1988 * weight + 0.2017 * age - 55.0969) / 4.184);
-    }
-
-    // prevent negative calories
-    if (perMin < 0) perMin = 0;
-
-    return (perMin * minutes).round();
   }
 
   @override
@@ -154,66 +138,37 @@ class _StatsBox extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            workoutModeIcon,
-            size: 50
-          ),
-          Text('Workout Type: $workoutMode', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Icon(widget.workoutModeIcon, size: 50),
+          Text('Workout Type: ${widget.workoutMode}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Elapsed Time: ${_formatDuration(elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Elapsed Time: ${_formatDuration(widget.elapsedTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          if (!isSolo) ...[
-            Text('Time in Same Zone: ${_formatDuration(sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
-            const SizedBox(height: 24)],
-          Text('Max Heart Rate: $maxHeartRate', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          if (!widget.isSolo) ...[
+            Text('Time in Same Zone: ${_formatDuration(widget.sameZoneTime)}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+          ],
+          Text('Max Heart Rate: ${widget.maxHeartRate}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Average Heart Rate: ${avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Average Heart Rate: ${widget.avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
-          Text('Peak Heart Rate Zone: $topZone', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          Text('Peak Heart Rate Zone: ${widget.topZone}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-              if (user != null) {
-                print("USER NAME: $user");
-                int userAge = 0;
-                double weight = 70.0;
-                String gender = "";
-                // Fetch additional user data from Firestore
-                final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-                if (userDoc.exists) {
-                  final userData = userDoc.data();
-                  if (userData != null) {
-                    userAge = userData['age'] ?? 0;
-                    weight = (userData['weight'] != null) ? double.tryParse(userData['weight'].toString()) ?? 70.0 : 70.0;
-                    gender = userData['gender'] ?? "";
-                  }
-                }
-
-                FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .collection('workouts')
-                  .add({
-                    'avgHr': avgHeartRate,
-                    'bpmSeries': series,
-                    'calories': _caloriesCal(avgHr: avgHeartRate.toInt(), age: userAge, weight: weight, gender: gender, duration: elapsedTime),
-                    'createdAt': FieldValue.serverTimestamp(),
-                    'durationSeconds': elapsedTime.inSeconds,
-                    'maxSessionHr': maxHeartRate,
-                    'topZone': topZone,
-                    'start': FieldValue.serverTimestamp(),
-                    'type': workoutMode,
-                    'theoreticalMaxHr': theoreticalMaxHr,
-                  });
-              }
-              else {
-                print("USER IS NULL");
-              }
+            onPressed: _pressed ? null : () {
+              setState(() => _pressed = true);
+              WorkoutService().saveEntry(
+                avgHr: widget.avgHeartRate,
+                bpmSeries: widget.series,
+                elapsed: widget.elapsedTime,
+                workoutMode: widget.workoutMode,
+                maxSessionHr: widget.maxHeartRate,
+                topZone: widget.topZone,
+                theoreticalMaxHr: widget.theoreticalMaxHr,
+              );
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const AppShell()),
-                (_) => false, // This predicate ensures all previous routes are removed
+                (_) => false,
               );
             },
             style: ElevatedButton.styleFrom(

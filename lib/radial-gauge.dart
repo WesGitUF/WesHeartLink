@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/services/nearby_stream_service.dart';
+import 'package:heart_link_app/services/session_service.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:vibration/vibration.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/services/background_setup.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
+import 'package:heart_link_app/services/workout_notification_service.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -36,6 +38,7 @@ class GaugeChart extends StatefulWidget {
 
 class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
+  final SessionService _sessionService = SessionService();
 
   final refHeight = 915; //reference height in px
   final refWidth = 412;  //reference width in px
@@ -50,6 +53,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //store device ID
   String? userDeviceId;
 
+  // background tracking
+  bool _bgGateBypassed = false;        // user explicitly chose "Continue anyway"
+  bool _bgGateDialogOpen = false;      // prevents dialog stacking
+  bool _notifListenerBound = false;
+  bool _attemptedBatteryFix = false;
+  bool _attemptedNotifFix = false;
 
   // stop watch for session timer
   final _stopwatch = Stopwatch();
@@ -88,7 +97,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   Timer? _timer;
 
-  StreamSubscription<DocumentSnapshot>? _sessionListener;
+  StreamSubscription<Map<String, dynamic>?>? _sessionListener;
 
   //keep track of if displayed emoji is user or partner
   bool userImage = true;
@@ -130,6 +139,155 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   double get averageHR {
     if (_hrCount == 0) return 0;
     return _hrSum / _hrCount;
+  }
+
+  Future<bool> _ensureBackgroundSetupBeforeStart() async {
+    if (kIsWeb) return true;
+    if (_bgGateBypassed) return true;
+
+    // Avoid stacking dialogs
+    if (_bgGateDialogOpen) return false;
+
+    _attemptedBatteryFix = false;
+    _attemptedNotifFix = false;
+    _bgGateDialogOpen = true;
+
+    try {
+      while (mounted) {
+        final s = await BackgroundSetup.check();
+        if (s.allOk) return true;
+
+        final result = await showDialog<String>(
+          context: context,
+          barrierDismissible: false, // MUST answer before starting
+          builder: (context) {
+            final problems = <String>[];
+            if (!s.batteryOk) problems.add("Switch battery optimization to unrestricted");
+            if (!s.notifOk) problems.add("Allow workout in progress notifications");
+
+            return AlertDialog(
+              title: const Text("Enable background tracking"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Before you start, we recommend fixing:"),
+                  const SizedBox(height: 10),
+                  ...problems.map((p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("• "),
+                        Expanded(child: Text(p)),
+                      ],
+                    ),
+                  )),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "This helps keep tracking running in the background.",
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, "bypass"),
+                  child: const Text("Continue anyway"),
+                ),
+
+                // Show battery button only if:
+                // - battery still not ok
+                // - AND user hasn't already attempted battery fix in this gating session
+                if (!s.batteryOk && !_attemptedBatteryFix)
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, "battery"),
+                    child: const Text("Fix battery"),
+                  ),
+
+                // Show notif button only if:
+                // - notifications still not ok
+                // - AND user hasn't already attempted notif fix in this gating session
+                if (!s.notifOk && !_attemptedNotifFix)
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, "notif"),
+                    child: const Text("Allow notifications"),
+                  ),
+              ],
+            );
+          },
+        );
+
+        if (result == "bypass") {
+          _bgGateBypassed = true;
+          return true;
+        }
+
+        if (result == "battery") {
+          _attemptedBatteryFix = true;
+          await BackgroundSetup.fixBattery();
+          continue;
+        }
+
+        if (result == "notif") {
+          _attemptedNotifFix = true;
+          await BackgroundSetup.fixNotifications();
+          await _onPermissionsPossiblyChanged();
+          continue;
+        }
+
+        // If dialog closed oddly, do not start.
+        return false;
+      }
+
+      return false;
+    } finally {
+      _bgGateDialogOpen = false;
+    }
+  }
+
+  Future<void> _onPermissionsPossiblyChanged() async {
+    if (kIsWeb) return;
+
+    // Only care if workout is actually running (overlay dismissed and active session)
+    final workoutRunning = _isActiveSession && !_showOverlay;
+
+    if (!workoutRunning) return;
+
+    final s = await BackgroundSetup.check();
+    if (!mounted) return;
+
+    // If notifications are now allowed, ensure the foreground notification is running NOW
+    if (s.notifOk) {
+      // A safe way: stop then start to force notification to appear immediately
+      await WorkoutNotificationService.stop();
+      await _startWorkoutNotification();
+    }
+  }
+
+
+  Future<void> _stopWorkoutNotification() async {
+    if (kIsWeb) return;
+    await WorkoutNotificationService.stop();
+  }
+
+  Future<void> _startWorkoutNotification() async {
+    if (kIsWeb) return;
+
+    if (!_notifListenerBound) {
+      _notifListenerBound = true;
+      WorkoutNotificationService.listenForActions(() async {
+        if (!mounted) return;
+        if (!_isActiveSession) return;
+        await _endWorkout(context);
+      });
+    }
+
+    await WorkoutNotificationService.start(
+      title: "Workout in progress",
+      text: "End workout to stop tracking",
+    );
+
   }
 
   void _startTimer() {
@@ -176,16 +334,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       // Send user HR to partner via Nearby or Firestore
       if (!_isOnline!) {
         nearbyService.sendHeartRate(_userHR);
-        print("Sent HR via Nearby: $_userHR");
-      } else {
-        // Write current user heart rate to Firestore
-        if (sessionId != null) {
-          FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
-            _isHost! ? 'user1HR' : 'user2HR': _userHR,
-          });
-        } else {
-          print("Session id is null");
-        }
+      } else if (sessionId != null) {
+        _sessionService.updateHeartRate(
+          sessionId!,
+          isHost: _isHost!,
+          hr: _userHR,
+        );
       }
 
       // Update session stats
@@ -234,13 +388,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   void _listenForPartnerHR() {
     if (sessionId == null) return;
 
-    _sessionListener = FirebaseFirestore.instance
-        .collection('sessions')
-        .doc(sessionId)
-        .snapshots()
-        .listen((snapshot) async {
-      if (!snapshot.exists) return;
-      final data = snapshot.data();
+    _sessionListener = _sessionService.sessionStream(sessionId!).listen((data) async {
       if (data == null) return;
 
       // Update partner HR logic
@@ -252,12 +400,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
       // End session check
       if (data['sessionActive'] == false) {
+        await _stopWorkoutNotification();
         final averageHR = _hrCount > 0 ? _hrSum ~/ _hrCount : 0;
         _timer?.cancel();
         _stopwatch.stop();
         _isActiveSession = false;
 
-        // Cancel listener before navigating
         await _sessionListener?.cancel();
         _sessionListener = null;
 
@@ -265,17 +413,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => TrackingResultScreen(
-              elapsedTime: _elapsed, 
-              sameZoneTime: _sameZone, 
-              workoutMode: _workoutMode, 
-              workoutModeIcon: _workoutModeIcon!, 
-              maxHeartRate: _maxSessionHR, 
-              avgHeartRate: averageHR.toDouble(), 
+              elapsedTime: _elapsed,
+              sameZoneTime: _sameZone,
+              workoutMode: _workoutMode,
+              workoutModeIcon: _workoutModeIcon!,
+              maxHeartRate: _maxSessionHR,
+              avgHeartRate: averageHR.toDouble(),
               series: hrValues,
               isSolo: isSolo,
               topZone: peakZoneName,
-                theoreticalMaxHr: _maxHeartRate!)),
-            (_) => false, 
+              theoreticalMaxHr: _maxHeartRate!)),
+            (_) => false,
           );
         }
       }
@@ -379,40 +527,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
 
   Future<void> _setUserHR() async {
-    // Asynchronously get current user data from firebase
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    final age = await _sessionService.fetchUserAge();
+    if (age == 0) return;
 
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
-
-    final data = doc.data();
-    if (data == null || data['age'] == null) return;
-
-    userAge = data['age'];
-
+    userAge = age;
     setState(() {
-      _maxHeartRate = (208 - (userAge * 0.7)).toInt();
+      _maxHeartRate = SessionService.computeMaxHr(userAge);
     });
   }
 
   // Initialize data before calling tickupdate
   Future<void> _initAsync() async {
-    // Get age from Firestore
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      userAge = doc.data()?['age'] ?? 0;
-    }
-
-    // Compute max HR
-    _maxHeartRate = (208 - (userAge * 0.7)).toInt();
+    userAge = await _sessionService.fetchUserAge();
+    _maxHeartRate = SessionService.computeMaxHr(userAge);
 
     userDeviceId = widget.userDeviceId;
     _workoutMode = widget.workoutMode;
@@ -457,15 +584,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         });
       });
 
-      nearbyService.guestConnectedNotifier.addListener(() {
+      nearbyService.guestConnectedNotifier.addListener(() async {
         final connected = nearbyService.guestConnectedNotifier.value;
         if (connected && !_guestConnected) {
+          final ok = await _ensureBackgroundSetupBeforeStart();
+          if (!ok) return;
+
           setState(() {
             _guestConnected = true;
             _showOverlay = false;
           });
           _stopwatch.start();
           _startTimer();
+          await _startWorkoutNotification();
         }
       });
     }
@@ -518,57 +649,28 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
 
   Future<void> createSession() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Generate sessionId
-    Random random = new Random();
-    int rand = random.nextInt(1000);
-    String sessionuid = randomLetters(3);
-    sessionId = sessionuid+rand.toString();
-
-    await FirebaseFirestore.instance.collection('sessions').doc(sessionId).set({
-      'user1Id': user.uid,
-      'user2Id': null,
-      'user1HR': 0,
-      'user2HR': 0,
-      'startTime': FieldValue.serverTimestamp(),
-      'sessionActive': true
-    });
-
+    sessionId = _sessionService.generateSessionId();
+    await _sessionService.createSession(sessionId!);
     _isActiveSession = true;
-
-    print('Share this Session Code with partner: $sessionId');
   }
 
   void _listenForGuestJoin() {
     if (!_isHost! || sessionId == null) return;
 
-    FirebaseFirestore.instance
-        .collection('sessions')
-        .doc(sessionId)
-        .snapshots()
-        .listen((doc) {
-      final data = doc.data();
+    _sessionService.sessionStream(sessionId!).listen((data) async {
       if (data != null && data['user2Id'] != null && !_guestConnected) {
+        final ok = await _ensureBackgroundSetupBeforeStart();
+        if (!ok) return;
         setState(() {
           _guestConnected = true;
-          _showOverlay = false;   
+          _showOverlay = false;
           _listenForPartnerHR();
-          _stopwatch.start();     
-          _startTimer();          
+          _stopwatch.start();
+          _startTimer();
         });
+        await _startWorkoutNotification();
       }
     });
-  }
-
-  // Helper for generating session code
-  String randomLetters(int length) {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-    final rand = Random();
-    return String.fromCharCodes(
-      Iterable.generate(length, (_) => letters.codeUnitAt(rand.nextInt(letters.length))),
-    );
   }
 
   @override
@@ -605,7 +707,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
+
+    WorkoutNotificationService.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      // If user just changed settings/permissions, react immediately
+      await _onPermissionsPossiblyChanged();
+    }
   }
 
   Widget _getGauge({bool isRadialGauge = true}) {
@@ -666,19 +779,20 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
 
     if (shouldEnd == true) {
-      _endWorkout(context);
+      await _endWorkout(context);
     }
   }
 
-  void _endWorkout(BuildContext context ) {
+  Future<void> _endWorkout(BuildContext context) async {
+    if (!_isActiveSession) return;
+    await _stopWorkoutNotification();
+
     setState(() {
       _isActiveSession = false;
     });
 
     if (_isOnline! && sessionId != null) {
-      FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
-        'sessionActive': false,
-      });
+      _sessionService.endSession(sessionId!);
     }
 
     _timer?.cancel();
@@ -734,7 +848,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         return ElevatedButton(
                           onPressed: (_isOnline! && !guestConnected)
                             ? null
-                            : () {
+                            : () async {
+                            final ok = await _ensureBackgroundSetupBeforeStart();
+                            if (!ok) return;
                               setState(() {
                                 _showOverlay = false;
 
@@ -746,8 +862,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                                 }
                               });
 
-                            _stopwatch.start();
-                            _startTimer();
+                              _stopwatch.start();
+                              _startTimer();
+                              await _startWorkoutNotification();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -806,61 +923,30 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                             userName: FirebaseAuth.instance.currentUser?.displayName ?? "Guest",
                             sessionCode: sessionId,
                           );
-
-                          // setState(() {
-                          //   _isHost = false;
-                          //   _guestConnected = true; // paired workout
-                          //   _showOverlay = false;
-                          // });
-                          // _stopwatch.start(); 
-                          // _startTimer();
                           return;
                         }
 
-                        final user = FirebaseAuth.instance.currentUser;
-
-                        if (user == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please log in first.')),
-                          );
+                        final result = await _sessionService.joinSession(sessionId!);
+                        if (result is String) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result)),
+                            );
+                          }
                           return;
                         }
 
-                        try {
-                          final doc = await FirebaseFirestore.instance
-                              .collection('sessions')
-                              .doc(sessionId)
-                              .get();
-
-                          if (!doc.exists) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Session not found.')),
-                            );
-                            return;
-                          }
-
-                          final data = doc.data()!;
-                          if (data['user2Id'] == null) {
-                            // Assign this user as the partner (user2)
-                            await doc.reference.update({'user2Id': user.uid});
-                            setState(() {
-                              _isHost = false;
-                              _guestConnected = true; // paired workout
-                              _showOverlay = false;  // Hide overlay after success
-                            });
-                            _listenForPartnerHR();
-                            _stopwatch.start(); 
-                            _startTimer();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Session is already full!')),
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e')),
-                          );
-                        }
+                        final ok = await _ensureBackgroundSetupBeforeStart();
+                        if (!ok) return;
+                        setState(() {
+                          _isHost = false;
+                          _guestConnected = true;
+                          _showOverlay = false;
+                        });
+                        _listenForPartnerHR();
+                        _stopwatch.start();
+                        _startTimer();
+                        await _startWorkoutNotification();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
@@ -1085,6 +1171,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           child: AppBar(
             backgroundColor: Colors.redAccent,
             centerTitle: true,
+            automaticallyImplyLeading: false,
             title: Image.asset(
               'assets/images/logo.png',
               width: 80,

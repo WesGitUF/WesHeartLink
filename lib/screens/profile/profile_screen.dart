@@ -7,6 +7,8 @@ import 'package:heart_link_app/shell/app_shell.dart';
 import 'package:heart_link_app/services/battery_optimization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
+  late final AudioPlayer _previewPlayer;
+  Timer? _previewStopTimer;
   final AuthService _authService = AuthService();
   User? _user;
   bool? _isUnrestricted;
@@ -24,6 +28,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   // Audio File Settings
   bool _zoneAudioEnabled = true;
   String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
+
+  String? _previewingAsset;
 
   final Map<String, String> _zoneSounds = {
     'Classic': 'audio/zone_up.m4a',
@@ -47,16 +53,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   @override
   void initState() {
     super.initState();
+    _previewPlayer = AudioPlayer();
+
+    _previewPlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
+    );
+
     _user = FirebaseAuth.instance.currentUser;
     WidgetsBinding.instance.addObserver(this);
     _refreshBatteryOptStatus();
     _loadPromptEnabled();
-
     _loadZoneAudioPrefs();
+
   }
 
   @override
   void dispose() {
+    _previewStopTimer?.cancel();
+    _previewPlayer.dispose();
+
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -86,10 +107,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       setState(() => _isUnrestricted = v);
 
       if (v == false) {
-        final enabled = await BatteryOptimization.isPromptEnabled();
-        if (enabled) {
-          await BatteryOptimization.resetPromptOnce();
-        }
+        //final enabled = await BatteryOptimization.isPromptEnabled();
+        //if (enabled) {
+          //await BatteryOptimization.resetPromptOnce();
+        //}
       }
     } catch (_) {
       if (!mounted) return;
@@ -97,10 +118,35 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> _previewSound(String asset) async {
+    if (!_zoneAudioEnabled) return;
+
+    try {
+      _previewStopTimer?.cancel();
+      setState(() => _previewingAsset = asset);
+
+      // Restart the preview cleanly
+      await _previewPlayer.stop();
+      await _previewPlayer.play(AssetSource(asset));
+
+      _previewStopTimer = Timer(const Duration(milliseconds: 1070), () async {
+        await _previewPlayer.stop();
+        if (mounted) setState(() => _previewingAsset = null);
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _previewingAsset = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Preview failed: $e")),
+        );
+      }
+    }
+  }
+
   Future<void> _loadPromptEnabled() async {
-    final enabled = await BatteryOptimization.isPromptEnabled();
+    //final enabled = await BatteryOptimization.isPromptEnabled();
     if (!mounted) return;
-    setState(() => _promptEnabled = enabled);
+    //setState(() => _promptEnabled = enabled);
   }
 
   String _labelForAsset(String asset) {
@@ -113,21 +159,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 
   // ───────────────────────────────────────────────────────────────
-  // Edit Age dialog
+  // Edit number dialog
   // ───────────────────────────────────────────────
-  Future<void> _editAge(int initialAge) async {
+  Future<void> _editNumberField({
+    required String title,
+    required String fieldName,
+    required int initialValue,
+    required int min,
+    required int max,
+    String unit = "",
+  }) async {
     final ctrl = TextEditingController(
-      text: initialAge > 0 ? '$initialAge' : '',
+      text: initialValue > 0 ? '$initialValue' : '',
     );
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Set Age"),
+        title: Text(title),
         content: TextField(
           controller: ctrl,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(hintText: "Enter your age"),
+          decoration: InputDecoration(
+            hintText: "Enter value",
+            suffixText: unit.isNotEmpty ? unit : null,
+          ),
         ),
         actions: [
           TextButton(
@@ -138,9 +194,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             child: const Text("Save"),
             onPressed: () async {
               final val = int.tryParse(ctrl.text.trim());
-              if (val == null || val <= 0 || val > 120) {
+              if (val == null || val < min || val > max) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Invalid age")));
+                  const SnackBar(content: Text("Invalid value")),
+                );
                 return;
               }
 
@@ -149,10 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 await FirebaseFirestore.instance
                     .collection("users")
                     .doc(user.uid)
-                    .update({"age": val});
+                    .update({fieldName: val});
               }
 
-              await hrState.updateAge(val);
               if (mounted) Navigator.pop(context);
             },
           ),
@@ -280,7 +336,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
               ListTile(
                 title: const Text("Weight"),
-                subtitle: Text(weight != null ? "$weight kg" : "Not set"),
+                subtitle: Text(weight != null ? "$weight lb" : "Not set"),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _editNumberField(
+                  title: "Set Weight",
+                  fieldName: "weight",
+                  initialValue: int.tryParse(weight ?? "0") ?? 0,
+                  min: 1,
+                  max: 1000,
+                  unit: "lb",
+                ),
               ),
 
               const SizedBox(height: 10),
@@ -294,7 +359,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 title: const Text("Age"),
                 subtitle: Text(age != null ? "$age years" : "Not set"),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editAge(age ?? 0),
+                onTap: () => _editNumberField(
+                  title: "Set Age",
+                  fieldName: "age",
+                  initialValue: age ?? 0,
+                  min: 1,
+                  max: 120,
+                  unit: "years",
+                ),
               ),
               ListTile(
                 title: const Text("Max HR"),
@@ -407,7 +479,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 value: _promptEnabled,
                 onChanged: (v) async {
                   setState(() => _promptEnabled = v);
-                  await BatteryOptimization.setPromptEnabled(v);
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -433,25 +504,51 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
               ListTile(
                 title: const Text("Sound"),
-                subtitle: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _labelForAsset(_zoneAudioAsset),
-                    items: _zoneSounds.keys.map((label) {
-                      return DropdownMenuItem(
-                        value: label,
-                        child: Text(label),
+                subtitle: Text(_labelForAsset(_zoneAudioAsset)),
+                enabled: _zoneAudioEnabled,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: !_zoneAudioEnabled
+                    ? null
+                    : () async {
+                  await showModalBottomSheet(
+                    context: context,
+                    builder: (context) {
+                      return SafeArea(
+                        child: ListView(
+                          children: _zoneSounds.entries.map((entry) {
+                            final label = entry.key;
+                            final asset = entry.value;
+                            final selected = asset == _zoneAudioAsset;
+                            final previewing = asset == _previewingAsset;
+
+                            return ListTile(
+                              title: Text(label),
+                              leading: selected ? const Icon(Icons.check) : null,
+                              trailing: IconButton(
+                                icon: Icon(previewing ? Icons.stop : Icons.play_arrow),
+                                onPressed: () async {
+                                  if (previewing) {
+                                    await _previewPlayer.stop();
+                                    if (mounted) setState(() => _previewingAsset = null);
+                                  } else {
+                                    await _previewSound(asset);
+                                  }
+                                },
+                              ),
+                              onTap: () async {
+                                // Select + preview
+                                setState(() => _zoneAudioAsset = asset);
+                                await WorkoutAudioSettings.setAsset(asset);
+                                await _previewSound(asset);
+                                if (context.mounted) Navigator.pop(context);
+                              },
+                            );
+                          }).toList(),
+                        ),
                       );
-                    }).toList(),
-                    onChanged: !_zoneAudioEnabled
-                        ? null
-                        : (label) async {
-                      if (label == null) return;
-                      final asset = _zoneSounds[label]!;
-                      setState(() => _zoneAudioAsset = asset);
-                      await WorkoutAudioSettings.setAsset(asset);
                     },
-                  ),
-                ),
+                  );
+                },
               ),
 
 
