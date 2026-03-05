@@ -278,7 +278,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       _notifListenerBound = true;
       WorkoutNotificationService.listenForActions(() async {
         if (!mounted) return;
-        await _confirmEndWorkout(context);
+        if (!_isActiveSession) return;
+        await _endWorkout(context);
       });
     }
 
@@ -783,6 +784,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   }
 
   Future<void> _endWorkout(BuildContext context) async {
+    if (!_isActiveSession) return;
     await _stopWorkoutNotification();
 
     setState(() {
