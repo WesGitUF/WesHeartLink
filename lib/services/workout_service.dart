@@ -47,7 +47,8 @@ class WorkoutService {
       gender: gender,
       duration: elapsed,
     );
-
+    final endTime = DateTime.now();
+    final startTime = endTime.subtract(elapsed);
     final ref = await _db
         .collection('users')
         .doc(user.uid)
@@ -56,11 +57,11 @@ class WorkoutService {
       'avgHr': avgHr,
       'bpmSeries': bpmSeries,
       'calories': calories,
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': Timestamp.fromDate(endTime),
       'durationSeconds': elapsed.inSeconds,
       'maxSessionHr': maxSessionHr,
       'topZone': topZone,
-      'start': FieldValue.serverTimestamp(),
+      'start': Timestamp.fromDate(startTime),
       'type': workoutMode,
       'theoreticalMaxHr': theoreticalMaxHr,
     });
@@ -84,9 +85,9 @@ class WorkoutService {
     for (final doc in snap.docs) {
       final data = doc.data();
 
-      final createdAt = data['createdAt'];
-      if (createdAt == null) continue;
-      final DateTime start = (createdAt as Timestamp).toDate().toLocal();
+      final startTs = data['start'];
+      if (startTs == null) continue;
+      final DateTime start = (startTs as Timestamp).toDate().toLocal();
       final int avgHr = _asInt(data['avgHr']);
       final int durationSec = _asInt(data['durationSeconds']);
       final int calories = _asInt(data['calories']);
