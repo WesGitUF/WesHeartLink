@@ -5,6 +5,7 @@ import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
 import 'package:heart_link_app/services/battery_optimization.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -23,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   final AuthService _authService = AuthService();
   User? _user;
   bool? _isUnrestricted;
-  bool _promptEnabled = true;
+  bool? _notifAllowed;
 
   // Audio File Settings
   bool _zoneAudioEnabled = true;
@@ -67,8 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
     _user = FirebaseAuth.instance.currentUser;
     WidgetsBinding.instance.addObserver(this);
-    _refreshBatteryOptStatus();
-    _loadPromptEnabled();
+
+    _refreshBackgroundTrackingStatus();
     _loadZoneAudioPrefs();
 
   }
@@ -85,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _refreshBatteryOptStatus();
+      _refreshBackgroundTrackingStatus();
     }
   }
 
@@ -118,6 +119,22 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
+  Future<void> _refreshNotificationStatus() async {
+    try {
+      final status = await Permission.notification.status;
+      if (!mounted) return;
+      setState(() => _notifAllowed = status.isGranted);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _notifAllowed = false);
+    }
+  }
+
+  Future<void> _refreshBackgroundTrackingStatus() async {
+    await _refreshBatteryOptStatus();
+    await _refreshNotificationStatus();
+  }
+
   Future<void> _previewSound(String asset) async {
     if (!_zoneAudioEnabled) return;
 
@@ -141,12 +158,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         );
       }
     }
-  }
-
-  Future<void> _loadPromptEnabled() async {
-    //final enabled = await BatteryOptimization.isPromptEnabled();
-    if (!mounted) return;
-    //setState(() => _promptEnabled = enabled);
   }
 
   String _labelForAsset(String asset) {
@@ -421,74 +432,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 ),
               ),
 
-              _sectionTitle("Background Tracking"),
-
-              ListTile(
-                title: const Text("Battery usage"),
-                subtitle: Text(
-                  _isUnrestricted == null
-                      ? "Checking…"
-                      : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
-                ),
-                trailing: FilledButton(
-                  onPressed: _isUnrestricted == null
-                      ? null
-                      : () async {
-                    if (_isUnrestricted == true) {
-                      if (!context.mounted) return;
-
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text("Switch back to Optimized"),
-                          content: const Text(
-                            "You'll be taken to Android settings.\n\n"
-                            "In the list, find Heart Link and turn OFF the battery exemption "
-                                "(choose Optimized / Battery optimized).",
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                await BatteryOptimization.openBatteryOptimizationSettings();
-                              },
-                              child: const Text("Open Settings"),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      // Optimized -> request Unrestricted using existing flow
-                      await BatteryOptimization.requestIgnoreOptimization();
-                      await _refreshBatteryOptStatus();
-                    }
-                  },
-                  child: Text(
-                    _isUnrestricted == true ? "Change to Optimized" : "Set Unrestricted",
-                  ),
-                ),
-              ),
-
-              SwitchListTile(
-                title: const Text("Prompt me to enable background tracking"),
-                subtitle: const Text("Shows a reminder for new sessions"),
-                value: _promptEnabled,
-                onChanged: (v) async {
-                  setState(() => _promptEnabled = v);
-
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(v ? "Session prompt enabled" : "Session prompt disabled")),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 30),
-
               // Audio Feedback Settings
               _sectionTitle("Audio Feedback"),
 
@@ -550,6 +493,120 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   );
                 },
               ),
+
+              // Background Tracking Settings
+              _sectionTitle("Background Tracking"),
+
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Battery optimization"),
+                subtitle: Text(
+                  _isUnrestricted == null
+                      ? "Checking…"
+                      : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
+                ),
+                trailing: FilledButton(
+                  onPressed: _isUnrestricted == null
+                      ? null
+                      : () async {
+                    if (_isUnrestricted == true) {
+                      if (!context.mounted) return;
+
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Manage battery setting"),
+                          content: const Text(
+                            "You'll be taken to Android settings.\n\n"
+                                "To reduce battery use, you can switch Heart Link back to Optimized.\n"
+                                "To keep tracking more reliable, leave it on Unrestricted.",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                await BatteryOptimization.openBatteryOptimizationSettings();
+                              },
+                              child: const Text("Open Settings"),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      if (!context.mounted) return;
+
+                      showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          title: const Text("Allow unrestricted battery use"),
+                          content: const Text(
+                            "You'll be taken to Android settings.\n\n"
+                                "Set Heart Link to Unrestricted so workout tracking is more reliable in the background.",
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text("Cancel"),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(context);
+                                await BatteryOptimization.openAppSettings();
+                              },
+                              child: const Text("Open Settings"),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  },
+                  child: Text(
+                    _isUnrestricted == true ? "Manage" : "Set Unrestricted",
+                  ),
+                ),
+              ),
+
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Workout notifications"),
+                subtitle: Text(
+                  _notifAllowed == null
+                      ? "Checking…"
+                      : (_notifAllowed! ? "Allowed" : "Off"),
+                ),
+                trailing: FilledButton(
+                  onPressed: _notifAllowed == null
+                      ? null
+                      : () async {
+                    if (_notifAllowed == true) {
+                      await openAppSettings();
+                    } else {
+                      await Permission.notification.request();
+                      await _refreshBackgroundTrackingStatus();
+                    }
+                  },
+                  child: Text(
+                    _notifAllowed == true ? "Manage" : "Allow",
+                  ),
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 12),
+                child: Text(
+                  "Heart Link uses workout notification and battery settings to track your workout reliably.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
 
 
               // ───────────────────────────────────────────────

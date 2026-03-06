@@ -171,7 +171,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Before you start, we recommend fixing:"),
+                  const Text("Before starting, we recommend you:"),
                   const SizedBox(height: 10),
                   ...problems.map((p) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
