@@ -367,13 +367,20 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       if (canFire) {
         _lastZoneUpFeedbackAt = now;
 
-        Vibration.vibrate(duration: 1070, amplitude: 255);
-
         final enabled = await WorkoutAudioSettings.isEnabled();
         if (!enabled) return;
 
-        final asset = await WorkoutAudioSettings.getAsset();
-        await _audioPlayer.play(AssetSource(asset));
+        await _audioPlayer.setVolume(0);
+        await _audioPlayer.resume();
+        await Future.delayed(const Duration(milliseconds: 180));
+
+        if (await Vibration.hasVibrator() ?? false) {
+          Vibration.vibrate(duration: 250, amplitude: 255);
+        }
+        await _audioPlayer.pause();
+        await _audioPlayer.seek(Duration.zero);
+        await _audioPlayer.setVolume(1.0);
+        await _audioPlayer.resume();
       }
     }
   }
@@ -683,17 +690,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     _audioPlayer.setAudioContext(
       AudioContext(
         android: AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: false,
           contentType: AndroidContentType.sonification,
-          usageType: AndroidUsageType.assistanceSonification,
-          audioFocus: AndroidAudioFocus.none,
+          usageType: AndroidUsageType.assistanceNavigationGuidance,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
         ),
       ),
     );
 
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    _audioPlayer.setVolume(1.0);
 
+    WorkoutAudioSettings.getAsset().then((asset) {
+      _audioPlayer.setSource(AssetSource(asset));
+    });
     _initAsync();
   }
 
