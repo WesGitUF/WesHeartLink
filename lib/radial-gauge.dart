@@ -1049,7 +1049,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               GaugeRange(
                 startValue: _maxHeartRate!.toDouble(),
                 endValue: _maxHeartRate! * 1.10,
-                color: const Color(0xFF1A1A1E),  // very dark, barely visible
+                color: const Color(0xFF1A1A1E),
                 startWidth: 52,
                 endWidth: 52,
               ),
@@ -1081,7 +1081,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 markerHeight: 12,
                 markerWidth: 12,
                 color: Colors.white,
-                markerOffset: 50,  // tweak to sit right at needle tip
+                markerOffset: 50,
               ),
               if (_guestConnected) ...[
                 MarkerPointer(
