@@ -464,6 +464,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     return zone.messages[idx];
   }
 
+  Color _colorForZone(HeartRateZone zone) {
+    final name = zone.name;
+    if (name.contains('1')) return const Color(0xFF7D98AA);
+    if (name.contains('2')) return const Color(0xFF3795E8);
+    if (name.contains('3')) return const Color(0xFF52B84D);
+    if (name.contains('4')) return const Color(0xFFFFA700);
+    if (name.contains('5')) return const Color(0xFFFF5546);
+    return const Color(0xFF8F939A);
+  }
+
+  Color _zoneColor() => _colorForZone(userZone);
+
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final hours = twoDigits(duration.inHours);
@@ -734,7 +746,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     return isRadialGauge ? _getRadialGauge() : _getLinearGauge();
   }
 
-  // Range label for radial gauge
   GaugeAnnotation _rangeLabel({
     required String text,
     required double start,
@@ -984,159 +995,184 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   // Circular gauge with colored zones and pointers for user/partner HR
   Widget _getRadialGauge() {
     return SizedBox(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned (
-            //top: 120 * heightRatio,
-            child: SfRadialGauge(
-              axes: <RadialAxis>[
-                RadialAxis(
-                  radiusFactor: 0.85,
-                  minimum: _maxHeartRate! * 0.4,
-                  maximum: _maxHeartRate!.toDouble(),
-                  startAngle: 30,
-                  endAngle: 330,
-                  showTicks: false,
-                  showLabels: false,
-                  ranges: <GaugeRange>[
-                    // start and end values for each zone
-                    GaugeRange(
-                        startValue: _maxHeartRate! * 0.4, endValue: _maxHeartRate! * 0.65, color: Colors.blueGrey, startWidth: 60, endWidth: 60),
-                    GaugeRange(
-                        startValue: _maxHeartRate! * 0.65, endValue: _maxHeartRate! * 0.8, color: Colors.blue, startWidth: 60, endWidth: 60),
-                    GaugeRange(
-                        startValue: _maxHeartRate! * 0.8, endValue: _maxHeartRate! * 0.89, color: Colors.green, startWidth: 60, endWidth: 60),
-                    GaugeRange(
-                        startValue: _maxHeartRate! * 0.89, endValue: _maxHeartRate! * 0.95, color: Colors.orange, startWidth: 60, endWidth: 60),
-                    GaugeRange(
-                        startValue: _maxHeartRate! * 0.95, endValue: _maxHeartRate!.toDouble(), color: Colors.red, startWidth: 60, endWidth: 60),
-                  ],
-                  pointers: <GaugePointer>[
-                    // list of pointers - user and optional partner
-                    // is a red upside-down triangle with an emoji at the end
-                    MarkerPointer(
-                      value: _userHR.toDouble(),
-                      enableAnimation: true,
-                      animationDuration: 300,
-                      markerType: MarkerType.invertedTriangle, // upside-down triangle
-                      markerHeight: 27,
-                      markerWidth: 33,
-                      color: Colors.red,
-                      borderColor: Colors.black54,
-                      borderWidth: 1.5,
-                      // Place the triangle at the outer edge or slightly outside:
-                      markerOffset: -6,
+      width: 320,
+      height: 320,
+      child: SfRadialGauge(
+        axes: <RadialAxis>[
+          RadialAxis(
+            radiusFactor: 0.95,
+            minimum: _maxHeartRate! * 0.40,
+            maximum: _maxHeartRate! * 1.10,
+            startAngle: 30,
+            endAngle: 390,
+            showTicks: false,
+            showLabels: false,
+            axisLineStyle: const AxisLineStyle(
+              thickness: 0,
+            ),
+            ranges: <GaugeRange>[
+              GaugeRange(
+                startValue: _maxHeartRate! * 0.40,
+                endValue: _maxHeartRate! * 0.65,
+                color: const Color(0xFF7D98AA),
+                startWidth: 52,
+                endWidth: 52,
+              ),
+              GaugeRange(
+                startValue: _maxHeartRate! * 0.65,
+                endValue: _maxHeartRate! * 0.80,
+                color: const Color(0xFF3795E8),
+                startWidth: 52,
+                endWidth: 52,
+              ),
+              GaugeRange(
+                startValue: _maxHeartRate! * 0.80,
+                endValue: _maxHeartRate! * 0.89,
+                color: const Color(0xFF52B84D),
+                startWidth: 52,
+                endWidth: 52,
+              ),
+              GaugeRange(
+                startValue: _maxHeartRate! * 0.89,
+                endValue: _maxHeartRate! * 0.95,
+                color: const Color(0xFFFFA700),
+                startWidth: 52,
+                endWidth: 52,
+              ),
+              GaugeRange(
+                startValue: _maxHeartRate! * 0.95,
+                endValue: _maxHeartRate!.toDouble(),
+                color: const Color(0xFFFF5546),
+                startWidth: 52,
+                endWidth: 52,
+              ),
+              GaugeRange(
+                startValue: _maxHeartRate!.toDouble(),
+                endValue: _maxHeartRate! * 1.10,
+                color: const Color(0xFF1A1A1E),  // very dark, barely visible
+                startWidth: 52,
+                endWidth: 52,
+              ),
+            ],
+            pointers: <GaugePointer>[
+              NeedlePointer(
+                value: _userHR.toDouble(),
+                enableAnimation: true,
+                animationDuration: 300,
+                needleLength: 0.65,
+                needleStartWidth: 3,
+                needleEndWidth: 3,
+                needleColor: Colors.white,
+                knobStyle: const KnobStyle(
+                  color: Colors.transparent,
+                  knobRadius: 0,
+                ),
+                tailStyle: const TailStyle(
+                  length: 0,
+                  width: 0,
+                  color: Colors.transparent,
+                ),
+              ),
+              MarkerPointer(
+                value: _userHR.toDouble(),
+                enableAnimation: true,
+                animationDuration: 300,
+                markerType: MarkerType.circle,
+                markerHeight: 12,
+                markerWidth: 12,
+                color: Colors.white,
+                markerOffset: 50,  // tweak to sit right at needle tip
+              ),
+              if (_guestConnected) ...[
+                MarkerPointer(
+                  value: _partnerHR.toDouble(),
+                  enableAnimation: true,
+                  animationDuration: 300,
+                  markerType: MarkerType.invertedTriangle,
+                  markerHeight: 24,
+                  markerWidth: 26,
+                  color: const Color(0xFFBFC6CE),
+                  borderColor: _colorForZone(partnerZone),
+                  borderWidth: 1.8,
+                  markerOffset: -4,
+                ),
+                WidgetPointer(
+                  value: _partnerHR.toDouble(),
+                  enableAnimation: true,
+                  animationDuration: 300,
+                  offset: -38,
+                  child: ClipOval(
+                    child: Image.asset(
+                      partnerZone.emojiImg,
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.cover,
                     ),
-
-                    // Emoji/image above the triangle, farther outside
-                    WidgetPointer(
-                      value: _userHR.toDouble(),
-                      enableAnimation: true,
-                      animationDuration: 300,
-                      offset: -51,
-                      child: ClipOval(
-                        child: Image.asset(
-                          userZone.emojiImg,
-                          width: 54,
-                          height: 54,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    if (_guestConnected) ...[
-                      MarkerPointer(
-                        value: _partnerHR.toDouble(),
-                        enableAnimation: true,
-                        animationDuration: 300,
-                        markerType: MarkerType.invertedTriangle,
-                        markerHeight: 18,
-                        markerWidth: 22,
-                        color: Colors.red,
-                        borderColor: Colors.black54,
-                        borderWidth: 1.5,
-                        // Position of the triangle relative to gauge
-                        markerOffset: -6,
-                      ),
-                      // Emoji or image above the triangle, farther outside
-                      WidgetPointer(
-                        value: _partnerHR.toDouble(),
-                        enableAnimation: true,
-                        animationDuration: 300,
-                        offset: -34,
-                        child: ClipOval(
-                          child: Image.asset(
-                            partnerZone.emojiImg,
-                            width: 36,
-                            height: 36,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ]
-                  ],
-                  annotations: <GaugeAnnotation>[
-                    // range labels for each zone
-                    _rangeLabel(
-                      text: 'I',
-                      start: _maxHeartRate! * 0.4,
-                      end: _maxHeartRate! * 0.65,
-                      axisMin: _maxHeartRate! * 0.4,
-                      axisMax: _maxHeartRate!.toDouble(),
-                      startAngle: 30,
-                      endAngle: 330,
-                      positionFactor: 0.8,
-                      color: Colors.blueGrey[800]!
-                    ),
-                    _rangeLabel(
-                      text: 'II',
-                      start: _maxHeartRate! * 0.65,
-                      end: _maxHeartRate! * 0.8,
-                      axisMin:  _maxHeartRate! * 0.4,
-                      axisMax: _maxHeartRate!.toDouble(),
-                      startAngle: 30,
-                      endAngle: 330,
-                      positionFactor: 0.8,
-                      color: Colors.blue[800]!
-                    ),
-                    _rangeLabel(
-                      text: 'III',
-                      start: _maxHeartRate! * 0.8,
-                      end: _maxHeartRate! * 0.89,
-                      axisMin:  _maxHeartRate! * 0.4, axisMax: _maxHeartRate!.toDouble(),
-                      startAngle: 30, 
-                      endAngle: 330, 
-                      positionFactor: 0.8,
-                      color: Colors.green[800]!
-                    ),
-                    _rangeLabel(
-                      text: 'IV',
-                      start: _maxHeartRate! * 0.89,
-                      end: _maxHeartRate! * 0.95,
-                      axisMin:  _maxHeartRate! * 0.4, axisMax: _maxHeartRate!.toDouble(),
-                      startAngle: 30, 
-                      endAngle: 330,
-                      positionFactor: 0.8,
-                      color: Colors.yellow[800]!
-                    ),
-                    _rangeLabel(
-                      text: 'V',
-                      start: _maxHeartRate! * 0.95,
-                      end: _maxHeartRate!.toDouble(),
-                      axisMin:  _maxHeartRate! * 0.4, axisMax: _maxHeartRate!.toDouble(),
-                      startAngle: 30, 
-                      endAngle: 330, 
-                      positionFactor: 0.8,
-                      color: Colors.red[800]!
-                    ),
-                  ],
+                  ),
                 ),
               ],
-            ),
+            ],
+            annotations: <GaugeAnnotation>[
+              // range labels for each zone
+              _rangeLabel(
+                  text: 'I',
+                  start: _maxHeartRate! * 0.4,
+                  end: _maxHeartRate! * 0.65,
+                  axisMin: _maxHeartRate! * 0.4,
+                  axisMax: _maxHeartRate! * 1.10,
+                  startAngle: 30,
+                  endAngle: 390,
+                  positionFactor: 0.8,
+                  color: Colors.blueGrey[800]!
+              ),
+              _rangeLabel(
+                  text: 'II',
+                  start: _maxHeartRate! * 0.65,
+                  end: _maxHeartRate! * 0.8,
+                  axisMin:  _maxHeartRate! * 0.4,
+                  axisMax: _maxHeartRate! * 1.10,
+                  startAngle: 30,
+                  endAngle: 390,
+                  positionFactor: 0.8,
+                  color: Colors.blue[800]!
+              ),
+              _rangeLabel(
+                  text: 'III',
+                  start: _maxHeartRate! * 0.8,
+                  end: _maxHeartRate! * 0.89,
+                  axisMin:  _maxHeartRate! * 0.4,
+                  axisMax: _maxHeartRate! * 1.10,
+                  startAngle: 30,
+                  endAngle: 390,
+                  positionFactor: 0.8,
+                  color: Colors.green[800]!
+              ),
+              _rangeLabel(
+                  text: 'IV',
+                  start: _maxHeartRate! * 0.89,
+                  end: _maxHeartRate! * 0.95,
+                  axisMin:  _maxHeartRate! * 0.4,
+                  axisMax: _maxHeartRate! * 1.10,
+                  startAngle: 30,
+                  endAngle: 390,
+                  positionFactor: 0.8,
+                  color: Colors.yellow[800]!
+              ),
+              _rangeLabel(
+                  text: 'V',
+                  start: _maxHeartRate! * 0.95,
+                  end: _maxHeartRate!.toDouble(),
+                  axisMin:  _maxHeartRate! * 0.4,
+                  axisMax: _maxHeartRate! * 1.10,
+                  startAngle: 30,
+                  endAngle: 390,
+                  positionFactor: 0.8,
+                  color: Colors.red[800]!
+              ),
+            ],
           ),
-          
         ],
-      )
+      ),
     );
   }
 
@@ -1170,36 +1206,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     }
     // App bar (heart logo w/ workout icon)
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.redAccent,
-            centerTitle: true,
-            automaticallyImplyLeading: false,
-            title: Image.asset(
-              'assets/images/logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12.0),
-                child: Icon(
-                  _workoutModeIcon,
-                  size: 50,
-                  color: Colors.black
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Stack(
           children: [
@@ -1207,176 +1214,155 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               // ensure screen does not overflow when keyboard appears
               physics: const ClampingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.only(top: 0),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 48),
 
                     //toggle heart rate percentage
                     Center(
-                      child: InkWell(
+                      child: GestureDetector(
                         onTap: () {
                           setState(() {
                             _showPercent = !_showPercent;
                           });
                         },
-                        borderRadius: BorderRadius.circular(10),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 120),
-                          curve: Curves.easeOut,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 40, 40, 41),
-                            border: Border.all(color: Colors.redAccent, width: 2),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: SizedBox(
-                            width: 120,
-                            height: 44,
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              transitionBuilder: (child, animation){
-                                return ScaleTransition(
-                                  scale: Tween(begin: 0.9, end: 1.0).animate(animation),
-                                  child: FadeTransition(opacity: animation, child: child),
-                                );
-                              },
-                              child: Text(
-                                _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
-                                    ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
-                                    : '$_userHR bpm',
-                                key: ValueKey(_showPercent),
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                        child: Text(
+                          _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
+                              ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
+                              : '$_userHR BPM',
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white,
+                            letterSpacing: 0.4,
                           ),
                         ),
-                      )
+                      ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 48),
 
                     // GAUGE
                     SizedBox(
-                      width: MediaQuery.of(context).size.height * (2/5),
-                      height: MediaQuery.of(context).size.height * (2/5),
+                      width: 330,
+                      height: 330,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           _getGauge(),
-                          GestureDetector(
-                            onTap: () {
-                              if (!_guestConnected) return;
-                              userImage = !userImage;
-                              updateImage();
-                            },
-                            child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.transparent,
-                              backgroundImage: AssetImage(currentImage),
+
+                          // center emoji
+                          Container(
+                            width: 88,
+                            height: 88,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                            ),
+                            child: ClipOval(
+                              child: Image.asset(
+                                userZone.emojiImg,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: 50),
+                    const SizedBox(height: 40),
 
                     // MESSAGE CARD
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Color.fromARGB(255, 40, 40, 41),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 28),
                       child: Text(
-                        workoutMessage,
+                        workoutMessage.toUpperCase(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: userZone.colorValue.withOpacity(0.5),
+                          fontSize: 13,
+                          letterSpacing: 1.2,
+                          color: _zoneColor(),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 28),
 
                     // CONTROLS
                     Container(
-                      width: MediaQuery.of(context).size.width * 0.9,
-                      padding: const EdgeInsets.all(8),
+                      width: MediaQuery.of(context).size.width * 0.78,
+                      height: 88,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Color.fromARGB(255, 40, 40, 41),
-                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xFF101113),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: Column(
-                        children: [
-                          Text(
-                            _formatDuration(_elapsed),
-                            style: TextStyle(
-                              fontSize: 35 * heightRatio,
-                              fontWeight: FontWeight.bold,
+                      child: Text(
+                        _formatDuration(_elapsed),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isPaused = !_isPaused;
+                              if (_isPaused) {
+                                _stopwatch.stop();
+                              } else {
+                                _stopwatch.start();
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: 68,
+                            height: 68,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF101113),
+                            ),
+                            child: Icon(
+                              _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                              color: Colors.white,
+                              size: 28,
                             ),
                           ),
-                          const SizedBox(height: 16),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _isPaused = !_isPaused;
-                                    if (_isPaused) _stopwatch.stop();
-                                    else _stopwatch.start();
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.orange,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 16),
-                                ),
-                                child: Text(
-                                  _isPaused ? "Resume" : "Pause",
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-
-                              const SizedBox(width: 20),
-
-                              ElevatedButton(
-                                onPressed: () => _confirmEndWorkout(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24, vertical: 16),
-                                ),
-                                child: const Text(
-                                  "End",
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(width: 22),
+                        GestureDetector(
+                          onTap: () => _confirmEndWorkout(context),
+                          child: Container(
+                            width: 68,
+                            height: 68,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF101113),
+                            ),
+                            child: const Icon(
+                              Icons.stop_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
 
                     // debug slider — only shown when using fake device
                     if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
