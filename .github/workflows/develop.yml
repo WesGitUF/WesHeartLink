@@ -1,11 +1,12 @@
-name: Build and Release APK
+name: Debug Build
 
 on:
-  release:
-    types: [created]
+  push:
+    branches:
+      - develop
 
 jobs:
-  build:
+  build-debug:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,12 +31,11 @@ jobs:
       - name: Analyze project source
         run: flutter analyze
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build Debug APK
+        run: flutter build apk --debug
 
-      - name: Upload APK to Release Assets
-        uses: softprops/action-gh-release@v2
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
