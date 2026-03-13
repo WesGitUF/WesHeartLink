@@ -2,11 +2,13 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/history/workoutdetail_screen.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
-import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
@@ -31,19 +33,16 @@ class _HomeScreenState extends State<HomeScreen> {
   List<HistoryEntry> _entries = [];
   bool _isLoadingWorkout = true;
 
-
   Map<String, dynamic>? _userData;
   bool _isLoadingUser = true;
 
   // display name (prefer Firestore)
   String get name {
-    // 🔹 1) Try Firestore user document first
     final firestoreName = _userData?['name'];
     if (firestoreName is String && firestoreName.trim().isNotEmpty) {
-      return firestoreName.trim(); // "Test User"
+      return firestoreName.trim();
     }
 
-    // 🔹 2) Fallback to FirebaseAuth displayName
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userName = user.displayName;
@@ -52,26 +51,62 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // 🔹 3) Final fallback
     return 'User';
   }
-
-
 
   // capitalize in the circle
   String get capitalize {
     final capitalize = name.trim();
-    if (capitalize.isEmpty) 
-      return 'N';
+    if (capitalize.isEmpty) return 'N';
     return capitalize[0].toUpperCase();
   }
 
   // greeting words
-  String greetingWord() {
+  String get _greeting {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good morning';
     if (h < 18) return 'Good afternoon';
-      return 'Good evening';
+    return 'Good evening';
+  }
+
+  String get _headerDateText {
+    final now = DateTime.now();
+    const weekdays = <String>[
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = <String>[
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    final weekday = weekdays[now.weekday - 1];
+    final month = months[now.month - 1];
+    return '$weekday, $month ${now.day}';
+  }
+
+  String get _headerLocationText => 'Gainesville, FL';
+
+  String get _headerTemperatureText {
+    if (_isLoadingWeather) {
+      return '--°F';
+    }
+    return '${_weatherData?.temperatureF ?? '--'}°F';
   }
 
   // only take the date
@@ -101,32 +136,51 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Today's data (times, calories, average hr)
   String get todayTimeText {
-    final totalSec = _todayEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inSeconds);
+    final totalSec = _todayEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.duration.inSeconds,
+    );
     return _fmt(Duration(seconds: totalSec));
   }
 
-  int get todayCalories =>_todayEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
+  int get todayCalories =>
+      _todayEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
 
   int get todayAvgHr {
     if (_todayEntries.isEmpty) return 0;
-    final totalHr =_todayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr);
+    final totalHr = _todayEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.avgHr,
+    );
     return (totalHr / _todayEntries.length).round();
   }
 
   // Weekly Summary (workout times, average hr, total calories, total duration)
   int get weeklySessions => _weekEntries.length;
 
-  int get weeklyCalories => _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
+  int get weeklyCalories =>
+      _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
 
   Duration get weeklyDuration {
-    final sec = _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inSeconds);
+    final sec = _weekEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.duration.inSeconds,
+    );
     return Duration(seconds: sec);
   }
 
   int get weeklyAvgHr {
     if (_weekEntries.isEmpty) return 0;
-    final totalHr = _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr);
+    final totalHr = _weekEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.avgHr,
+    );
     return (totalHr / _weekEntries.length).round();
+  }
+
+  HistoryEntry? get _lastWorkoutEntry {
+    if (_entries.isEmpty) return null;
+    return _entries.first;
   }
 
   // weekly chart
@@ -142,28 +196,55 @@ class _HomeScreenState extends State<HomeScreen> {
         return _onlyDate(e.workout.start) == day;
       }).toList();
 
-      final minutes = dayEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inMinutes);
+      final minutes = dayEntries.fold<int>(
+        0,
+        (sum, e) => sum + e.workout.duration.inMinutes,
+      );
       final avgHr = dayEntries.isEmpty
           ? 0
-          : (dayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr) / dayEntries.length).round();
-      out.add({
-        'minutes': minutes,
-        'avgHr': avgHr,
-      });
+          : (dayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr) /
+                  dayEntries.length)
+              .round();
+      out.add({'minutes': minutes, 'avgHr': avgHr});
     }
     return out;
   }
 
   // average hr
   int get chartMaxHr {
-  return hrState.maxHr;
-}
+    return hrState.maxHr;
+  }
 
   // form the duration to hour and minute
   String _fmt(Duration d) {
     final hour = d.inHours;
     final minute = d.inMinutes.remainder(60);
     return '${hour}h ${minute}m';
+  }
+
+  String _formatCardDuration(Duration duration) {
+    final totalMinutes = duration.inMinutes;
+    if (totalMinutes >= 60 && totalMinutes % 60 == 0) {
+      return '${totalMinutes ~/ 60} hr';
+    }
+    return '$totalMinutes min';
+  }
+
+  String _formatCompletedAgo(DateTime start) {
+    final diff = DateTime.now().difference(start);
+    if (diff.inMinutes < 1) {
+      return 'Completed just now';
+    }
+    if (diff.inHours < 1) {
+      final minutes = diff.inMinutes;
+      return 'Completed $minutes min ago';
+    }
+    if (diff.inDays < 1) {
+      final hours = diff.inHours;
+      return 'Completed $hours hour${hours == 1 ? '' : 's'} ago';
+    }
+    final days = diff.inDays;
+    return 'Completed $days day${days == 1 ? '' : 's'} ago';
   }
 
   @override
@@ -173,7 +254,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadWeather();
     _loadWorkouts();
     widget.onTabVisible.addListener(_onTabVisible);
-    //_checkDefaultWorkoutAndPrompt();
   }
 
   @override
@@ -188,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadWorkouts();
     }
   }
-
 
   // load weather
   Future<void> _loadWeather() async {
@@ -209,7 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // load user‘s workout
   Future<void> _loadWorkouts() async {
     try {
       final entries = await _workoutService.loadEntriesForCurrentUser();
@@ -256,7 +334,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   // weather with icon
   IconData _mapConditionToIcon(String condition) {
     switch (condition.toLowerCase()) {
@@ -277,156 +354,365 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // weather block
-    final weatherWidget = _isLoadingWeather
-        ? const SizedBox(
-            width: 160,
-            height: 160,
-            child: Center(child: CircularProgressIndicator()),
-          )
-        : (_weatherData == null)
-            ? const _WeatherNow(
-                icon: Icons.error_outline,
-                temperatureF: 0,
-                condition: 'No Data',
-              )
-            : _WeatherNow(
-                icon: _mapConditionToIcon(_weatherData!.condition),
-                temperatureF: _weatherData!.temperatureF,
-                condition: _weatherData!.condition,
-              );
-
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 40, 40, 41),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(0, 23, 21, 21),
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        actions: [
-          IconButton(
-            onPressed: _loadWeather,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh weather',
+      backgroundColor: AppColors.background,
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 23, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HomeHeader(
+                  greeting: '$_greeting, $name!',
+                  dateText: _headerDateText,
+                  locationText: _headerLocationText,
+                  temperatureText: _headerTemperatureText,
+                ),
+                const SizedBox(height: 18),
+                _LastWorkoutCard(
+                  entry: _lastWorkoutEntry,
+                  onTap:
+                      _lastWorkoutEntry == null
+                          ? null
+                          : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => WorkoutDetailScreen(
+                                      workout: _lastWorkoutEntry!.workout,
+                                      series: _lastWorkoutEntry!.series,
+                                    ),
+                              ),
+                            );
+                          },
+                  durationText:
+                      _lastWorkoutEntry == null
+                          ? '-- min'
+                          : _formatCardDuration(
+                            _lastWorkoutEntry!.workout.duration,
+                          ),
+                  caloriesText:
+                      _lastWorkoutEntry == null
+                          ? '-- cal'
+                          : '${_lastWorkoutEntry!.workout.calories} cal',
+                  distanceText: '5.2 km',
+                  completedText:
+                      _lastWorkoutEntry == null
+                          ? 'No workouts yet'
+                          : _formatCompletedAgo(
+                            _lastWorkoutEntry!.workout.start,
+                          ),
+                ),
+                const SizedBox(height: 24),
+                const _QuickActionsSection(),
+                const SizedBox(height: 24),
+                _ExerciseRecord(
+                  data: _isLoadingWorkout ? [] : weeklyChartData,
+                  maxHr: chartMaxHr,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.greeting,
+    required this.dateText,
+    required this.locationText,
+    required this.temperatureText,
+  });
+
+  final String greeting;
+  final String dateText;
+  final String locationText;
+  final String temperatureText;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 68,
+      width: double.infinity,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    height: 2.0,
+                    letterSpacing: 0.383,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dateText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0x80FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                    letterSpacing: -0.234,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 116.859,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  locationText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                    letterSpacing: -0.15,
+                  ),
+                ),
+                Text(
+                  temperatureText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w300,
+                    height: 1.5,
+                    letterSpacing: -0.449,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+}
+
+class _LastWorkoutCard extends StatelessWidget {
+  const _LastWorkoutCard({
+    required this.entry,
+    required this.onTap,
+    required this.durationText,
+    required this.caloriesText,
+    required this.distanceText,
+    required this.completedText,
+  });
+
+  final HistoryEntry? entry;
+  final VoidCallback? onTap;
+  final String durationText;
+  final String caloriesText;
+  final String distanceText;
+  final String completedText;
+
+  @override
+  Widget build(BuildContext context) {
+    final workoutName = entry?.workout.type ?? 'Morning Run';
+
+    return SizedBox(
+      height: 176,
+      width: double.infinity,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
             children: [
-              // profile and greeting
-              Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 3),
-                      color: const Color.fromARGB(255, 211, 174, 174),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0x0DFFFFFF)),
+                    gradient: const LinearGradient(
+                      begin: Alignment(-1.0, -0.1),
+                      end: Alignment(1.0, 0.1),
+                      colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                      stops: <double>[0.0, 0.9766],
                     ),
-                    child: Center(
-                      child: Text(
-                        capitalize,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x4D000000),
+                        blurRadius: 32,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 40,
+                top: 1.25,
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                  child: Container(
+                    width: 38,
+                    height: 128,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16777200),
+                      color: const Color(0x332B7FFF),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                child: SizedBox(
+                  width: 327,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(
+                        width: 327,
+                        child: Text(
+                          'LAST WORKOUT',
+                          style: TextStyle(
+                            color: Color(0x99FFFFFF),
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
+                            letterSpacing: 0.249,
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${greetingWord()}\n$name!',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-
-              // Week calender with today's date
-              _WeekCalender(
-                onDayTapped: (selectedDate) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => HistoryScreen(
-                        filterDate: selectedDate, 
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              _TodayDateLine(),
-              const SizedBox(height: 18),
-
-              // Today title
-              Text(
-                'Today',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-
-              // Weather with today's workout data
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  weatherWidget,
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _isLoadingWorkout
-                        ? const Center(child: CircularProgressIndicator())
-                        : (_todayEntries.isEmpty
-                            ? const Text(
-                                'No session today',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white70,
-                                ),
-                              )
-                            : Column(
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 327,
+                        height: 58,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 150.977,
+                              height: 58,
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _TodayData(
-                                      label: 'Times', value: todayTimeText),
-                                  const SizedBox(height: 10),
-                                  _TodayData(
-                                      label: 'Calories',
-                                      value: '$todayCalories kcal'),
-                                  const SizedBox(height: 10),
-                                  _TodayData(
-                                      label: 'Average HR',
-                                      value: '$todayAvgHr bpm'),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 19.977),
+                                    child: Text(
+                                      workoutName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontFamily: 'Inter',
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.5,
+                                        letterSpacing: -0.258,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    completedText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0x80FFFFFF),
+                                      fontFamily: 'Inter',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.5,
+                                      letterSpacing: -0.15,
+                                    ),
+                                  ),
                                 ],
-                              )),
+                              ),
+                            ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: const Color(0x1A2B7FFF),
+                              ),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: SvgPicture.asset(
+                                    'assets/icons/blueicon.svg',
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.blue,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 327,
+                        height: 21,
+                        child: Row(
+                          children: [
+                            _WorkoutStat(
+                              width: 68.516,
+                              svgAsset: 'assets/icons/clockicon.svg',
+                              iconColor: const Color(0x66FFFFFF),
+                              value: durationText,
+                            ),
+                            const SizedBox(width: 24),
+                            _WorkoutStat(
+                              width: 72.227,
+                              svgAsset: 'assets/icons/fireicon.svg',
+                              iconColor: const Color(0xB3FF8904),
+                              value: caloriesText,
+                            ),
+                            const SizedBox(width: 24),
+                            _WorkoutStat(
+                              width: 67.328,
+                              svgAsset: 'assets/icons/greenicon.svg',
+                              iconColor: const Color(0xB305DF72),
+                              value: distanceText,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              // Weekly summary card
-              _WeeklySummaryCard(
-                sessions: weeklySessions,
-                avgHr: weeklyAvgHr,
-                kcal: weeklyCalories,
-                durationText: _fmt(weeklyDuration),
-              ),
-
-              // Exercise record chart
-              const SizedBox(height: 24),
-              _ExerciseRecord(
-                data: _isLoadingWorkout ? [] : weeklyChartData,
-                maxHr: chartMaxHr,
+                ),
               ),
             ],
           ),
@@ -436,95 +722,214 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-//exercise record
-class _TodayDateLine extends StatelessWidget {
+class _WorkoutStat extends StatelessWidget {
+  const _WorkoutStat({
+    required this.width,
+    required this.iconColor,
+    required this.value,
+    this.icon,
+    this.svgAsset,
+  });
+
+  final double width;
+  final IconData? icon;
+  final Color iconColor;
+  final String value;
+  final String? svgAsset;
+
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    const listweekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const listmonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    final weekday = listweekDays[(now.weekday - 1).clamp(0, 6)];
-    final month = listmonths[now.month - 1];
-    final day = now.day;
+    final leading =
+        svgAsset != null
+            ? SvgPicture.asset(
+              svgAsset!,
+              width: 16,
+              height: 16,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+            )
+            : Icon(icon, size: 16, color: iconColor);
 
-    return Text(
-      '$weekday, $month $day',
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: const Color.fromARGB(137, 229, 220, 220),
-          fontWeight: FontWeight.w600),
+    return SizedBox(
+      width: width,
+      height: 21,
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+              style: const TextStyle(
+                color: Color(0xB3FFFFFF),
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                height: 1.5,
+                letterSpacing: -0.15,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _WeekCalender extends StatelessWidget {
-  const _WeekCalender({
-    super.key,
-    required this.onDayTapped,
-  });
-
-  // Called when a day is tapped
-  final void Function(DateTime date) onDayTapped;
-  final List<String> _weekLetters = const ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+class _QuickActionsSection extends StatelessWidget {
+  const _QuickActionsSection();
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    void showComingSoon(String label) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('WIP'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
 
-    // DateTime.weekday
-    final weekIndexToday = today.weekday % 7; 
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(_weekLetters.length, (i) {
-        final isToday = (weekIndexToday == i);
-        final deltaDays = i - weekIndexToday;
-        final dayDate = today.add(Duration(days: deltaDays));
-
-        return GestureDetector(
-          // When the user taps this day circle, call the callback
-          onTap: () => onDayTapped(dayDate),
-          child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'QUICK ACTIONS',
+          style: TextStyle(
+            color: Color(0x99FFFFFF),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+            letterSpacing: 0.249,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 100,
+          child: Row(
             children: [
-              Text(
-                _weekLetters[i],
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: isToday
-                      ? const Color.fromARGB(255, 55, 49, 45)
-                      : Colors.black87,
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Progress',
+                  svgAsset: 'assets/icons/progressicon.svg',
+                  iconColor: AppColors.greenStrong,
+                  iconBackground: const Color(0x1A00C950),
+                  onTap: () => showComingSoon('Progress'),
                 ),
               ),
-              const SizedBox(height: 8),
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isToday
-                        ? const Color.fromARGB(255, 107, 99, 121)
-                        : Colors.black54,
-                    width: 2,
-                  ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Plan',
+                  svgAsset: 'assets/icons/planicon.svg',
+                  iconColor: AppColors.blue,
+                  iconBackground: AppColors.blueSoft,
+                  onTap: () => showComingSoon('Plan'),
                 ),
-                child: Center(
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isToday
-                          ? const Color.fromARGB(255, 115, 196, 209)
-                          : Colors.black54,
-                    ),
-                  ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Calendar',
+                  svgAsset: 'assets/icons/calendaricon.svg',
+                  iconColor: AppColors.purpleStrong,
+                  iconBackground: const Color(0x1AAD46FF),
+                  onTap: () => showComingSoon('Calendar'),
                 ),
               ),
             ],
           ),
-        );
-      }),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.label,
+    required this.svgAsset,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.onTap,
+  });
+
+  final String label;
+  final String svgAsset;
+  final Color iconColor;
+  final Color iconBackground;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.strokeSoft),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[Color(0x5217191C), Color(0x3D17191C)],
+          stops: <double>[0.0266, 0.9709],
+        ),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: SvgPicture.asset(
+                        svgAsset,
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                    letterSpacing: -0.076,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -562,10 +967,7 @@ class _WeatherNow extends StatelessWidget {
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
-          Text(
-            condition,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(condition, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -591,7 +993,9 @@ class _TodayData extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(
-                fontWeight: FontWeight.w700, letterSpacing: 0.2),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -629,8 +1033,10 @@ class _WeeklySummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Weekly Summary',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text(
+              'Weekly Summary',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 24,
@@ -663,13 +1069,18 @@ class _SummaryChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 2),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 12, color: Color.fromARGB(137, 236, 227, 227))),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color.fromARGB(137, 236, 227, 227),
+            ),
+          ),
         ],
       ),
     );
@@ -681,32 +1092,41 @@ class _ExerciseRecord extends StatelessWidget {
   final List<Map<String, dynamic>> data;
   final int maxHr;
 
-  const _ExerciseRecord({
-    super.key,
-    required this.data,
-    required this.maxHr,
-  });
+  const _ExerciseRecord({super.key, required this.data, required this.maxHr});
 
   // zone colors
-  static const Color _grey = Color(0xFF666A70); 
-  static const Color _blue = Color(0xFF2F6BDA); 
-  static const Color _green = Color(0xFF66B35B); 
-  static const Color _orange = Color(0xFFF3A43B); 
-  static const Color _red = Color(0xFFE25353); 
+  static const Color _grey = Color(0xFF666A70);
+  static const Color _blue = Color(0xFF2F6BDA);
+  static const Color _green = Color(0xFF66B35B);
+  static const Color _orange = Color(0xFFF3A43B);
+  static const Color _red = Color(0xFFE25353);
 
   Color _zoneColor(int bpm) {
     if (maxHr <= 0) return _grey;
     final p = bpm / maxHr;
-    if (p < 0.65) return _grey;   
-    if (p < 0.80) return _blue;   
-    if (p < 0.89) return _green; 
-    if (p < 0.95) return _orange; 
-    return _red;                 
+    if (p < 0.65) return _grey;
+    if (p < 0.80) return _blue;
+    if (p < 0.89) return _green;
+    if (p < 0.95) return _orange;
+    return _red;
   }
 
   // generate past 7 days labels
   List<String> _pastNDaysLabels(int count) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May','Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final List<String> labels = [];
@@ -722,9 +1142,8 @@ class _ExerciseRecord extends StatelessWidget {
     if (data.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
 
-    // fetch minutes list
     final minutes = data.map((e) => (e['minutes'] as int?) ?? 0).toList();
-    final avgHrs  = data.map((e) => (e['avgHr'] as int?) ?? 0).toList();
+    final avgHrs = data.map((e) => (e['avgHr'] as int?) ?? 0).toList();
     // calculate Y axis max minutes (rounded up to nearest 30)
     final int maxMin = minutes.fold<int>(0, (m, v) => v > m ? v : m);
     int yMax = ((maxMin + 29) ~/ 30) * 30;
@@ -742,8 +1161,9 @@ class _ExerciseRecord extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Exercise Record',
-          style:
-              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -773,8 +1193,7 @@ class _ExerciseRecord extends StatelessWidget {
                               '${ticks[i]}min',
                               textAlign: TextAlign.right,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color.fromARGB(
-                                    185, 236, 227, 227),
+                                color: const Color.fromARGB(185, 236, 227, 227),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -793,7 +1212,7 @@ class _ExerciseRecord extends StatelessWidget {
                   yMaxMinutes: yMax,
                   xLabels: xLabels,
                   avgHrs: avgHrs,
-                  zoneColorOf: _zoneColor,    
+                  zoneColorOf: _zoneColor,
                 ),
               ),
             ],
@@ -872,10 +1291,10 @@ class _ExerciseAreaChart extends StatelessWidget {
 
 class _AreaStrokePainter extends CustomPainter {
   final List<Offset> points;
-  final List<int> avgHrs;                         
+  final List<int> avgHrs;
   final List<String> xLabels;
   final double left, right, top, bottom;
-  final Color Function(int bpm) zoneColorOf;     
+  final Color Function(int bpm) zoneColorOf;
 
   _AreaStrokePainter({
     required this.points,
@@ -892,7 +1311,7 @@ class _AreaStrokePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (points.isEmpty) return;
 
-    // x axis
+    // x axis baseline
     canvas.drawLine(
       Offset(left, bottom),
       Offset(right, bottom),
@@ -901,7 +1320,6 @@ class _AreaStrokePainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    
     if (points.length >= 2) {
       for (int i = 0; i < points.length - 1; i++) {
         final p0 = points[i];
@@ -925,7 +1343,7 @@ class _AreaStrokePainter extends CustomPainter {
       }
     }
 
-    // plot with avghr number
+    // plot dots with avgHr labels
     final dotPaint = Paint()..color = const Color.fromARGB(221, 92, 82, 82);
     for (int i = 0; i < points.length; i++) {
       final p = points[i];
@@ -933,7 +1351,7 @@ class _AreaStrokePainter extends CustomPainter {
 
       final tp = TextPainter(
         text: TextSpan(
-          text: '${avgHrs[i]}',       
+          text: '${avgHrs[i]}',
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -946,7 +1364,7 @@ class _AreaStrokePainter extends CustomPainter {
       tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy - tp.height - 6));
     }
 
-    // x axis
+    // x axis labels
     final n = xLabels.length;
     if (n > 0) {
       final step = (right - left) / (n - 1 == 0 ? 1 : (n - 1));
