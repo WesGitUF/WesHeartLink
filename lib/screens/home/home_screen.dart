@@ -74,6 +74,46 @@ class _HomeScreenState extends State<HomeScreen> {
       return 'Good evening';
   }
 
+  String get _headerDateText {
+    final now = DateTime.now();
+    const weekdays = <String>[
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    const months = <String>[
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    final weekday = weekdays[now.weekday - 1];
+    final month = months[now.month - 1];
+    return '$weekday, $month ${now.day}';
+  }
+
+  String get _headerLocationText => 'Gainesville, FL';
+
+  String get _headerTemperatureText {
+    if (_isLoadingWeather) {
+      return '--°F';
+    }
+    return '${_weatherData?.temperatureF ?? '--'}°F';
+  }
+
   // only take the date
   DateTime _onlyDate(DateTime day) => DateTime(day.year, day.month, day.day);
 
