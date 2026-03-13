@@ -101,3 +101,32 @@ class AppRadii {
   static const double iconContainer = 20;
   static const double fab = 999;
 }
+
+
+class AppShadows {
+  AppShadows._();
+
+  static const List<BoxShadow> fabGlow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x66EF4444),
+      blurRadius: 30,
+      spreadRadius: 2,
+      offset: Offset(0, 10),
+    ),
+    BoxShadow(
+      color: Color(0x66DC269C),
+      blurRadius: 48,
+      spreadRadius: 0,
+      offset: Offset(0, 16),
+    ),
+  ];
+
+  static const List<BoxShadow> cardShadow = <BoxShadow>[
+    BoxShadow(
+      color: Color(0x40000000),
+      blurRadius: 24,
+      spreadRadius: 0,
+      offset: Offset(0, 12),
+    ),
+  ];
+}
