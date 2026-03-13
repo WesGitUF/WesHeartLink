@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
@@ -177,6 +178,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return (totalHr / _weekEntries.length).round();
   }
 
+  HistoryEntry? get _lastWorkoutEntry {
+    if (_entries.isEmpty) return null;
+    return _entries.first;
+  }
+
   // weekly chart
   List<Map<String, dynamic>> get weeklyChartData {
     final now = DateTime.now();
@@ -214,6 +220,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final hour = d.inHours;
     final minute = d.inMinutes.remainder(60);
     return '${hour}h ${minute}m';
+  }
+
+  String _formatCardDuration(Duration duration) {
+    final totalMinutes = duration.inMinutes;
+    if (totalMinutes >= 60 && totalMinutes % 60 == 0) {
+      return '${totalMinutes ~/ 60} hr';
+    }
+    return '$totalMinutes min';
+  }
+
+  String _formatCompletedAgo(DateTime start) {
+    final diff = DateTime.now().difference(start);
+    if (diff.inMinutes < 1) {
+      return 'Completed just now';
+    }
+    if (diff.inHours < 1) {
+      final minutes = diff.inMinutes;
+      return 'Completed $minutes min ago';
+    }
+    if (diff.inDays < 1) {
+      final hours = diff.inHours;
+      return 'Completed $hours hour${hours == 1 ? '' : 's'} ago';
+    }
+    final days = diff.inDays;
+    return 'Completed $days day${days == 1 ? '' : 's'} ago';
   }
 
   @override
@@ -353,11 +384,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 8),
                 _TodayDateLine(),
                 const SizedBox(height: 18),
-                _WeeklySummaryCard(
-                  sessions: weeklySessions,
-                  avgHr: weeklyAvgHr,
-                  kcal: weeklyCalories,
-                  durationText: _fmt(weeklyDuration),
+                _LastWorkoutCard(
+                  entry: _lastWorkoutEntry,
+                  durationText:
+                      _lastWorkoutEntry == null
+                          ? '-- min'
+                          : _formatCardDuration(
+                            _lastWorkoutEntry!.workout.duration,
+                          ),
+                  caloriesText:
+                      _lastWorkoutEntry == null
+                          ? '-- cal'
+                          : '${_lastWorkoutEntry!.workout.calories} cal',
+                  distanceText: '5.2 km',
+                  completedText:
+                      _lastWorkoutEntry == null
+                          ? 'No workouts yet'
+                          : _formatCompletedAgo(
+                            _lastWorkoutEntry!.workout.start,
+                          ),
                 ),
                 const SizedBox(height: 24),
                 _ExerciseRecord(
@@ -473,7 +518,252 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-// exercise record
+class _LastWorkoutCard extends StatelessWidget {
+  const _LastWorkoutCard({
+    required this.entry,
+    required this.durationText,
+    required this.caloriesText,
+    required this.distanceText,
+    required this.completedText,
+  });
+
+  final HistoryEntry? entry;
+  final String durationText;
+  final String caloriesText;
+  final String distanceText;
+  final String completedText;
+
+  @override
+  Widget build(BuildContext context) {
+    final workoutName = entry?.workout.type ?? 'Morning Run';
+
+    return SizedBox(
+      height: 176,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0x0DFFFFFF)),
+                gradient: const LinearGradient(
+                  begin: Alignment(-1.0, -0.1),
+                  end: Alignment(1.0, 0.1),
+                  colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                  stops: <double>[0.0, 0.9766],
+                ),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x4D000000),
+                    blurRadius: 32,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            right: 40,
+            top: 1.25,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+              child: Container(
+                width: 38,
+                height: 128,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16777200),
+                  color: const Color(0x332B7FFF),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            child: SizedBox(
+              width: 327,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(
+                    width: 327,
+                    child: Text(
+                      'LAST WORKOUT',
+                      style: TextStyle(
+                        color: Color(0x99FFFFFF),
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        height: 1.5,
+                        letterSpacing: 0.249,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: 327,
+                    height: 58,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 150.977,
+                          height: 58,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(right: 19.977),
+                                child: Text(
+                                  workoutName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontFamily: 'Inter',
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.5,
+                                    letterSpacing: -0.258,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                completedText,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0x80FFFFFF),
+                                  fontFamily: 'Inter',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.5,
+                                  letterSpacing: -0.15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            color: const Color(0x1A2B7FFF),
+                          ),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: SvgPicture.asset(
+                                'assets/icons/blueicon.svg',
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.blue,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: 327,
+                    height: 21,
+                    child: Row(
+                      children: [
+                        _WorkoutStat(
+                          width: 68.516,
+                          svgAsset: 'assets/icons/clockicon.svg',
+                          iconColor: const Color(0x66FFFFFF),
+                          value: durationText,
+                        ),
+                        const SizedBox(width: 24),
+                        _WorkoutStat(
+                          width: 72.227,
+                          svgAsset: 'assets/icons/fireicon.svg',
+                          iconColor: const Color(0xB3FF8904),
+                          value: caloriesText,
+                        ),
+                        const SizedBox(width: 24),
+                        _WorkoutStat(
+                          width: 67.328,
+                          svgAsset: 'assets/icons/greenicon.svg',
+                          iconColor: const Color(0xB305DF72),
+                          value: distanceText,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutStat extends StatelessWidget {
+  const _WorkoutStat({
+    required this.width,
+    required this.iconColor,
+    required this.value,
+    this.icon,
+    this.svgAsset,
+  });
+
+  final double width;
+  final IconData? icon;
+  final Color iconColor;
+  final String value;
+  final String? svgAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading =
+        svgAsset != null
+            ? SvgPicture.asset(
+              svgAsset!,
+              width: 16,
+              height: 16,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+            )
+            : Icon(icon, size: 16, color: iconColor);
+
+    return SizedBox(
+      width: width,
+      height: 21,
+      child: Row(
+        children: [
+          leading,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+              style: const TextStyle(
+                color: Color(0xB3FFFFFF),
+                fontFamily: 'Inter',
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                height: 1.5,
+                letterSpacing: -0.15,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TodayDateLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -786,7 +1076,6 @@ class _ExerciseRecord extends StatelessWidget {
 
     final minutes = data.map((e) => (e['minutes'] as int?) ?? 0).toList();
     final avgHrs = data.map((e) => (e['avgHr'] as int?) ?? 0).toList();
-
     // calculate Y axis max minutes (rounded up to nearest 30)
     final int maxMin = minutes.fold<int>(0, (m, v) => v > m ? v : m);
     int yMax = ((maxMin + 29) ~/ 30) * 30;
@@ -825,6 +1114,7 @@ class _ExerciseRecord extends StatelessWidget {
                         ...List.generate(ticks.length, (i) {
                           final t = yMax == 0 ? 0.0 : ticks[i] / yMax;
                           final y = (1 - t) * chartHeight;
+
                           final dy = (ticks[i] == 0) ? -8.0 : 0.0;
 
                           return Positioned(
