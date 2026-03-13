@@ -90,6 +90,7 @@ class AuthService {
       idToken: googleAuth.idToken,
     );
     UserCredential result = await _auth.signInWithCredential(credential);
+    if (result.user != null) await _ensureUserDoc(result.user!);
     return result.user;
   }
 
