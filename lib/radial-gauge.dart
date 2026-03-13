@@ -995,8 +995,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   // Circular gauge with colored zones and pointers for user/partner HR
   Widget _getRadialGauge() {
     return SizedBox(
-      width: 320,
-      height: 320,
+      width: 280,
+      height: 280,
       child: SfRadialGauge(
         axes: <RadialAxis>[
           RadialAxis(
@@ -1055,33 +1055,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               ),
             ],
             pointers: <GaugePointer>[
-              NeedlePointer(
-                value: _userHR.toDouble(),
-                enableAnimation: true,
-                animationDuration: 300,
-                needleLength: 0.65,
-                needleStartWidth: 3,
-                needleEndWidth: 3,
-                needleColor: Colors.white,
-                knobStyle: const KnobStyle(
-                  color: Colors.transparent,
-                  knobRadius: 0,
-                ),
-                tailStyle: const TailStyle(
-                  length: 0,
-                  width: 0,
-                  color: Colors.transparent,
-                ),
-              ),
               MarkerPointer(
                 value: _userHR.toDouble(),
                 enableAnimation: true,
                 animationDuration: 300,
-                markerType: MarkerType.circle,
-                markerHeight: 12,
-                markerWidth: 12,
-                color: Colors.white,
-                markerOffset: 50,
+                markerType: MarkerType.triangle,
+                markerHeight: 33,
+                markerWidth: 35,
+                color: const Color(0xFFBFC6CE),
+                borderColor: _zoneColor(),
+                borderWidth: 2.0,
+                markerOffset: 60,
               ),
               if (_guestConnected) ...[
                 MarkerPointer(
@@ -1245,8 +1229,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
                     // GAUGE
                     SizedBox(
-                      width: 330,
-                      height: 330,
+                      width: 280,
+                      height: 280,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -1301,12 +1285,90 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       child: Text(
                         _formatDuration(_elapsed),
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 25,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: 0.5,
                         ),
                       ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // MAX HR & AVG HR BOXES
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.37,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF101113),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Max HR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: (_maxHeartRate != null && _maxSessionHR > 0
+                                      ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                      : Colors.white)
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$_maxSessionHR bpm',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: _maxHeartRate != null && _maxSessionHR > 0
+                                      ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.37,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF101113),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Avg HR',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: (_maxHeartRate != null && averageHR > 0
+                                      ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                      : Colors.white)
+                                      .withOpacity(0.5),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${averageHR.round()} bpm',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: _maxHeartRate != null && averageHR > 0
+                                      ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                      : Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),
