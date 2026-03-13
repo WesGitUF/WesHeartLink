@@ -37,3 +37,56 @@ class AppColors {
   static const Color cardOverlaySoft = Color(0x9917191C);
   static const Color navOverlay = Color(0x6617191C);
 }
+
+
+class AppGradients {
+  AppGradients._();
+
+  static const LinearGradient pageBackground = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: <Color>[
+      AppColors.surfaceSecondary,
+      AppColors.surfacePrimary,
+      AppColors.black,
+    ],
+  );
+
+  static const LinearGradient cardSurface = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[
+      AppColors.cardOverlayStrong,
+      AppColors.cardOverlaySoft,
+    ],
+  );
+
+  static const LinearGradient accentPink = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: <Color>[
+      AppColors.red,
+      AppColors.pink,
+    ],
+  );
+
+  static const LinearGradient accentWarm = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: <Color>[
+      Color(0x33FF6900),
+      Color(0x33FB2C36),
+      Color(0xB3FF8904),
+    ],
+  );
+
+  static const LinearGradient strokeFade = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[
+      Color(0x0FFFFFFF),
+      Color(0x1AFFFFFF),
+      Color(0x00FFFFFF),
+    ],
+  );
+}
