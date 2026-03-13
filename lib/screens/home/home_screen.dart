@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/history/workoutdetail_screen.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
@@ -373,6 +374,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 18),
                 _LastWorkoutCard(
                   entry: _lastWorkoutEntry,
+                  onTap:
+                      _lastWorkoutEntry == null
+                          ? null
+                          : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => WorkoutDetailScreen(
+                                      workout: _lastWorkoutEntry!.workout,
+                                      series: _lastWorkoutEntry!.series,
+                                    ),
+                              ),
+                            );
+                          },
                   durationText:
                       _lastWorkoutEntry == null
                           ? '-- min'
@@ -510,6 +525,7 @@ class _HomeHeader extends StatelessWidget {
 class _LastWorkoutCard extends StatelessWidget {
   const _LastWorkoutCard({
     required this.entry,
+    required this.onTap,
     required this.durationText,
     required this.caloriesText,
     required this.distanceText,
@@ -517,6 +533,7 @@ class _LastWorkoutCard extends StatelessWidget {
   });
 
   final HistoryEntry? entry;
+  final VoidCallback? onTap;
   final String durationText;
   final String caloriesText;
   final String distanceText;
@@ -529,170 +546,177 @@ class _LastWorkoutCard extends StatelessWidget {
     return SizedBox(
       height: 176,
       width: double.infinity,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0x0DFFFFFF)),
-                gradient: const LinearGradient(
-                  begin: Alignment(-1.0, -0.1),
-                  end: Alignment(1.0, 0.1),
-                  colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
-                  stops: <double>[0.0, 0.9766],
-                ),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x4D000000),
-                    blurRadius: 32,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            right: 40,
-            top: 1.25,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-              child: Container(
-                width: 38,
-                height: 128,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16777200),
-                  color: const Color(0x332B7FFF),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            child: SizedBox(
-              width: 327,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(
-                    width: 327,
-                    child: Text(
-                      'LAST WORKOUT',
-                      style: TextStyle(
-                        color: Color(0x99FFFFFF),
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        height: 1.5,
-                        letterSpacing: 0.249,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0x0DFFFFFF)),
+                    gradient: const LinearGradient(
+                      begin: Alignment(-1.0, -0.1),
+                      end: Alignment(1.0, 0.1),
+                      colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                      stops: <double>[0.0, 0.9766],
+                    ),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x4D000000),
+                        blurRadius: 32,
+                        offset: Offset(0, 8),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 40,
+                top: 1.25,
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                  child: Container(
+                    width: 38,
+                    height: 128,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16777200),
+                      color: const Color(0x332B7FFF),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: 327,
-                    height: 58,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 150.977,
-                          height: 58,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(right: 19.977),
-                                child: Text(
-                                  workoutName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontFamily: 'Inter',
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.5,
-                                    letterSpacing: -0.258,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                child: SizedBox(
+                  width: 327,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(
+                        width: 327,
+                        child: Text(
+                          'LAST WORKOUT',
+                          style: TextStyle(
+                            color: Color(0x99FFFFFF),
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
+                            letterSpacing: 0.249,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 327,
+                        height: 58,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 150.977,
+                              height: 58,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 19.977),
+                                    child: Text(
+                                      workoutName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontFamily: 'Inter',
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.5,
+                                        letterSpacing: -0.258,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    completedText,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Color(0x80FFFFFF),
+                                      fontFamily: 'Inter',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.5,
+                                      letterSpacing: -0.15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                color: const Color(0x1A2B7FFF),
+                              ),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: SvgPicture.asset(
+                                    'assets/icons/blueicon.svg',
+                                    colorFilter: const ColorFilter.mode(
+                                      AppColors.blue,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                completedText,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0x80FFFFFF),
-                                  fontFamily: 'Inter',
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.5,
-                                  letterSpacing: -0.15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: const Color(0x1A2B7FFF),
-                          ),
-                          child: Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: SvgPicture.asset(
-                                'assets/icons/blueicon.svg',
-                                colorFilter: const ColorFilter.mode(
-                                  AppColors.blue,
-                                  BlendMode.srcIn,
-                                ),
-                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: 327,
+                        height: 21,
+                        child: Row(
+                          children: [
+                            _WorkoutStat(
+                              width: 68.516,
+                              svgAsset: 'assets/icons/clockicon.svg',
+                              iconColor: const Color(0x66FFFFFF),
+                              value: durationText,
+                            ),
+                            const SizedBox(width: 24),
+                            _WorkoutStat(
+                              width: 72.227,
+                              svgAsset: 'assets/icons/fireicon.svg',
+                              iconColor: const Color(0xB3FF8904),
+                              value: caloriesText,
+                            ),
+                            const SizedBox(width: 24),
+                            _WorkoutStat(
+                              width: 67.328,
+                              svgAsset: 'assets/icons/greenicon.svg',
+                              iconColor: const Color(0xB305DF72),
+                              value: distanceText,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: 327,
-                    height: 21,
-                    child: Row(
-                      children: [
-                        _WorkoutStat(
-                          width: 68.516,
-                          svgAsset: 'assets/icons/clockicon.svg',
-                          iconColor: const Color(0x66FFFFFF),
-                          value: durationText,
-                        ),
-                        const SizedBox(width: 24),
-                        _WorkoutStat(
-                          width: 72.227,
-                          svgAsset: 'assets/icons/fireicon.svg',
-                          iconColor: const Color(0xB3FF8904),
-                          value: caloriesText,
-                        ),
-                        const SizedBox(width: 24),
-                        _WorkoutStat(
-                          width: 67.328,
-                          svgAsset: 'assets/icons/greenicon.svg',
-                          iconColor: const Color(0xB305DF72),
-                          value: distanceText,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
