@@ -90,3 +90,14 @@ class AppGradients {
     ],
   );
 }
+
+
+class AppRadii {
+  AppRadii._();
+
+  static const double screen = 40;
+  static const double card = 40;
+  static const double quickAction = 28;
+  static const double iconContainer = 20;
+  static const double fab = 999;
+}
