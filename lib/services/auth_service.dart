@@ -77,6 +77,17 @@ class AuthService {
     }, SetOptions(merge: true)); // merge to avoid overwriting
   }
 
+  // Facebook Sign In
+  Future<User?> signInWithFacebook() async {
+    // TODO: implement Facebook login
+    // 1. Add flutter_facebook_auth to pubspec.yaml
+    // 2. Call FacebookAuth.instance.login()
+    // 3. Get credential via FacebookAuthProvider.credential(accessToken)
+    // 4. Call _auth.signInWithCredential(credential)
+    // 5. Call _ensureUserDoc on result
+    throw UnimplementedError('Facebook login not yet implemented');
+  }
+
   // Google Sign In
   Future<User?> signInWithGoogle() async {
     final GoogleSignIn googleSignIn = GoogleSignIn();

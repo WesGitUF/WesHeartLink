@@ -46,6 +46,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// FACEBOOK LOGIN
+  void _handleFacebookLogin() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Facebook login coming soon')),
+    );
+  }
+
   /// GOOGLE LOGIN
   Future<void> _handleGoogleLogin() async {
     try {
@@ -281,6 +288,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _socialButton(
                           asset: 'assets/icons/facebook.png',
                           isSvg: false,
+                          onTap: _handleFacebookLogin,
                         ),
                       ],
                     ),
