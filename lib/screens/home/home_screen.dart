@@ -8,7 +8,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
-import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
@@ -371,18 +370,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   locationText: _headerLocationText,
                   temperatureText: _headerTemperatureText,
                 ),
-                const SizedBox(height: 14),
-                _WeekCalender(
-                  onDayTapped: (selectedDate) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => HistoryScreen(filterDate: selectedDate),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8),
-                _TodayDateLine(),
                 const SizedBox(height: 18),
                 _LastWorkoutCard(
                   entry: _lastWorkoutEntry,
@@ -760,108 +747,6 @@ class _WorkoutStat extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _TodayDateLine extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    const listweekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const listmonths = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final weekday = listweekDays[(now.weekday - 1).clamp(0, 6)];
-    final month = listmonths[now.month - 1];
-    final day = now.day;
-
-    return Text(
-      '$weekday, $month $day',
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: const Color.fromARGB(137, 229, 220, 220),
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-}
-
-class _WeekCalender extends StatelessWidget {
-  const _WeekCalender({super.key, required this.onDayTapped});
-
-  // Called when a day is tapped
-  final void Function(DateTime date) onDayTapped;
-  final List<String> _weekLetters = const ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    // DateTime.weekday
-    final weekIndexToday = today.weekday % 7;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(_weekLetters.length, (i) {
-        final isToday = (weekIndexToday == i);
-        final deltaDays = i - weekIndexToday;
-        final dayDate = today.add(Duration(days: deltaDays));
-
-        return GestureDetector(
-          onTap: () => onDayTapped(dayDate),
-          child: Column(
-            children: [
-              Text(
-                _weekLetters[i],
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: isToday
-                      ? const Color.fromARGB(255, 55, 49, 45)
-                      : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isToday
-                        ? const Color.fromARGB(255, 107, 99, 121)
-                        : Colors.black54,
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isToday
-                          ? const Color.fromARGB(255, 115, 196, 209)
-                          : Colors.black54,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
     );
   }
 }
