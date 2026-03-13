@@ -91,6 +91,7 @@ class AuthService {
   // Google Sign In
   Future<User?> signInWithGoogle() async {
     final GoogleSignIn googleSignIn = GoogleSignIn();
+    await googleSignIn.signOut(); // force account picker to always show
     final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
     if (googleUser == null) {
       return null; // User canceled
