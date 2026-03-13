@@ -32,6 +32,16 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   String? _previewingAsset;
 
+  // Theme colors for profile UI
+  // Shared profile colors
+  Color get _cardColor => Colors.white.withOpacity(0.04);
+  Color get _cardBorderColor => Colors.white.withOpacity(0.06);
+  Color get _cardShadowColor => Colors.black.withOpacity(0.28);
+  Color get _primaryActionColor => Colors.redAccent.withOpacity(0.25);
+  Color get _primaryActionBorder => Colors.white.withOpacity(0.08);
+  Color get _secondaryTextColor => Colors.white70;
+  Color get _chevronColor => Colors.white54;
+
   final Map<String, String> _zoneSounds = {
     'Classic': 'audio/zone_up.m4a',
     'Chimes': 'audio/zone_up_chime.m4a',
@@ -193,22 +203,77 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       context: context,
       builder: (_) =>
           AlertDialog(
-            title: Text(title),
+            backgroundColor: const Color.fromARGB(255, 18, 18, 20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: BorderSide(
+                color: _cardBorderColor,
+                width: 1.1,
+              ),
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700
+              )
+            ),
             content: TextField(
               controller: ctrl,
               keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white),
+              cursorColor: Colors.redAccent,
               decoration: InputDecoration(
                 hintText: "Enter value",
+                hintStyle: TextStyle(color: Colors.white.withOpacity(0.45)),
                 suffixText: unit.isNotEmpty ? unit : null,
+                suffixStyle: const TextStyle(color: Colors.white70),
+                filled: true,
+                fillColor: _cardColor,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(
+                    color: _cardBorderColor,
+                    width: 1.1,
+                  ),
+                ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: Colors.redAccent.withOpacity(0.35),
+                      width: 1.2,
+                  ),
+                ),
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               FilledButton(
-                child: const Text("Save"),
+                style: FilledButton.styleFrom(
+                  backgroundColor: _primaryActionColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                      color: _primaryActionBorder,
+                      width: 1,
+                    ),
+                  ),
+                ),
                 onPressed: () async {
                   final val = int.tryParse(ctrl.text.trim());
                   if (val == null || val < min || val > max) {
@@ -228,6 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
                   if (mounted) Navigator.pop(context);
                 },
+                child: const Text("Save"),
               ),
             ],
           ),
@@ -596,369 +662,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /*String? defaultWorkout;
-          final raw = data['defaultWorkout'];
-          if (raw is String) {
-            final trimmed = raw.trim();
-            if (_activities.contains(trimmed)) defaultWorkout = trimmed;
-          }
-
-          // Extract Firestore fields
-          final displayName = (data['displayName'] as String?)?.trim() ?? "";
-          final email = (data['email'] as String?)?.trim() ?? user.email ?? "";
-          final age = data['age'] as int?;
-          final weight = data['weight']?.toString();
-          final gender = data['gender']?.toString();
-          final photoUrl = (data['photoURL'] as String?);
-
-          final hrAge = hrState.age;
-          //final maxHr = hrState.maxHr;
-          final maxHr = data['age'] != null
-              ? (208 - 0.7 * (data['age'] as int)).round()
-              : hrState.maxHr;
-
-          // initial letter for avatar
-          final initials = displayName.isNotEmpty
-              ? displayName[0].toUpperCase()
-              : (email.isNotEmpty ? email[0].toUpperCase() : "?");
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              // ───────────────────────────────────────────────
-              // HEADER - AVATAR + NAME
-              // ───────────────────────────────────────────────
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: cs.primary.withOpacity(.25),
-                    backgroundImage:
-                        (photoUrl != null && photoUrl.isNotEmpty)
-                            ? NetworkImage(photoUrl)
-                            : null,
-                    child: (photoUrl == null || photoUrl.isEmpty)
-                        ? Text(
-                            initials,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      displayName.isNotEmpty ? displayName : email,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 30),
-
-              // ───────────────────────────────────────────────
-              // ACCOUNT
-              // ───────────────────────────────────────────────
-              _sectionTitle("Account"),
-
-              ListTile(
-                title: const Text("Email"),
-                subtitle: Text(email),
-              ),
-              ListTile(
-                title: const Text("Gender"),
-                subtitle: Text(gender ?? "Not set"),
-              ),
-              ListTile(
-                title: const Text("Weight"),
-                subtitle: Text(weight != null ? "$weight lb" : "Not set"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editNumberField(
-                  title: "Set Weight",
-                  fieldName: "weight",
-                  initialValue: int.tryParse(weight ?? "0") ?? 0,
-                  min: 1,
-                  max: 1000,
-                  unit: "lb",
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // ───────────────────────────────────────────────
-              // HEART RATE SETTINGS
-              // ───────────────────────────────────────────────
-              _sectionTitle("Heart Rate Settings"),
-
-              ListTile(
-                title: const Text("Age"),
-                subtitle: Text(age != null ? "$age years" : "Not set"),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _editNumberField(
-                  title: "Set Age",
-                  fieldName: "age",
-                  initialValue: age ?? 0,
-                  min: 1,
-                  max: 120,
-                  unit: "years",
-                ),
-              ),
-              ListTile(
-                title: const Text("Max HR"),
-                subtitle: Text("$maxHr bpm"),
-              ),
-
-              const SizedBox(height: 20),
-
-// ───────────────────────────────────────────────
-// WORKOUT PREFERENCES
-// ───────────────────────────────────────────────
-              _sectionTitle("Workout Preferences"),
-
-              ListTile(
-                title: const Text("Default workout"),
-                subtitle: Text(defaultWorkout ?? "Not set"),
-                trailing: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: (defaultWorkout != null && _activities.contains(defaultWorkout))
-                        ? defaultWorkout
-                        : _activities.first,
-                    items: _activities.map((a) {
-                      return DropdownMenuItem(
-                        value: a,
-                        child: Row(
-                          children: [
-                            Icon(_activityIcons[a] ?? Icons.fitness_center),
-                            const SizedBox(width: 8),
-                            Text(a),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (v) async {
-                      if (v == null) return;
-
-                      await FirebaseFirestore.instance
-                          .collection("users")
-                          .doc(user.uid)
-                          .set({"defaultWorkout": v}, SetOptions(merge: true));
-
-                      final sp = await SharedPreferences.getInstance();
-                      await sp.setString('defaultWorkout', v);
-
-
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Default workout set to $v")),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Audio Feedback Settings
-              _sectionTitle("Audio Feedback"),
-
-              SwitchListTile(
-                title: const Text("Mute alerts when my heart rate zone increases"),
-                value: !_zoneAudioEnabled,
-                onChanged: (v) async {
-                  final newEnabled = !v;
-                  setState(() => _zoneAudioEnabled = newEnabled);
-                  await WorkoutAudioSettings.setEnabled(newEnabled);
-                },
-              ),
-
-              ListTile(
-                title: const Text("Sound"),
-                subtitle: Text(_labelForAsset(_zoneAudioAsset)),
-                enabled: _zoneAudioEnabled,
-                trailing: const Icon(Icons.chevron_right),
-                onTap: !_zoneAudioEnabled
-                    ? null
-                    : () async {
-                  await showModalBottomSheet(
-                    context: context,
-                    builder: (context) {
-                      return SafeArea(
-                        child: ListView(
-                          children: _zoneSounds.entries.map((entry) {
-                            final label = entry.key;
-                            final asset = entry.value;
-                            final selected = asset == _zoneAudioAsset;
-                            final previewing = asset == _previewingAsset;
-
-                            return ListTile(
-                              title: Text(label),
-                              leading: selected ? const Icon(Icons.check) : null,
-                              trailing: IconButton(
-                                icon: Icon(previewing ? Icons.stop : Icons.play_arrow),
-                                onPressed: () async {
-                                  if (previewing) {
-                                    await _previewPlayer.stop();
-                                    if (mounted) setState(() => _previewingAsset = null);
-                                  } else {
-                                    await _previewSound(asset);
-                                  }
-                                },
-                              ),
-                              onTap: () async {
-                                // Select + preview
-                                setState(() => _zoneAudioAsset = asset);
-                                await WorkoutAudioSettings.setAsset(asset);
-                                await _previewSound(asset);
-                                if (context.mounted) Navigator.pop(context);
-                              },
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-
-              // Background Tracking Settings
-              _sectionTitle("Background Tracking"),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Battery optimization"),
-                subtitle: Text(
-                  _isUnrestricted == null
-                      ? "Checking…"
-                      : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
-                ),
-                trailing: FilledButton(
-                  onPressed: _isUnrestricted == null
-                      ? null
-                      : () async {
-                    if (_isUnrestricted == true) {
-                      if (!context.mounted) return;
-
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text("Manage battery setting"),
-                          content: const Text(
-                            "You'll be taken to Android settings.\n\n"
-                                "To reduce battery use, you can switch Heart Link back to Optimized.\n"
-                                "To keep tracking more reliable, leave it on Unrestricted.",
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                await BatteryOptimization.openBatteryOptimizationSettings();
-                              },
-                              child: const Text("Open Settings"),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      if (!context.mounted) return;
-
-                      showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                          title: const Text("Allow unrestricted battery use"),
-                          content: const Text(
-                            "You'll be taken to Android settings.\n\n"
-                                "Set Heart Link to Unrestricted so workout tracking is more reliable in the background.",
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                Navigator.pop(context);
-                                await BatteryOptimization.openAppSettings();
-                              },
-                              child: const Text("Open Settings"),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                  },
-                  child: Text(
-                    _isUnrestricted == true ? "Manage" : "Set Unrestricted",
-                  ),
-                ),
-              ),
-
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Workout notifications"),
-                subtitle: Text(
-                  _notifAllowed == null
-                      ? "Checking…"
-                      : (_notifAllowed! ? "Allowed" : "Off"),
-                ),
-                trailing: FilledButton(
-                  onPressed: _notifAllowed == null
-                      ? null
-                      : () async {
-                    if (_notifAllowed == true) {
-                      await openAppSettings();
-                    } else {
-                      await Permission.notification.request();
-                      await _refreshBackgroundTrackingStatus();
-                    }
-                  },
-                  child: Text(
-                    _notifAllowed == true ? "Manage" : "Allow",
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 12),
-                child: Text(
-                  "Heart Link uses workout notification and battery settings to track your workout reliably.",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-
-              // ───────────────────────────────────────────────
-              // SIGN OUT BUTTON
-              // ───────────────────────────────────────────────
-              FilledButton(
-                onPressed: () async {
-                  await _authService.signOut();
-                  if (!context.mounted) return;
-                  Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  style: FilledButton.styleFrom(backgroundColor: cs.primary),
-                  child: const Text("Sign Out"),
-                  ),
-                 ],
-                );
-               },
-              ),
-    );
-  }*/
-
   // Section label
   Widget _sectionTitle(String text) {
     return Padding(
@@ -1131,6 +834,31 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 }
 
+Widget _buildSectionCard({
+  required Widget child,
+  EdgeInsetsGeometry padding = const EdgeInsets.symmetric(vertical: 6),
+}) {
+  return Container(
+    padding: padding,
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.04),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(
+        color: Colors.white.withOpacity(0.06),
+        width: 1.2,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.28),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: child,
+  );
+}
+
 // Account Settings
 class AccountScreen extends StatefulWidget {
   final String displayName;
@@ -1189,48 +917,81 @@ class _AccountScreenState extends State<AccountScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          CircleAvatar(
-            radius: 42,
-            backgroundColor: Colors.white10,
-            backgroundImage:
-            (widget.photoUrl != null && widget.photoUrl!.isNotEmpty)
-                ? NetworkImage(widget.photoUrl!)
-                : null,
-            child: (widget.photoUrl == null || widget.photoUrl!.isEmpty)
-                ? Text(
-              widget.initials,
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            )
-                : null,
-          ),
-          const SizedBox(height: 18),
-          ListTile(
-            title: const Text("Name"),
-            subtitle: Text(
-              widget.displayName.isNotEmpty ? widget.displayName : "Not set",
+          Center(
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 42,
+                  backgroundColor: Colors.white10,
+                  backgroundImage:
+                  (widget.photoUrl != null && widget.photoUrl!.isNotEmpty)
+                      ? NetworkImage(widget.photoUrl!)
+                      : null,
+                  child: (widget.photoUrl == null || widget.photoUrl!.isEmpty)
+                      ? Text(
+                    widget.initials,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  widget.displayName.isNotEmpty ? widget.displayName : "No Name",
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.email,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
             ),
           ),
-          ListTile(
-            title: const Text("Email"),
-            subtitle: Text(widget.email),
-          ),
-          ListTile(
-            title: const Text("Gender"),
-            subtitle: Text(widget.gender ?? "Not set"),
-          ),
-          ListTile(
-            title: const Text("Weight"),
-            subtitle: Text(
-              _currentWeight != null ? "$_currentWeight lb" : "Not set",
+
+          const SizedBox(height: 24),
+
+          _buildSectionCard(
+            child: Column(
+              children: [
+                ListTile(
+                  title: const Text("Name"),
+                  subtitle: Text(
+                    widget.displayName.isNotEmpty ? widget.displayName : "Not set",
+                  ),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  title: const Text("Email"),
+                  subtitle: Text(widget.email),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  title: const Text("Gender"),
+                  subtitle: Text(widget.gender ?? "Not set"),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  title: const Text("Weight"),
+                  subtitle: Text(
+                    _currentWeight != null ? "$_currentWeight lb" : "Not set",
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                  onTap: () async {
+                    await widget.onEditWeight();
+                    await _reloadWeight();
+                  },
+                ),
+              ],
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await widget.onEditWeight();
-              await _reloadWeight();
-            },
           ),
         ],
       ),
@@ -1291,20 +1052,27 @@ class _HeartRateInfoScreenState extends State<HeartRateInfoScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          ListTile(
-            title: const Text("Age"),
-            subtitle: Text(
-              _currentAge != null ? "$_currentAge years" : "Not set",
+          _buildSectionCard(
+            child: Column(
+              children: [
+                ListTile(
+                  title: const Text("Age"),
+                  subtitle: Text(
+                    _currentAge != null ? "$_currentAge years" : "Not set",
+                  ),
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                  onTap: () async {
+                    await widget.onEditAge();
+                    await _reloadAge();
+                  },
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  title: const Text("Max HR"),
+                  subtitle: Text("$_currentMaxHr bpm"),
+                ),
+              ],
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              await widget.onEditAge();
-              await _reloadAge();
-            },
-          ),
-          ListTile(
-            title: const Text("Max HR"),
-            subtitle: Text("$_currentMaxHr bpm"),
           ),
         ],
       ),
@@ -1422,56 +1190,85 @@ class _DeviceScreenState extends State<DeviceScreen>
           ),
           const SizedBox(height: 8),
 
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text("Battery optimization"),
-            subtitle: Text(
-              _isUnrestricted == null
-                  ? "Checking…"
-                  : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
-            ),
-            trailing: FilledButton(
-              onPressed: _isUnrestricted == null
-                  ? null
-                  : () async {
-                await widget.onBatteryTap();
-                await _refreshStatuses();
-              },
-              child: Text(
-                _isUnrestricted == true ? "Manage" : "Set Unrestricted",
-              ),
-            ),
-          ),
-
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text("Workout notifications"),
-            subtitle: Text(
-              _notifAllowed == null
-                  ? "Checking…"
-                  : (_notifAllowed! ? "Allowed" : "Off"),
-            ),
-            trailing: FilledButton(
-              onPressed: _notifAllowed == null
-                  ? null
-                  : () async {
-                await widget.onNotificationTap();
-                await _refreshStatuses();
-              },
-              child: Text(
-                _notifAllowed == true ? "Manage" : "Allow",
-              ),
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 12),
-            child: Text(
-              "Heart Link uses workout notification and battery settings to track your workout reliably.",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withOpacity(0.7),
-              ),
+          _buildSectionCard(
+            child: Column(
+              children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: const Text("Battery optimization"),
+                  subtitle: Text(
+                    _isUnrestricted == null
+                        ? "Checking…"
+                        : (_isUnrestricted! ? "Unrestricted" : "Optimized"),
+                  ),
+                  trailing: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.redAccent.withOpacity(0.25),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    onPressed: _isUnrestricted == null
+                        ? null
+                        : () async {
+                      await widget.onBatteryTap();
+                      await _refreshStatuses();
+                    },
+                    child: Text(
+                      _isUnrestricted == true ? "Manage" : "Set Unrestricted",
+                    ),
+                  ),
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  title: const Text("Workout notifications"),
+                  subtitle: Text(
+                    _notifAllowed == null
+                        ? "Checking…"
+                        : (_notifAllowed! ? "Allowed" : "Off"),
+                  ),
+                  trailing: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.redAccent.withOpacity(0.25),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: Colors.white.withOpacity(0.08),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    onPressed: _notifAllowed == null
+                        ? null
+                        : () async {
+                      await widget.onNotificationTap();
+                      await _refreshStatuses();
+                    },
+                    child: Text(
+                      _notifAllowed == true ? "Manage" : "Allow",
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+                  child: Text(
+                    "Heart Link uses workout notification and battery settings to track your workout reliably.",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -1486,83 +1283,99 @@ class _DeviceScreenState extends State<DeviceScreen>
           ),
           const SizedBox(height: 8),
 
-          SwitchListTile(
-            title: const Text("Mute alerts when my heart rate zone increases"),
-            value: !_zoneAudioEnabled,
-            onChanged: (v) async {
-              final newEnabled = !v;
-              setState(() {
-                _zoneAudioEnabled = newEnabled;
-              });
-              await widget.onToggleMute(v);
-            },
-          ),
+          _buildSectionCard(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text("Mute alerts when my heart rate zone increases"),
+                  value: !_zoneAudioEnabled,
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.redAccent.withOpacity(0.45),
+                  inactiveThumbColor: Colors.white70,
+                  inactiveTrackColor: Colors.white.withOpacity(0.12),
+                  onChanged: (v) async {
+                    final newEnabled = !v;
+                    setState(() {
+                      _zoneAudioEnabled = newEnabled;
+                    });
+                    await widget.onToggleMute(v);
+                  },
+                ),
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+                ListTile(
+                  title: const Text("Sound"),
+                  subtitle: Text(widget.labelForAsset(_zoneAudioAsset)),
+                  enabled: _zoneAudioEnabled,
+                  trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                  onTap: !_zoneAudioEnabled
+                      ? null
+                      : () async {
+                    await showModalBottomSheet(
+                      context: context,
+                      backgroundColor: const Color.fromARGB(255, 18, 18, 18),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      builder: (context) {
+                        return SafeArea(
+                          child: ListView(
+                            children: widget.zoneSounds.entries.map((entry) {
+                              final label = entry.key;
+                              final asset = entry.value;
+                              final selected = asset == _zoneAudioAsset;
+                              final previewing = asset == _previewingAsset;
 
-          ListTile(
-            title: const Text("Sound"),
-            subtitle: Text(widget.labelForAsset(_zoneAudioAsset)),
-            enabled: _zoneAudioEnabled,
-            trailing: const Icon(Icons.chevron_right),
-            onTap: !_zoneAudioEnabled
-                ? null
-                : () async {
-              await showModalBottomSheet(
-                context: context,
-                builder: (context) {
-                  return SafeArea(
-                    child: ListView(
-                      children: widget.zoneSounds.entries.map((entry) {
-                        final label = entry.key;
-                        final asset = entry.value;
-                        final selected = asset == _zoneAudioAsset;
-                        final previewing = asset == _previewingAsset;
-
-                        return ListTile(
-                          title: Text(label),
-                          leading: selected ? const Icon(Icons.check) : null,
-                          trailing: IconButton(
-                            icon: Icon(
-                              previewing
-                                  ? Icons.stop
-                                  : Icons.play_arrow,
-                            ),
-                            onPressed: () async {
-                              if (previewing) {
-                                await widget.onStopPreview();
-                                if (mounted) {
+                              return ListTile(
+                                title: Text(label),
+                                leading: selected
+                                    ? const Icon(Icons.check, color: Colors.white)
+                                    : null,
+                                trailing: IconButton(
+                                  icon: Icon(
+                                    previewing ? Icons.stop : Icons.play_arrow,
+                                  ),
+                                  onPressed: () async {
+                                    if (previewing) {
+                                      await widget.onStopPreview();
+                                      if (mounted) {
+                                        setState(() {
+                                          _previewingAsset = null;
+                                        });
+                                      }
+                                    } else {
+                                      await widget.onPreviewSound(asset);
+                                      if (mounted) {
+                                        setState(() {
+                                          _previewingAsset = asset;
+                                        });
+                                      }
+                                    }
+                                  },
+                                ),
+                                onTap: () async {
                                   setState(() {
-                                    _previewingAsset = null;
-                                  });
-                                }
-                              } else {
-                                await widget.onPreviewSound(asset);
-                                if (mounted) {
-                                  setState(() {
+                                    _zoneAudioAsset = asset;
                                     _previewingAsset = asset;
                                   });
-                                }
-                              }
-                            },
+
+                                  await widget.onSelectSound(asset);
+
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                },
+                              );
+                            }).toList(),
                           ),
-                          onTap: () async {
-                            setState(() {
-                              _zoneAudioAsset = asset;
-                              _previewingAsset = asset;
-                            });
-
-                            await widget.onSelectSound(asset);
-
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
                         );
-                      }).toList(),
-                    ),
-                  );
-                },
-              );
-            },
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1605,36 +1418,39 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          ListTile(
-            title: const Text("Default workout"),
-            subtitle: Text(_currentWorkout ?? "Not set"),
-            trailing: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: (_currentWorkout != null &&
-                    widget.activities.contains(_currentWorkout))
-                    ? _currentWorkout
-                    : widget.activities.first,
-                items: widget.activities.map((a) {
-                  return DropdownMenuItem(
-                    value: a,
-                    child: Row(
-                      children: [
-                        Icon(widget.activityIcons[a] ?? Icons.fitness_center),
-                        const SizedBox(width: 8),
-                        Text(a),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (v) async {
-                  if (v == null) return;
+          _buildSectionCard(
+            child: ListTile(
+              title: const Text("Default workout"),
+              subtitle: Text(_currentWorkout ?? "Not set"),
+              trailing: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: (_currentWorkout != null &&
+                      widget.activities.contains(_currentWorkout))
+                      ? _currentWorkout
+                      : widget.activities.first,
+                  items: widget.activities.map((a) {
+                    return DropdownMenuItem(
+                      value: a,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(widget.activityIcons[a] ?? Icons.fitness_center),
+                          const SizedBox(width: 8),
+                          Text(a),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (v) async {
+                    if (v == null) return;
 
-                  setState(() {
-                    _currentWorkout = v;
-                  });
+                    setState(() {
+                      _currentWorkout = v;
+                    });
 
-                  await widget.onWorkoutChanged(v);
-                },
+                    await widget.onWorkoutChanged(v);
+                  },
+                ),
               ),
             ),
           ),
