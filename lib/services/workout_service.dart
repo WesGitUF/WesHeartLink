@@ -40,7 +40,7 @@ class WorkoutService {
       debugPrint('WorkoutService.saveEntry – failed to load profile: $e');
     }
 
-    final calories = _calculateCalories(
+    final calories = calculateCalories(
       avgHr: avgHr.toInt(),
       age: userAge,
       weight: weight,
@@ -143,7 +143,7 @@ class WorkoutService {
     return 0;
   }
 
-  static int _calculateCalories({
+  static int calculateCalories({
     required int avgHr,
     required int age,
     required double weight,
