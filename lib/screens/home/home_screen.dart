@@ -32,19 +32,16 @@ class _HomeScreenState extends State<HomeScreen> {
   List<HistoryEntry> _entries = [];
   bool _isLoadingWorkout = true;
 
-
   Map<String, dynamic>? _userData;
   bool _isLoadingUser = true;
 
   // display name (prefer Firestore)
   String get name {
-    // 🔹 1) Try Firestore user document first
     final firestoreName = _userData?['name'];
     if (firestoreName is String && firestoreName.trim().isNotEmpty) {
-      return firestoreName.trim(); // "Test User"
+      return firestoreName.trim();
     }
 
-    // 🔹 2) Fallback to FirebaseAuth displayName
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final userName = user.displayName;
@@ -53,26 +50,22 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    // 🔹 3) Final fallback
     return 'User';
   }
-
-
 
   // capitalize in the circle
   String get capitalize {
     final capitalize = name.trim();
-    if (capitalize.isEmpty) 
-      return 'N';
+    if (capitalize.isEmpty) return 'N';
     return capitalize[0].toUpperCase();
   }
 
   // greeting words
-  String greetingWord() {
+  String get _greeting {
     final h = DateTime.now().hour;
     if (h < 12) return 'Good morning';
     if (h < 18) return 'Good afternoon';
-      return 'Good evening';
+    return 'Good evening';
   }
 
   String get _headerDateText {
@@ -142,31 +135,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Today's data (times, calories, average hr)
   String get todayTimeText {
-    final totalSec = _todayEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inSeconds);
+    final totalSec = _todayEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.duration.inSeconds,
+    );
     return _fmt(Duration(seconds: totalSec));
   }
 
-  int get todayCalories =>_todayEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
+  int get todayCalories =>
+      _todayEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
 
   int get todayAvgHr {
     if (_todayEntries.isEmpty) return 0;
-    final totalHr =_todayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr);
+    final totalHr = _todayEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.avgHr,
+    );
     return (totalHr / _todayEntries.length).round();
   }
 
   // Weekly Summary (workout times, average hr, total calories, total duration)
   int get weeklySessions => _weekEntries.length;
 
-  int get weeklyCalories => _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
+  int get weeklyCalories =>
+      _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.calories);
 
   Duration get weeklyDuration {
-    final sec = _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inSeconds);
+    final sec = _weekEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.duration.inSeconds,
+    );
     return Duration(seconds: sec);
   }
 
   int get weeklyAvgHr {
     if (_weekEntries.isEmpty) return 0;
-    final totalHr = _weekEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr);
+    final totalHr = _weekEntries.fold<int>(
+      0,
+      (sum, e) => sum + e.workout.avgHr,
+    );
     return (totalHr / _weekEntries.length).round();
   }
 
@@ -183,22 +190,24 @@ class _HomeScreenState extends State<HomeScreen> {
         return _onlyDate(e.workout.start) == day;
       }).toList();
 
-      final minutes = dayEntries.fold<int>(0, (sum, e) => sum + e.workout.duration.inMinutes);
+      final minutes = dayEntries.fold<int>(
+        0,
+        (sum, e) => sum + e.workout.duration.inMinutes,
+      );
       final avgHr = dayEntries.isEmpty
           ? 0
-          : (dayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr) / dayEntries.length).round();
-      out.add({
-        'minutes': minutes,
-        'avgHr': avgHr,
-      });
+          : (dayEntries.fold<int>(0, (sum, e) => sum + e.workout.avgHr) /
+                  dayEntries.length)
+              .round();
+      out.add({'minutes': minutes, 'avgHr': avgHr});
     }
     return out;
   }
 
   // average hr
   int get chartMaxHr {
-  return hrState.maxHr;
-}
+    return hrState.maxHr;
+  }
 
   // form the duration to hour and minute
   String _fmt(Duration d) {
@@ -214,7 +223,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadWeather();
     _loadWorkouts();
     widget.onTabVisible.addListener(_onTabVisible);
-    //_checkDefaultWorkoutAndPrompt();
   }
 
   @override
@@ -229,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _loadWorkouts();
     }
   }
-
 
   // load weather
   Future<void> _loadWeather() async {
@@ -250,7 +257,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // load user‘s workout
   Future<void> _loadWorkouts() async {
     try {
       final entries = await _workoutService.loadEntriesForCurrentUser();
@@ -297,7 +303,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   // weather with icon
   IconData _mapConditionToIcon(String condition) {
     switch (condition.toLowerCase()) {
@@ -321,9 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppGradients.pageBackground,
-        ),
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
@@ -332,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _HomeHeader(
-                  greeting: '${greetingWord()}, $name!',
+                  greeting: '$_greeting, $name!',
                   dateText: _headerDateText,
                   locationText: _headerLocationText,
                   temperatureText: _headerTemperatureText,
@@ -342,9 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onDayTapped: (selectedDate) {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => HistoryScreen(
-                          filterDate: selectedDate,
-                        ),
+                        builder: (_) => HistoryScreen(filterDate: selectedDate),
                       ),
                     );
                   },
@@ -472,13 +473,26 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-//exercise record
+// exercise record
 class _TodayDateLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
     const listweekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const listmonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const listmonths = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final weekday = listweekDays[(now.weekday - 1).clamp(0, 6)];
     final month = listmonths[now.month - 1];
     final day = now.day;
@@ -486,17 +500,15 @@ class _TodayDateLine extends StatelessWidget {
     return Text(
       '$weekday, $month $day',
       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: const Color.fromARGB(137, 229, 220, 220),
-          fontWeight: FontWeight.w600),
+        color: const Color.fromARGB(137, 229, 220, 220),
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
 
 class _WeekCalender extends StatelessWidget {
-  const _WeekCalender({
-    super.key,
-    required this.onDayTapped,
-  });
+  const _WeekCalender({super.key, required this.onDayTapped});
 
   // Called when a day is tapped
   final void Function(DateTime date) onDayTapped;
@@ -508,7 +520,7 @@ class _WeekCalender extends StatelessWidget {
     final today = DateTime(now.year, now.month, now.day);
 
     // DateTime.weekday
-    final weekIndexToday = today.weekday % 7; 
+    final weekIndexToday = today.weekday % 7;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -518,7 +530,6 @@ class _WeekCalender extends StatelessWidget {
         final dayDate = today.add(Duration(days: deltaDays));
 
         return GestureDetector(
-          // When the user taps this day circle, call the callback
           onTap: () => onDayTapped(dayDate),
           child: Column(
             children: [
@@ -598,10 +609,7 @@ class _WeatherNow extends StatelessWidget {
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
-          Text(
-            condition,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          Text(condition, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -627,7 +635,9 @@ class _TodayData extends StatelessWidget {
           child: Text(
             label,
             style: const TextStyle(
-                fontWeight: FontWeight.w700, letterSpacing: 0.2),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -665,8 +675,10 @@ class _WeeklySummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Weekly Summary',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text(
+              'Weekly Summary',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 10),
             Wrap(
               spacing: 24,
@@ -699,13 +711,18 @@ class _SummaryChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 2),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 12, color: Color.fromARGB(137, 236, 227, 227))),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color.fromARGB(137, 236, 227, 227),
+            ),
+          ),
         ],
       ),
     );
@@ -717,32 +734,41 @@ class _ExerciseRecord extends StatelessWidget {
   final List<Map<String, dynamic>> data;
   final int maxHr;
 
-  const _ExerciseRecord({
-    super.key,
-    required this.data,
-    required this.maxHr,
-  });
+  const _ExerciseRecord({super.key, required this.data, required this.maxHr});
 
   // zone colors
-  static const Color _grey = Color(0xFF666A70); 
-  static const Color _blue = Color(0xFF2F6BDA); 
-  static const Color _green = Color(0xFF66B35B); 
-  static const Color _orange = Color(0xFFF3A43B); 
-  static const Color _red = Color(0xFFE25353); 
+  static const Color _grey = Color(0xFF666A70);
+  static const Color _blue = Color(0xFF2F6BDA);
+  static const Color _green = Color(0xFF66B35B);
+  static const Color _orange = Color(0xFFF3A43B);
+  static const Color _red = Color(0xFFE25353);
 
   Color _zoneColor(int bpm) {
     if (maxHr <= 0) return _grey;
     final p = bpm / maxHr;
-    if (p < 0.65) return _grey;   
-    if (p < 0.80) return _blue;   
-    if (p < 0.89) return _green; 
-    if (p < 0.95) return _orange; 
-    return _red;                 
+    if (p < 0.65) return _grey;
+    if (p < 0.80) return _blue;
+    if (p < 0.89) return _green;
+    if (p < 0.95) return _orange;
+    return _red;
   }
 
   // generate past 7 days labels
   List<String> _pastNDaysLabels(int count) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May','Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final List<String> labels = [];
@@ -758,9 +784,9 @@ class _ExerciseRecord extends StatelessWidget {
     if (data.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
 
-    // fetch minutes list
     final minutes = data.map((e) => (e['minutes'] as int?) ?? 0).toList();
-    final avgHrs  = data.map((e) => (e['avgHr'] as int?) ?? 0).toList();
+    final avgHrs = data.map((e) => (e['avgHr'] as int?) ?? 0).toList();
+
     // calculate Y axis max minutes (rounded up to nearest 30)
     final int maxMin = minutes.fold<int>(0, (m, v) => v > m ? v : m);
     int yMax = ((maxMin + 29) ~/ 30) * 30;
@@ -778,8 +804,9 @@ class _ExerciseRecord extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           'Exercise Record',
-          style:
-              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
         const SizedBox(height: 12),
         SizedBox(
@@ -798,7 +825,6 @@ class _ExerciseRecord extends StatelessWidget {
                         ...List.generate(ticks.length, (i) {
                           final t = yMax == 0 ? 0.0 : ticks[i] / yMax;
                           final y = (1 - t) * chartHeight;
-
                           final dy = (ticks[i] == 0) ? -8.0 : 0.0;
 
                           return Positioned(
@@ -809,8 +835,7 @@ class _ExerciseRecord extends StatelessWidget {
                               '${ticks[i]}min',
                               textAlign: TextAlign.right,
                               style: theme.textTheme.bodySmall?.copyWith(
-                                color: const Color.fromARGB(
-                                    185, 236, 227, 227),
+                                color: const Color.fromARGB(185, 236, 227, 227),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -829,7 +854,7 @@ class _ExerciseRecord extends StatelessWidget {
                   yMaxMinutes: yMax,
                   xLabels: xLabels,
                   avgHrs: avgHrs,
-                  zoneColorOf: _zoneColor,    
+                  zoneColorOf: _zoneColor,
                 ),
               ),
             ],
@@ -908,10 +933,10 @@ class _ExerciseAreaChart extends StatelessWidget {
 
 class _AreaStrokePainter extends CustomPainter {
   final List<Offset> points;
-  final List<int> avgHrs;                         
+  final List<int> avgHrs;
   final List<String> xLabels;
   final double left, right, top, bottom;
-  final Color Function(int bpm) zoneColorOf;     
+  final Color Function(int bpm) zoneColorOf;
 
   _AreaStrokePainter({
     required this.points,
@@ -928,7 +953,7 @@ class _AreaStrokePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (points.isEmpty) return;
 
-    // x axis
+    // x axis baseline
     canvas.drawLine(
       Offset(left, bottom),
       Offset(right, bottom),
@@ -937,7 +962,6 @@ class _AreaStrokePainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    
     if (points.length >= 2) {
       for (int i = 0; i < points.length - 1; i++) {
         final p0 = points[i];
@@ -961,7 +985,7 @@ class _AreaStrokePainter extends CustomPainter {
       }
     }
 
-    // plot with avghr number
+    // plot dots with avgHr labels
     final dotPaint = Paint()..color = const Color.fromARGB(221, 92, 82, 82);
     for (int i = 0; i < points.length; i++) {
       final p = points[i];
@@ -969,7 +993,7 @@ class _AreaStrokePainter extends CustomPainter {
 
       final tp = TextPainter(
         text: TextSpan(
-          text: '${avgHrs[i]}',       
+          text: '${avgHrs[i]}',
           style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -982,7 +1006,7 @@ class _AreaStrokePainter extends CustomPainter {
       tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy - tp.height - 6));
     }
 
-    // x axis
+    // x axis labels
     final n = xLabels.length;
     if (n > 0) {
       final step = (right - left) / (n - 1 == 0 ? 1 : (n - 1));
