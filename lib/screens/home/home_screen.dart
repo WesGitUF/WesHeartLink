@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
@@ -317,160 +318,155 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // weather block
-    final weatherWidget = _isLoadingWeather
-        ? const SizedBox(
-            width: 160,
-            height: 160,
-            child: Center(child: CircularProgressIndicator()),
-          )
-        : (_weatherData == null)
-            ? const _WeatherNow(
-                icon: Icons.error_outline,
-                temperatureF: 0,
-                condition: 'No Data',
-              )
-            : _WeatherNow(
-                icon: _mapConditionToIcon(_weatherData!.condition),
-                temperatureF: _weatherData!.temperatureF,
-                condition: _weatherData!.condition,
-              );
-
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 40, 40, 41),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(0, 23, 21, 21),
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        actions: [
-          IconButton(
-            onPressed: _loadWeather,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh weather',
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // profile and greeting
-              Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 3),
-                      color: const Color.fromARGB(255, 211, 174, 174),
-                    ),
-                    child: Center(
-                      child: Text(
-                        capitalize,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+      backgroundColor: AppColors.background,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppGradients.pageBackground,
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 23, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HomeHeader(
+                  greeting: '${greetingWord()}, $name!',
+                  dateText: _headerDateText,
+                  locationText: _headerLocationText,
+                  temperatureText: _headerTemperatureText,
+                ),
+                const SizedBox(height: 14),
+                _WeekCalender(
+                  onDayTapped: (selectedDate) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => HistoryScreen(
+                          filterDate: selectedDate,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${greetingWord()}\n$name!',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-
-              // Week calender with today's date
-              _WeekCalender(
-                onDayTapped: (selectedDate) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => HistoryScreen(
-                        filterDate: selectedDate, 
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              _TodayDateLine(),
-              const SizedBox(height: 18),
-
-              // Today title
-              Text(
-                'Today',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-
-              // Weather with today's workout data
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  weatherWidget,
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _isLoadingWorkout
-                        ? const Center(child: CircularProgressIndicator())
-                        : (_todayEntries.isEmpty
-                            ? const Text(
-                                'No session today',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white70,
-                                ),
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _TodayData(
-                                      label: 'Times', value: todayTimeText),
-                                  const SizedBox(height: 10),
-                                  _TodayData(
-                                      label: 'Calories',
-                                      value: '$todayCalories kcal'),
-                                  const SizedBox(height: 10),
-                                  _TodayData(
-                                      label: 'Average HR',
-                                      value: '$todayAvgHr bpm'),
-                                ],
-                              )),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              // Weekly summary card
-              _WeeklySummaryCard(
-                sessions: weeklySessions,
-                avgHr: weeklyAvgHr,
-                kcal: weeklyCalories,
-                durationText: _fmt(weeklyDuration),
-              ),
-
-              // Exercise record chart
-              const SizedBox(height: 24),
-              _ExerciseRecord(
-                data: _isLoadingWorkout ? [] : weeklyChartData,
-                maxHr: chartMaxHr,
-              ),
-            ],
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                _TodayDateLine(),
+                const SizedBox(height: 18),
+                _WeeklySummaryCard(
+                  sessions: weeklySessions,
+                  avgHr: weeklyAvgHr,
+                  kcal: weeklyCalories,
+                  durationText: _fmt(weeklyDuration),
+                ),
+                const SizedBox(height: 24),
+                _ExerciseRecord(
+                  data: _isLoadingWorkout ? [] : weeklyChartData,
+                  maxHr: chartMaxHr,
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({
+    required this.greeting,
+    required this.dateText,
+    required this.locationText,
+    required this.temperatureText,
+  });
+
+  final String greeting;
+  final String dateText;
+  final String locationText;
+  final String temperatureText;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 68,
+      width: double.infinity,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    height: 2.0,
+                    letterSpacing: 0.383,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dateText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0x80FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                    letterSpacing: -0.234,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 116.859,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  locationText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                    letterSpacing: -0.15,
+                  ),
+                ),
+                Text(
+                  temperatureText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 20,
+                    fontWeight: FontWeight.w300,
+                    height: 1.5,
+                    letterSpacing: -0.449,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
