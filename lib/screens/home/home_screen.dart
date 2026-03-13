@@ -392,6 +392,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                 ),
                 const SizedBox(height: 24),
+                const _QuickActionsSection(),
+                const SizedBox(height: 24),
                 _ExerciseRecord(
                   data: _isLoadingWorkout ? [] : weeklyChartData,
                   maxHr: chartMaxHr,
@@ -746,6 +748,163 @@ class _WorkoutStat extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuickActionsSection extends StatelessWidget {
+  const _QuickActionsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    void showComingSoon(String label) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('WIP'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'QUICK ACTIONS',
+          style: TextStyle(
+            color: Color(0x99FFFFFF),
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+            letterSpacing: 0.249,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 100,
+          child: Row(
+            children: [
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Progress',
+                  svgAsset: 'assets/icons/progressicon.svg',
+                  iconColor: AppColors.greenStrong,
+                  iconBackground: const Color(0x1A00C950),
+                  onTap: () => showComingSoon('Progress'),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Plan',
+                  svgAsset: 'assets/icons/planicon.svg',
+                  iconColor: AppColors.blue,
+                  iconBackground: AppColors.blueSoft,
+                  onTap: () => showComingSoon('Plan'),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _QuickActionTile(
+                  label: 'Calendar',
+                  svgAsset: 'assets/icons/calendaricon.svg',
+                  iconColor: AppColors.purpleStrong,
+                  iconBackground: const Color(0x1AAD46FF),
+                  onTap: () => showComingSoon('Calendar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.label,
+    required this.svgAsset,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.onTap,
+  });
+
+  final String label;
+  final String svgAsset;
+  final Color iconColor;
+  final Color iconBackground;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.strokeSoft),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[Color(0x5217191C), Color(0x3D17191C)],
+          stops: <double>[0.0266, 0.9709],
+        ),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 20,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: SvgPicture.asset(
+                        svgAsset,
+                        colorFilter: ColorFilter.mode(
+                          iconColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xB3FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                    letterSpacing: -0.076,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
