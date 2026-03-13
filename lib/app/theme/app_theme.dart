@@ -130,3 +130,88 @@ class AppShadows {
     ),
   ];
 }
+
+
+class AppTheme {
+  AppTheme._();
+
+    static const ColorScheme colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: AppColors.blue,
+      onPrimary: AppColors.white,
+      secondary: AppColors.pink,
+      onSecondary: AppColors.white,
+      error: AppColors.redStrong,
+      onError: AppColors.white,
+      surface: AppColors.surfacePrimary,
+      onSurface: AppColors.white,
+      surfaceContainerHighest: AppColors.surfaceSecondary,
+      onSurfaceVariant: AppColors.textSecondary,
+      outline: AppColors.strokeSubtle,
+      outlineVariant: AppColors.strokeSoft,
+      shadow: AppColors.black,
+      scrim: AppColors.black,
+      inverseSurface: AppColors.white,
+      onInverseSurface: AppColors.black,
+      inversePrimary: AppColors.blueSoft,
+    );
+
+    static const TextTheme textTheme = TextTheme(
+      headlineLarge: TextStyle(
+        fontSize: 40,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+        height: 1.1,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        height: 1.15,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        height: 1.2,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        height: 1.2,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+        height: 1.35,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        color: AppColors.textSecondary,
+        height: 1.35,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
+        height: 1.2,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textMuted,
+        height: 1.2,
+        letterSpacing: 0.4,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textMuted,
+        height: 1.2,
+        letterSpacing: 0.8,
+      ),
+    );
+}
