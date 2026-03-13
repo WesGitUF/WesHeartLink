@@ -135,7 +135,8 @@ class AppShadows {
 class AppTheme {
   AppTheme._();
 
-    static const ColorScheme colorScheme = ColorScheme(
+  static ThemeData get darkTheme {
+    const ColorScheme colorScheme = ColorScheme(
       brightness: Brightness.dark,
       primary: AppColors.blue,
       onPrimary: AppColors.white,
@@ -156,7 +157,7 @@ class AppTheme {
       inversePrimary: AppColors.blueSoft,
     );
 
-    static const TextTheme textTheme = TextTheme(
+    const TextTheme textTheme = TextTheme(
       headlineLarge: TextStyle(
         fontSize: 40,
         fontWeight: FontWeight.w700,
@@ -214,4 +215,57 @@ class AppTheme {
         letterSpacing: 0.8,
       ),
     );
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.background,
+      colorScheme: colorScheme,
+      textTheme: textTheme,
+      canvasColor: AppColors.background,
+      dividerColor: AppColors.strokeSoft,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.surfacePrimary,
+        shadowColor: AppColors.black,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          side: const BorderSide(color: AppColors.strokeSoft),
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        selectedItemColor: AppColors.textPrimary,
+        unselectedItemColor: AppColors.iconDefault,
+        selectedIconTheme: IconThemeData(color: AppColors.textPrimary),
+        unselectedIconTheme: IconThemeData(color: AppColors.iconDefault),
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        showUnselectedLabels: true,
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.pink,
+        foregroundColor: AppColors.white,
+        elevation: 0,
+        highlightElevation: 0,
+        shape: CircleBorder(),
+      ),
+      iconTheme: const IconThemeData(
+        color: AppColors.iconDefault,
+      ),
+      listTileTheme: const ListTileThemeData(
+        iconColor: AppColors.iconDefault,
+        textColor: AppColors.textPrimary,
+      ),
+    );
+  }
 }
