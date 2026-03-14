@@ -16,6 +16,8 @@ import 'package:heart_link_app/services/background_setup.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:heart_link_app/services/workout_notification_service.dart';
 import 'package:heart_link_app/services/workout_haptic_settings.dart';
+import 'package:heart_link_app/services/workout_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -73,6 +75,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   //define user max HR, as well as current user and partner HR values
   int? _maxHeartRate;
   int userAge = 0;
+  double _userWeight = 70.0;
+  String _userGender = '';
   int _userHR = 100;
   int _partnerHR = 0;
   int _sliderHR = 100;
@@ -429,6 +433,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         await _sessionListener?.cancel();
         _sessionListener = null;
 
+        final calories = WorkoutService.calculateCalories(
+          avgHr: averageHR,
+          age: userAge,
+          weight: _userWeight,
+          gender: _userGender,
+          duration: _elapsed,
+        );
+
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -439,6 +451,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               workoutModeIcon: _workoutModeIcon!,
               maxHeartRate: _maxSessionHR,
               avgHeartRate: averageHR.toDouble(),
+              calories: calories.toDouble(),
               series: hrValues,
               isSolo: isSolo,
               topZone: peakZoneName,
@@ -446,7 +459,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
             (_) => false,
           );
         }
-      }
+      } 
     });
   }
 
@@ -572,6 +585,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   Future<void> _initAsync() async {
     userAge = await _sessionService.fetchUserAge();
     _maxHeartRate = SessionService.computeMaxHr(userAge);
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      try {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
+        final data = doc.data();
+        if (data != null) {
+          _userWeight = (data['weight'] != null) ? double.tryParse(data['weight'].toString()) ?? 70.0 : 70.0;
+          _userGender = data['gender'] ?? '';
+        }
+      } catch (_) {}
+    }
 
     userDeviceId = widget.userDeviceId;
     _workoutMode = widget.workoutMode;
@@ -835,16 +860,25 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       _sameZone = Duration.zero;
     }
 
+    final calories = WorkoutService.calculateCalories(
+      avgHr: averageHR.toInt(),
+      age: userAge,
+      weight: _userWeight,
+      gender: _userGender,
+      duration: _elapsed,
+    );
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => TrackingResultScreen(
-        elapsedTime: _elapsed, 
-        sameZoneTime: _sameZone, 
-        workoutMode: _workoutMode, 
-        workoutModeIcon: _workoutModeIcon!, 
-        maxHeartRate: _maxSessionHR, 
-        avgHeartRate: averageHR.toDouble(), 
-        series: hrValues, 
+        elapsedTime: _elapsed,
+        sameZoneTime: _sameZone,
+        workoutMode: _workoutMode,
+        workoutModeIcon: _workoutModeIcon!,
+        maxHeartRate: _maxSessionHR,
+        avgHeartRate: averageHR.toDouble(),
+        calories: calories.toDouble(),
+        series: hrValues,
         isSolo: isSolo,
         topZone: peakZoneName,
         theoreticalMaxHr: _maxHeartRate!)),

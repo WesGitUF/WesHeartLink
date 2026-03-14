@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/signup_screen.dart';
@@ -45,6 +46,13 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// FACEBOOK LOGIN
+  void _handleFacebookLogin() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Facebook login coming soon')),
+    );
+  }
+
   /// GOOGLE LOGIN
   Future<void> _handleGoogleLogin() async {
     try {
@@ -80,15 +88,24 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// SOCIAL BUTTON
-  Widget _socialButton(IconData icon) {
-    return Container(
-      height: 44,
-      width: 44,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(.06),
-        shape: BoxShape.circle,
+  Widget _socialButton({required String asset, bool isSvg = true, Gradient? gradient, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        height: 44,
+        width: 44,
+        child: gradient != null
+            ? Container(
+                decoration: BoxDecoration(gradient: gradient, shape: BoxShape.circle),
+                padding: const EdgeInsets.all(10),
+                child: SvgPicture.asset(asset),
+              )
+            : ClipOval(
+                child: isSvg
+                    ? SvgPicture.asset(asset, fit: BoxFit.cover)
+                    : Image.asset(asset, fit: BoxFit.cover),
+              ),
       ),
-      child: Icon(icon, color: Colors.white),
     );
   }
 
@@ -263,14 +280,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        GestureDetector(
+                        _socialButton(
+                          asset: 'assets/icons/google.svg',
                           onTap: _handleGoogleLogin,
-                          child: _socialButton(Icons.g_mobiledata),
                         ),
                         const SizedBox(width: 16),
-                        _socialButton(Icons.facebook),
-                        const SizedBox(width: 16),
-                        _socialButton(Icons.close),
+                        _socialButton(
+                          asset: 'assets/icons/facebook.png',
+                          isSvg: false,
+                          onTap: _handleFacebookLogin,
+                        ),
                       ],
                     ),
                   ],

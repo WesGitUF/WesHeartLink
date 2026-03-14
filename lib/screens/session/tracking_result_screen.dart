@@ -9,6 +9,7 @@ class TrackingResultScreen extends StatelessWidget {
   final IconData workoutModeIcon;
   final int maxHeartRate;
   final double avgHeartRate;
+  final double calories;
   final List<int> series;
   final String topZone;
   final bool isSolo;
@@ -23,6 +24,7 @@ class TrackingResultScreen extends StatelessWidget {
     required this.workoutModeIcon,
     required this.maxHeartRate,
     required this.avgHeartRate,
+    required this.calories,
     required this.series,
     required this.topZone,
     required this.isSolo,
@@ -75,6 +77,7 @@ class TrackingResultScreen extends StatelessWidget {
                   workoutModeIcon: workoutModeIcon,
                   maxHeartRate: maxHeartRate,
                   avgHeartRate: avgHeartRate,
+                  calories: calories,
                   series: series,
                   topZone: topZone,
                   isSolo: isSolo,
@@ -95,6 +98,7 @@ class _StatsBox extends StatefulWidget {
   final IconData workoutModeIcon;
   final int maxHeartRate;
   final double avgHeartRate;
+  final double calories;
   final List<int> series;
   final String topZone;
   final bool isSolo;
@@ -106,6 +110,7 @@ class _StatsBox extends StatefulWidget {
     required this.workoutModeIcon,
     required this.maxHeartRate,
     required this.avgHeartRate,
+    required this.calories,
     required this.series,
     required this.topZone,
     required this.isSolo,
@@ -150,6 +155,8 @@ class _StatsBoxState extends State<_StatsBox> {
           Text('Max Heart Rate: ${widget.maxHeartRate}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Average Heart Rate: ${widget.avgHeartRate.round()}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          Text('Calories burned: ${widget.calories.round()} kcal', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text('Peak Heart Rate Zone: ${widget.topZone}', style: const TextStyle(fontSize: 24), textAlign: TextAlign.center),
           const SizedBox(height: 24),
