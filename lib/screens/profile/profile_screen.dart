@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:heart_link_app/services/workout_haptic_settings.dart';
 import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
@@ -29,6 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   // Audio File Settings
   bool _zoneAudioEnabled = true;
   String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
+
+  bool _zoneHapticEnabled = true;
 
   String? _previewingAsset;
 
@@ -108,11 +111,13 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   Future<void> _loadZoneAudioPrefs() async {
     final enabled = await WorkoutAudioSettings.isEnabled();
     final asset = await WorkoutAudioSettings.getAsset();
+    final hapticEnabled = await WorkoutHapticSettings.isEnabled();
 
     if (!mounted) return;
     setState(() {
       _zoneAudioEnabled = enabled;
       _zoneAudioAsset = asset;
+      _zoneHapticEnabled = hapticEnabled;
     });
   }
 
@@ -485,6 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                           isUnrestricted: _isUnrestricted,
                           notifAllowed: _notifAllowed,
                           zoneAudioEnabled: _zoneAudioEnabled,
+                          zoneHapticEnabled: _zoneHapticEnabled,
                           zoneAudioAsset: _zoneAudioAsset,
                           previewingAsset: _previewingAsset,
                           zoneSounds: _zoneSounds,
@@ -564,6 +570,12 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                             final newEnabled = !v;
                             setState(() => _zoneAudioEnabled = newEnabled);
                             await WorkoutAudioSettings.setEnabled(newEnabled);
+                          },
+
+                          onToggleHaptics: (bool v) async {
+                            final newEnabled = !v;
+                            setState(() => _zoneHapticEnabled = newEnabled);
+                            await WorkoutHapticSettings.setEnabled(newEnabled);
                           },
 
                           onSelectSound: (String asset) async {
@@ -1084,6 +1096,7 @@ class DeviceScreen extends StatefulWidget {
   final bool? isUnrestricted;
   final bool? notifAllowed;
   final bool zoneAudioEnabled;
+  final bool zoneHapticEnabled;
   final String zoneAudioAsset;
   final String? previewingAsset;
 
@@ -1093,6 +1106,7 @@ class DeviceScreen extends StatefulWidget {
   final Future<void> Function() onBatteryTap;
   final Future<void> Function() onNotificationTap;
   final Future<void> Function(bool value) onToggleMute;
+  final Future<void> Function(bool value) onToggleHaptics;
   final Future<void> Function(String asset) onSelectSound;
   final Future<void> Function(String asset) onPreviewSound;
   final Future<void> Function() onStopPreview;
@@ -1102,6 +1116,7 @@ class DeviceScreen extends StatefulWidget {
     required this.isUnrestricted,
     required this.notifAllowed,
     required this.zoneAudioEnabled,
+    required this.zoneHapticEnabled,
     required this.zoneAudioAsset,
     required this.previewingAsset,
     required this.zoneSounds,
@@ -1109,6 +1124,7 @@ class DeviceScreen extends StatefulWidget {
     required this.onBatteryTap,
     required this.onNotificationTap,
     required this.onToggleMute,
+    required this.onToggleHaptics,
     required this.onSelectSound,
     required this.onPreviewSound,
     required this.onStopPreview,
@@ -1123,6 +1139,7 @@ class _DeviceScreenState extends State<DeviceScreen>
   bool? _isUnrestricted;
   bool? _notifAllowed;
   bool _zoneAudioEnabled = true;
+  bool _zoneHapticEnabled = true;
   String _zoneAudioAsset = WorkoutAudioSettings.defaultAsset;
   String? _previewingAsset;
 
@@ -1134,6 +1151,7 @@ class _DeviceScreenState extends State<DeviceScreen>
     _isUnrestricted = widget.isUnrestricted;
     _notifAllowed = widget.notifAllowed;
     _zoneAudioEnabled = widget.zoneAudioEnabled;
+    _zoneHapticEnabled = widget.zoneHapticEnabled;
     _zoneAudioAsset = widget.zoneAudioAsset;
     _previewingAsset = widget.previewingAsset;
   }
@@ -1144,6 +1162,7 @@ class _DeviceScreenState extends State<DeviceScreen>
     _isUnrestricted = widget.isUnrestricted;
     _notifAllowed = widget.notifAllowed;
     _zoneAudioEnabled = widget.zoneAudioEnabled;
+    _zoneHapticEnabled = widget.zoneHapticEnabled;
     _zoneAudioAsset = widget.zoneAudioAsset;
     _previewingAsset = widget.previewingAsset;
   }
@@ -1302,6 +1321,25 @@ class _DeviceScreenState extends State<DeviceScreen>
                   },
                 ),
                 Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+
+                SwitchListTile(
+                  title: const Text("Turn off vibration when my heart rate zone increases"),
+                  value: !_zoneHapticEnabled,
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.redAccent.withOpacity(0.45),
+                  inactiveThumbColor: Colors.white70,
+                  inactiveTrackColor: Colors.white.withOpacity(0.12),
+                  onChanged: (v) async {
+                    final newEnabled = !v;
+                    setState(() {
+                      _zoneHapticEnabled = newEnabled;
+                    });
+                    await widget.onToggleHaptics(v);
+                  },
+                ),
+
+                Divider(height: 1, color: Colors.white.withOpacity(0.06)),
+
                 ListTile(
                   title: const Text("Sound"),
                   subtitle: Text(widget.labelForAsset(_zoneAudioAsset)),
