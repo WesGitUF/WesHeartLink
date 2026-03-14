@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "106073814804-evmvm3a4kj1q9ct2n0qmemlpme6ijrms.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.heart_link_app",
+            "certificate_hash": "8a86d326a8bf8818e7b93f47409d25073b8a60a7"
+          }
+        },
+        {
           "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -37,6 +45,101 @@
             {
               "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "106073814804-htn9gkocq9fomeb72nfhglll16idlntd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.heartLinkApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:106073814804:android:a0299f3793d1bee74a7401",
+        "android_client_info": {
+          "package_name": "com.example.heart_link_dial_ver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "106073814804-6p13hgs96jkhagv589hq6slb3uk8fu4d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.heart_link_dial_ver",
+            "certificate_hash": "9517c824f01e17abed0e1e2601dc1f8f57c6199d"
+          }
+        },
+        {
+          "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjcdoWkcE2GN1FVy53S5JU8zXDMzHnUbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "106073814804-htn9gkocq9fomeb72nfhglll16idlntd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.heartLinkApp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:106073814804:android:cee5a810b2c833eb4a7401",
+        "android_client_info": {
+          "package_name": "com.example.hl_paired"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "106073814804-b4qpmvcclrdp4ap20s65s446vld03li2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.hl_paired",
+            "certificate_hash": "9517c824f01e17abed0e1e2601dc1f8f57c6199d"
+          }
+        },
+        {
+          "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjcdoWkcE2GN1FVy53S5JU8zXDMzHnUbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "106073814804-g0tpnhjjc9na9aspjefgtil7fek7amcv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "106073814804-htn9gkocq9fomeb72nfhglll16idlntd.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.heartLinkApp"
+              }
             }
           ]
         }
