@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:heart_link_app/services/background_setup.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:heart_link_app/services/workout_notification_service.dart';
+import 'package:heart_link_app/services/workout_haptic_settings.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -323,13 +324,19 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       userZone = getZoneForHR(_userHR, _maxHeartRate!);
       if (_guestConnected) {
         partnerZone = getZoneForHR(_partnerHR, _maxHeartRate!);
-        if (partnerZone == userZone) {_sameZone += Duration(milliseconds: 1000); }
+        if (partnerZone == userZone) {
+          _sameZone += Duration(milliseconds: 1000);
+        }
       }
       if (prevZone != userZone) {
         updateImage();
         workoutMessage = _pickMessage(userZone);
-        final prevNum = int.tryParse(prevZone.name.split(' ').last) ?? 0;
-        final newNum = int.tryParse(userZone.name.split(' ').last) ?? 0;
+        final prevNum = int.tryParse(prevZone.name
+            .split(' ')
+            .last) ?? 0;
+        final newNum = int.tryParse(userZone.name
+            .split(' ')
+            .last) ?? 0;
         if (newNum > prevNum) {
           zoneBumpUp = true;
         }
@@ -371,20 +378,26 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       if (canFire) {
         _lastZoneUpFeedbackAt = now;
 
-        final enabled = await WorkoutAudioSettings.isEnabled();
-        if (!enabled) return;
+        final audioEnabled = await WorkoutAudioSettings.isEnabled();
+        final hapticEnabled = await WorkoutHapticSettings.isEnabled();
+        if (!audioEnabled && !hapticEnabled) return;
 
-        await _audioPlayer.setVolume(0);
-        await _audioPlayer.resume();
-        await Future.delayed(const Duration(milliseconds: 180));
+        if (audioEnabled) {
+          await _audioPlayer.setVolume(0);
+          await _audioPlayer.resume();
+          await Future.delayed(const Duration(milliseconds: 180));
+        }
 
-        if (await Vibration.hasVibrator() ?? false) {
+        if (hapticEnabled && (await Vibration.hasVibrator() ?? false)) {
           Vibration.vibrate(duration: 250, amplitude: 255);
         }
-        await _audioPlayer.pause();
-        await _audioPlayer.seek(Duration.zero);
-        await _audioPlayer.setVolume(1.0);
-        await _audioPlayer.resume();
+
+        if (audioEnabled) {
+          await _audioPlayer.pause();
+          await _audioPlayer.seek(Duration.zero);
+          await _audioPlayer.setVolume(1.0);
+          await _audioPlayer.resume();
+        }
       }
     }
   }
