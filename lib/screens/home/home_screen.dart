@@ -21,6 +21,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _UpcomingWorkoutCardData _upcomingWorkout =
+      _UpcomingWorkoutCardData(
+        title: 'HIIT Training',
+        subtitle: 'High intensity interval workout',
+        scheduledText: 'Today at 6:00 PM',
+        durationText: '30 min',
+        difficultyText: 'Hard',
+        estimatedCaloriesText: '450',
+      );
+
   // services
   final WeatherService _weatherService = WeatherService();
   final WorkoutService _workoutService = WorkoutService();
@@ -408,6 +418,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
                 const _QuickActionsSection(),
+                const SizedBox(height: 24),
+                const _UpcomingWorkoutCard(data: _upcomingWorkout),
                 const SizedBox(height: 24),
                 _ExerciseRecord(
                   data: _isLoadingWorkout ? [] : weeklyChartData,
@@ -930,6 +942,279 @@ class _QuickActionTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UpcomingWorkoutCardData {
+  const _UpcomingWorkoutCardData({
+    required this.title,
+    required this.subtitle,
+    required this.scheduledText,
+    required this.durationText,
+    required this.difficultyText,
+    required this.estimatedCaloriesText,
+  });
+
+  final String title;
+  final String subtitle;
+  final String scheduledText;
+  final String durationText;
+  final String difficultyText;
+  final String estimatedCaloriesText;
+}
+
+class _UpcomingWorkoutCard extends StatelessWidget {
+  const _UpcomingWorkoutCard({required this.data});
+
+  final _UpcomingWorkoutCardData data;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 239,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.strokeSoft),
+                gradient: const LinearGradient(
+                  begin: Alignment(-0.9, -0.5),
+                  end: Alignment(1.0, 0.9),
+                  colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                  stops: <double>[0.036, 1.0],
+                ),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x4D000000),
+                    blurRadius: 32,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 90.5,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+              child: Container(
+                width: 160,
+                height: 160,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16777200),
+                  color: const Color(0x26FF6467),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "TODAY'S UPCOMING WORKOUT",
+                  style: TextStyle(
+                    color: Color(0x99FFFFFF),
+                    fontFamily: 'Inter',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    height: 1.5,
+                    letterSpacing: 0.249,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontFamily: 'Inter',
+                              fontSize: 22,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
+                              letterSpacing: -0.258,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            data.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0x80FFFFFF),
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              height: 1.5,
+                              letterSpacing: -0.15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: <Color>[
+                            Color(0x33FF6900),
+                            Color(0x33FB2C36),
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: SvgPicture.asset(
+                            'assets/icons/orangeicon.svg',
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.orange,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_outlined,
+                      size: 16,
+                      color: Color(0xB3FFFFFF),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      data.scheduledText,
+                      style: const TextStyle(
+                        color: Color(0xB3FFFFFF),
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        height: 1.5,
+                        letterSpacing: -0.15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 1,
+                  color: Colors.white.withOpacity(0.05),
+                ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 1),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _UpcomingWorkoutMetric(
+                        label: 'DURATION',
+                        value: data.durationText,
+                      ),
+                    ),
+                    const _MetricDivider(),
+                    Expanded(
+                      child: _UpcomingWorkoutMetric(
+                        label: 'DIFFICULTY',
+                        value: data.difficultyText,
+                        valueColor: AppColors.orange,
+                      ),
+                    ),
+                    const _MetricDivider(),
+                    Expanded(
+                      child: _UpcomingWorkoutMetric(
+                        label: 'EST. CAL',
+                        value: data.estimatedCaloriesText,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UpcomingWorkoutMetric extends StatelessWidget {
+  const _UpcomingWorkoutMetric({
+    required this.label,
+    required this.value,
+    this.valueColor = AppColors.textPrimary,
+  });
+
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0x66FFFFFF),
+            fontFamily: 'Inter',
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+            height: 1.5,
+            letterSpacing: 0.34,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: valueColor,
+            fontFamily: 'Inter',
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            height: 1.5,
+            letterSpacing: -0.234,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricDivider extends StatelessWidget {
+  const _MetricDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 32,
+      color: Colors.white.withOpacity(0.1),
     );
   }
 }
