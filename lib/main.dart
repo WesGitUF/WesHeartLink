@@ -13,6 +13,7 @@ import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/max_hr_input_screen.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -33,46 +34,14 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // Dark theme configuration
-  ThemeData get _darkTheme {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0D0D0D), 
-      colorScheme: const ColorScheme.dark(
-        primary: Color.fromARGB(255, 209, 97, 95), 
-        secondary: Color.fromARGB(255, 159, 14, 14),
-        surface: Color(0xFF121212),
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-      ),
-      iconTheme: const IconThemeData(color: Color.fromARGB(255, 161, 51, 50)),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Color(0xFFE53935),
-        foregroundColor: Colors.white,
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF1A1A1A),
-        selectedItemColor: Color.fromARGB(255, 187, 90, 88),
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-      ),
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Colors.white),
-        bodyMedium: TextStyle(color: Colors.white70),
-        titleLarge: TextStyle(color: Colors.white),
-      ),
-      useMaterial3: true,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final AuthService authService = AuthService();
 
     return MaterialApp(
       title: 'HeartLink',
-      theme: _darkTheme,
-      darkTheme: _darkTheme,
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
 
       // Use a StreamBuilder to listen to auth changes
