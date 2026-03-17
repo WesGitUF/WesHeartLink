@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -281,12 +282,18 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
               alignment: Alignment.center,
               children: [
                 if (_hasSelectedDevice)
-                  Container(
-                    width: 192,
-                    height: 192,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0x14FF6467),
+                  Positioned(
+                    top: 24,
+                    child: ImageFiltered(
+                      imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0x26FF6467),
+                        ),
+                      ),
                     ),
                   ),
                 Container(
@@ -397,6 +404,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   Widget _buildSessionActionCard({
     required ThemeData theme,
     required String svgAsset,
+    required Color blurColor,
     required Color iconBackground,
     required String title,
     required String subtitle,
@@ -409,56 +417,82 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: Container(
+        child: SizedBox(
           height: 96,
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          decoration: BoxDecoration(
-            color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.strokeSoft),
-            boxShadow: AppShadows.cardShadow,
-          ),
-          child: Row(
+          child: Stack(
+            clipBehavior: Clip.none,
             children: [
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: Center(
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.strokeSoft),
+                    boxShadow: AppShadows.cardShadow,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 6,
+                top: 10,
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
                   child: Container(
-                    width: 64,
-                    height: 64,
+                    width: 96,
+                    height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: iconBackground,
-                    ),
-                    child: Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: SvgPicture.asset(svgAsset),
-                      ),
+                      color: blurColor,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 22),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
+                    SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: Center(
+                        child: Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: iconBackground,
+                          ),
+                          child: Center(
+                            child: SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: SvgPicture.asset(svgAsset),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textMuted,
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -545,6 +579,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                     _buildSessionActionCard(
                       theme: theme,
                       svgAsset: 'assets/icons/createsessionicon.svg',
+                      blurColor: const Color(0x26FF6467),
                       iconBackground: const Color(0x1AFF6467),
                       title: 'Create Session',
                       subtitle: 'Start a new workout',
@@ -556,6 +591,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                     _buildSessionActionCard(
                       theme: theme,
                       svgAsset: 'assets/icons/joinsessionicon.svg',
+                      blurColor: const Color(0x262B7FFF),
                       iconBackground: const Color(0x1A2B7FFF),
                       title: 'Join Session',
                       subtitle: 'Connect with others',
