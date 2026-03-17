@@ -19,11 +19,15 @@ class SensorSelectionScreen extends StatefulWidget {
   _SensorSelectionScreenState createState() => _SensorSelectionScreenState();
 }
 
-class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
+class _SensorSelectionScreenState extends State<SensorSelectionScreen>
+    with SingleTickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final List<DiscoveredDevice> _devicesList = [];
   DiscoveredDevice? _selectedUserDevice;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
+  late final AnimationController _glowController;
+  late final Animation<double> _glowOpacity;
+  late final Animation<double> _glowScale;
 
   late String _workoutMode;
 
@@ -31,6 +35,22 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   void initState() {
     super.initState();
     _workoutMode = widget.workoutMode;
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+    _glowOpacity = Tween<double>(
+      begin: 0.45,
+      end: 0.85,
+    ).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+    _glowScale = Tween<double>(
+      begin: 0.94,
+      end: 1.05,
+    ).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
     // Dummy device for testing
     setState(() {
       _devicesList.add(DiscoveredDevice(
@@ -93,6 +113,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
   @override
   void dispose() {
     _scanSubscription?.cancel();
+    _glowController.dispose();
     super.dispose();
   }
 
@@ -284,14 +305,26 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen> {
                 if (_hasSelectedDevice)
                   Positioned(
                     top: 24,
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
-                      child: Container(
-                        width: 220,
-                        height: 220,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0x26FF6467),
+                    child: AnimatedBuilder(
+                      animation: _glowController,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _glowScale.value,
+                          child: Opacity(
+                            opacity: _glowOpacity.value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
+                        child: Container(
+                          width: 220,
+                          height: 220,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0x26FF6467),
+                          ),
                         ),
                       ),
                     ),
