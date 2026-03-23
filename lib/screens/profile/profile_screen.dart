@@ -386,6 +386,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                         icon: Icons.cake_outlined,
                         iconColor: Colors.greenAccent,
                         value: age != null ? "$age" : "Not set",
+                        onTap: () => _editNumberField(
+                          title: "Set Age",
+                          fieldName: "age",
+                          initialValue: age ?? 0,
+                          min: 1,
+                          max: 120,
+                          unit: "years",
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -402,6 +410,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                         icon: Icons.monitor_weight_outlined,
                         iconColor: Colors.orangeAccent,
                         value: weight != null ? "$weight lb" : "Not set",
+                        onTap: () => _editNumberField(
+                          title: "Set Weight",
+                          fieldName: "weight",
+                          initialValue: int.tryParse(weight ?? "0") ?? 0,
+                          min: 1,
+                          max: 1000,
+                          unit: "lb",
+                        ),
                       ),
                     ),
                   ],
@@ -739,47 +755,100 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     required IconData icon,
     required Color iconColor,
     required String value,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.06),
-          width: 1.1,
+    final isEditable = onTap != null;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.06),
+            width: 1.1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.35),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        //mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          splashColor: Colors.white.withOpacity(0.03),
+          highlightColor: Colors.white.withOpacity(0.02),
+          child: SizedBox(
+            height: 100,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: iconColor.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(icon, color: iconColor, size: 24),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                if (isEditable)
+                  Positioned(
+                    top: -8,
+                    right: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
+                          width: 1,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.edit,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            child: Icon(icon, color: iconColor, size: 24),
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-        ],
+        ),
       ),
     );
   }
