@@ -151,12 +151,13 @@ class WorkoutService {
     required Duration duration,
   }) {
     final minutes = duration.inSeconds / 60.0;
+    final normalizedGender = gender.toLowerCase();
 
     double perMin;
-    if (gender == 'female') {
-      perMin = ((0.4472 * avgHr) - (0.1263 * (weight * 0.45359237)) + (0.074 * age) - 20.4022) / 4.184;
+    if (normalizedGender == 'female') {
+      perMin = ((0.4472 * avgHr) - (0.05741 * (weight * 0.45359237)) + (0.074 * age) - 20.4022) / 4.184;
     } else {
-      perMin = ((0.6309 * avgHr) + (0.1988 * (weight * 0.45359237)) + (0.2017 * age) - 55.0969) / 4.184;
+      perMin = ((0.6309 * avgHr) + (0.09036 * (weight * 0.45359237)) - 55.0969 + (0.2017 * age)) / 4.184;
     }
 
     if (perMin < 0) perMin = 0;

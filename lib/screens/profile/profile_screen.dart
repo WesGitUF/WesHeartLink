@@ -80,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         android: AudioContextAndroid(
           contentType: AndroidContentType.sonification,
           usageType: AndroidUsageType.assistanceSonification,
-          audioFocus: AndroidAudioFocus.none,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
         ),
       ),
     );
