@@ -14,21 +14,38 @@ class SessionScreen extends StatefulWidget {
 }
 
 class _SessionScreenState extends State<SessionScreen> {
-  final List<String> _activities = <String>[
-    'Running',
-    'Cycling',
-    'HIIT',
-    'Walking',
-    'Swimming',
+  static const List<_ActivityOption> _activities = <_ActivityOption>[
+    _ActivityOption(
+      name: 'Running',
+      emoji: '🏃',
+      accent: AppColors.green,
+      accentBackground: Color(0x2605DF72),
+    ),
+    _ActivityOption(
+      name: 'Cycling',
+      emoji: '🚴',
+      accent: AppColors.blue,
+      accentBackground: Color(0x2651A2FF),
+    ),
+    _ActivityOption(
+      name: 'HIIT',
+      emoji: '⚡',
+      accent: AppColors.orange,
+      accentBackground: Color(0x26FF8904),
+    ),
+    _ActivityOption(
+      name: 'Walking',
+      emoji: '🚶',
+      accent: AppColors.purple,
+      accentBackground: Color(0x26C27AFF),
+    ),
+    _ActivityOption(
+      name: 'Swimming',
+      emoji: '🏊',
+      accent: AppColors.blue,
+      accentBackground: Color(0x2651A2FF),
+    ),
   ];
-
-  final Map<String, IconData> _activityIcons = <String, IconData>{
-    'Running': Icons.directions_run,
-    'Cycling': Icons.directions_bike,
-    'HIIT': Icons.fitness_center,
-    'Walking': Icons.directions_walk,
-    'Swimming': Icons.pool,
-  };
 
   String? _selectedActivity;
   String? _defaultWorkout;
@@ -38,6 +55,9 @@ class _SessionScreenState extends State<SessionScreen> {
 
   StreamSubscription<DocumentSnapshot>? _userSub;
   StreamSubscription<User?>? _authSub;
+
+  List<String> get _activityNames =>
+      _activities.map((activity) => activity.name).toList(growable: false);
 
   @override
   void initState() {
@@ -92,7 +112,7 @@ class _SessionScreenState extends State<SessionScreen> {
       final Map<String, dynamic>? data = snap.data() as Map<String, dynamic>?;
       final String? def = (data?['defaultWorkout'] as String?)?.trim();
 
-      if (def == null || !_activities.contains(def)) return;
+      if (def == null || !_activityNames.contains(def)) return;
 
       if (!mounted) return;
       setState(() {
@@ -125,7 +145,7 @@ class _SessionScreenState extends State<SessionScreen> {
     final Object? argRaw = args?['defaultWorkout'];
     final String? argDef = argRaw is String ? argRaw.trim() : null;
 
-    if (argDef != null && _activities.contains(argDef)) {
+    if (argDef != null && _activityNames.contains(argDef)) {
       _defaultWorkout = argDef;
       _selectedActivity ??= argDef;
       _loadDefaultWorkout();
@@ -149,7 +169,7 @@ class _SessionScreenState extends State<SessionScreen> {
         final SharedPreferences sp = await SharedPreferences.getInstance();
         final String? local = sp.getString(key)?.trim();
 
-        if (local != null && _activities.contains(local)) {
+        if (local != null && _activityNames.contains(local)) {
           if (!mounted) return;
           setState(() {
             _defaultWorkout = local;
@@ -164,7 +184,7 @@ class _SessionScreenState extends State<SessionScreen> {
     if (user == null) {
       if (!mounted) return;
       setState(() {
-        _selectedActivity ??= _activities.first;
+        _selectedActivity ??= _activities.first.name;
       });
       return;
     }
@@ -179,7 +199,7 @@ class _SessionScreenState extends State<SessionScreen> {
       if (!mounted) return;
 
       final String? def = (doc.data()?['defaultWorkout'] as String?)?.trim();
-      if (def != null && _activities.contains(def)) {
+      if (def != null && _activityNames.contains(def)) {
         setState(() {
           _defaultWorkout = def;
           _selectedActivity ??= def;
@@ -188,12 +208,12 @@ class _SessionScreenState extends State<SessionScreen> {
       }
 
       setState(() {
-        _selectedActivity ??= _activities.first;
+        _selectedActivity ??= _activities.first.name;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _selectedActivity ??= _activities.first;
+        _selectedActivity ??= _activities.first.name;
       });
     }
   }
@@ -229,23 +249,10 @@ class _SessionScreenState extends State<SessionScreen> {
                       delegate: SliverChildListDelegate(<Widget>[
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: const BoxDecoration(
-                              color: Color(0x14FFFFFF),
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                Navigator.pushReplacementNamed(context, '/home');
-                              },
-                              icon: const Icon(
-                                Icons.arrow_back_rounded,
-                                color: AppColors.textSecondary,
-                                size: 20,
-                              ),
-                            ),
+                          child: _BackButton(
+                            onPressed: () {
+                              Navigator.pushReplacementNamed(context, '/home');
+                            },
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -272,67 +279,21 @@ class _SessionScreenState extends State<SessionScreen> {
                         ),
                         const SizedBox(height: 28),
                         ..._activities.map((activity) {
-                          final bool isSelected = _selectedActivity == activity;
-                          final bool isDefault = _defaultWorkout == activity;
+                          final bool isSelected =
+                              _selectedActivity == activity.name;
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 14),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.surfacePrimary,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: AppColors.strokeSoft),
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 4,
-                                ),
-                                leading: Icon(
-                                  _activityIcons[activity],
-                                  color: AppColors.textPrimary,
-                                ),
-                                title: Text(
-                                  activity,
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    if (isDefault)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(12),
-                                          color: AppColors.textFaint,
-                                        ),
-                                        child: const Text(
-                                          'Default',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                    if (isDefault) const SizedBox(width: 8),
-                                    if (isSelected)
-                                      const Icon(
-                                        Icons.check_circle,
-                                        color: AppColors.green,
-                                      ),
-                                  ],
-                                ),
-                                onTap: () {
-                                  setState(() {
-                                    _userManuallySelected = true;
-                                    _selectedActivity = activity;
-                                  });
-                                },
-                              ),
+                            child: _ActivityCard(
+                              activity: activity,
+                              isSelected: isSelected,
+                              isDefault: _defaultWorkout == activity.name,
+                              onTap: () {
+                                setState(() {
+                                  _userManuallySelected = true;
+                                  _selectedActivity = activity.name;
+                                });
+                              },
                             ),
                           );
                         }),
@@ -345,21 +306,10 @@ class _SessionScreenState extends State<SessionScreen> {
                 left: 24,
                 right: 24,
                 bottom: 24,
-                child: SizedBox(
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _selectedActivity == null ? null : _handleContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.redStrong,
-                      disabledBackgroundColor: AppColors.surfacePrimary,
-                      foregroundColor: AppColors.white,
-                      disabledForegroundColor: AppColors.textMuted,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                    child: const Text('Continue'),
-                  ),
+                child: _ContinueButton(
+                  enabled: _selectedActivity != null,
+                  label: 'Continue',
+                  onPressed: _handleContinue,
                 ),
               ),
             ],
@@ -368,4 +318,176 @@ class _SessionScreenState extends State<SessionScreen> {
       ),
     );
   }
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({
+    required this.activity,
+    required this.isSelected,
+    required this.isDefault,
+    required this.onTap,
+  });
+
+  final _ActivityOption activity;
+  final bool isSelected;
+  final bool isDefault;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          height: 72,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.strokeSoft),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color:
+                    isSelected
+                        ? activity.accent.withAlpha(56)
+                        : const Color(0x33000000),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            gradient:
+                isSelected
+                    ? LinearGradient(
+                      begin: const Alignment(-0.95, -0.35),
+                      end: const Alignment(1, 0.65),
+                      colors: <Color>[
+                        activity.accent.withAlpha(77),
+                        const Color(0x9917191C),
+                      ],
+                    )
+                    : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                    ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: activity.accentBackground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    activity.emoji,
+                    style: const TextStyle(fontSize: 24, height: 1),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(activity.name, style: theme.textTheme.titleMedium),
+                      if (isDefault)
+                        Text(
+                          'Default workout',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: AppColors.green),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ContinueButton extends StatelessWidget {
+  const _ContinueButton({
+    required this.enabled,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool enabled;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: enabled ? onPressed : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.redStrong,
+          disabledBackgroundColor: AppColors.surfacePrimary,
+          foregroundColor: AppColors.white,
+          disabledForegroundColor: AppColors.textMuted,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0x14FFFFFF),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityOption {
+  const _ActivityOption({
+    required this.name,
+    required this.emoji,
+    required this.accent,
+    required this.accentBackground,
+  });
+
+  final String name;
+  final String emoji;
+  final Color accent;
+  final Color accentBackground;
 }
