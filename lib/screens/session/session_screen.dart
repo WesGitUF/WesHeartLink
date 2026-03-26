@@ -266,7 +266,11 @@ class _SessionScreenState extends State<SessionScreen> {
                         const SizedBox(height: 28),
                         Text(
                           'Select Your Exercise',
-                          style: theme.textTheme.headlineMedium,
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
@@ -305,7 +309,7 @@ class _SessionScreenState extends State<SessionScreen> {
               Positioned(
                 left: 24,
                 right: 24,
-                bottom: 24,
+                bottom: 34,
                 child: _ContinueButton(
                   enabled: _selectedActivity != null,
                   label: 'Continue',
@@ -336,34 +340,46 @@ class _ActivityCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    const BorderRadius cardRadius = BorderRadius.all(Radius.circular(20));
+    final List<BoxShadow> boxShadow =
+        isSelected
+            ? <BoxShadow>[
+              BoxShadow(
+                color: AppColors.green.withValues(alpha: 0.22),
+                blurRadius: 18,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+            ]
+            : <BoxShadow>[
+              const BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 18,
+                spreadRadius: 0,
+                offset: Offset(0, 8),
+              ),
+            ];
 
     return Material(
       color: Colors.transparent,
+      borderRadius: cardRadius,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: cardRadius,
         child: Ink(
           height: 72,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: cardRadius,
             border: Border.all(color: AppColors.strokeSoft),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color:
-                    isSelected
-                        ? activity.accent.withAlpha(56)
-                        : const Color(0x33000000),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            boxShadow: boxShadow,
             gradient:
                 isSelected
                     ? LinearGradient(
                       begin: const Alignment(-0.95, -0.35),
                       end: const Alignment(1, 0.65),
                       colors: <Color>[
-                        activity.accent.withAlpha(77),
+                        AppColors.green.withValues(alpha: 0.30),
                         const Color(0x9917191C),
                       ],
                     )
@@ -396,19 +412,41 @@ class _ActivityCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(activity.name, style: theme.textTheme.titleMedium),
+                      Text(
+                        activity.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       if (isDefault)
-                        Text(
-                          'Default workout',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: AppColors.textMuted,
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Default workout',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.textMuted,
+                              letterSpacing: 0.3,
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_circle, color: AppColors.green),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: AppColors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      size: 18,
+                      color: AppColors.white,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -431,21 +469,65 @@ class _ContinueButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: enabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.redStrong,
-          disabledBackgroundColor: AppColors.surfacePrimary,
-          foregroundColor: AppColors.white,
-          disabledForegroundColor: AppColors.textMuted,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+    final ThemeData theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow:
+            enabled
+                ? const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x59FB2C36),
+                    blurRadius: 24,
+                    spreadRadius: 0,
+                    offset: Offset(0, 12),
+                  ),
+                ]
+                : const <BoxShadow>[],
+      ),
+      child: SizedBox(
+        height: 56,
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: enabled ? onPressed : null,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            backgroundColor: Colors.transparent,
+            disabledBackgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient:
+                  enabled
+                      ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[Color(0xFFFF6467), AppColors.redStrong],
+                      )
+                      : const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[Color(0xFF3C3F44), Color(0xFF2A2C30)],
+                      ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: enabled ? AppColors.white : AppColors.textMuted,
+                ),
+              ),
+            ),
           ),
         ),
-        child: Text(label),
       ),
     );
   }
