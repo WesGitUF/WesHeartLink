@@ -287,17 +287,24 @@ class _SessionScreenState extends State<SessionScreen> {
                   ),
                 ],
               ),
-              if (hasSelection)
-                Positioned(
-                  left: 24,
-                  right: 24,
-                  bottom: 34,
-                  child: _ContinueButton(
-                    enabled: true,
-                    label: 'Continue',
-                    onPressed: _handleContinue,
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 34,
+                child: IgnorePointer(
+                  ignoring: !hasSelection,
+                  child: AnimatedOpacity(
+                    opacity: hasSelection ? 1 : 0,
+                    duration: const Duration(milliseconds: 140),
+                    curve: Curves.easeOut,
+                    child: _ContinueButton(
+                      enabled: hasSelection,
+                      label: 'Continue',
+                      onPressed: _handleContinue,
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
