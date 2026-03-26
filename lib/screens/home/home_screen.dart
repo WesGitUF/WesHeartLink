@@ -408,7 +408,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       _lastWorkoutEntry == null
                           ? '-- cal'
                           : '${_lastWorkoutEntry!.workout.calories} cal',
-                  distanceText: '5.2 km',
+                  averageHeartRateText:
+                      _lastWorkoutEntry == null
+                          ? '-- bpm'
+                          : '${_lastWorkoutEntry!.workout.avgHr} bpm',
                   completedText:
                       _lastWorkoutEntry == null
                           ? 'No workouts yet'
@@ -540,7 +543,7 @@ class _LastWorkoutCard extends StatelessWidget {
     required this.onTap,
     required this.durationText,
     required this.caloriesText,
-    required this.distanceText,
+    required this.averageHeartRateText,
     required this.completedText,
   });
 
@@ -548,7 +551,7 @@ class _LastWorkoutCard extends StatelessWidget {
   final VoidCallback? onTap;
   final String durationText;
   final String caloriesText;
-  final String distanceText;
+  final String averageHeartRateText;
   final String completedText;
 
   @override
@@ -715,9 +718,9 @@ class _LastWorkoutCard extends StatelessWidget {
                             const SizedBox(width: 24),
                             _WorkoutStat(
                               width: 67.328,
-                              svgAsset: 'assets/icons/greenicon.svg',
-                              iconColor: const Color(0xB305DF72),
-                              value: distanceText,
+                              icon: Icons.favorite_outline,
+                              iconColor: Colors.redAccent,
+                              value: averageHeartRateText,
                             ),
                           ],
                         ),
