@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 import 'package:heart_link_app/services/nearby_stream_service.dart';
 import 'package:heart_link_app/services/session_service.dart';
@@ -1047,7 +1048,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       child: SfRadialGauge(
         axes: <RadialAxis>[
           RadialAxis(
-            radiusFactor: 0.95,
+            radiusFactor: 1.05,
             minimum: _maxHeartRate! * 0.40,
             maximum: _maxHeartRate! * 1.10,
             startAngle: 30,
@@ -1062,43 +1063,43 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 startValue: _maxHeartRate! * 0.40,
                 endValue: _maxHeartRate! * 0.65,
                 color: const Color(0xFF7D98AA),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.65,
                 endValue: _maxHeartRate! * 0.80,
                 color: const Color(0xFF3795E8),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.80,
                 endValue: _maxHeartRate! * 0.89,
                 color: const Color(0xFF52B84D),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.89,
                 endValue: _maxHeartRate! * 0.95,
                 color: const Color(0xFFFFA700),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.95,
                 endValue: _maxHeartRate!.toDouble(),
                 color: const Color(0xFFFF5546),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
               GaugeRange(
                 startValue: _maxHeartRate!.toDouble(),
                 endValue: _maxHeartRate! * 1.10,
                 color: const Color(0xFF1A1A1E),
-                startWidth: 52,
-                endWidth: 52,
+                startWidth: 65,
+                endWidth: 65,
               ),
             ],
             pointers: <GaugePointer>[
@@ -1112,7 +1113,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 color: Colors.white,
                 borderColor: _zoneColor(),
                 borderWidth: 3.5,
-                markerOffset: 60,
+                markerOffset: 70,
               ),
               if (_guestConnected) ...[
                 MarkerPointer(
@@ -1125,7 +1126,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   color: Colors.white,
                   borderColor: _colorForZone(partnerZone),
                   borderWidth: 1.8,
-                  markerOffset: -4,
+                  markerOffset: -5,
                 ),
                 WidgetPointer(
                   value: _partnerHR.toDouble(),
@@ -1237,7 +1238,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     }
     // App bar (heart logo w/ workout icon)
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -1245,11 +1246,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               // ensure screen does not overflow when keyboard appears
               physics: const ClampingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.only(top: 32),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
 
                     //toggle heart rate percentage
                     Center(
@@ -1272,12 +1273,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
 
                     // GAUGE
                     SizedBox(
-                      width: 280,
-                      height: 280,
+                      width: 340,
+                      height: 340,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -1301,7 +1302,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
 
                     // MESSAGE CARD
                     Padding(
@@ -1318,7 +1319,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 25),
 
                     // CONTROLS
                     Container(
@@ -1340,7 +1341,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 8),
 
                     // MAX HR & AVG HR BOXES
                     Row(
@@ -1430,7 +1431,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
