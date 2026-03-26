@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -210,122 +211,160 @@ class _SessionScreenState extends State<SessionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
-          child: AppBar(
-            backgroundColor: Colors.redAccent,
-            centerTitle: true,
-            leading: IconButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-            ),
-            title: Image.asset(
-              'assets/images/logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-      ),
-      body: Column(
-        children: <Widget>[
-          const SizedBox(height: 20),
-          const Text(
-            'Select Your Exercise',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          const Divider(
-            color: Colors.grey,
-            thickness: 1,
-            indent: 16,
-            endIndent: 16,
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _activities.length,
-              itemBuilder: (context, index) {
-                final String activity = _activities[index];
-                final bool isSelected = _selectedActivity == activity;
-                final bool isDefault = _defaultWorkout == activity;
+    final ThemeData theme = Theme.of(context);
 
-                return Card(
-                  child: ListTile(
-                    leading: Icon(_activityIcons[activity]),
-                    title: Text(activity),
-                    tileColor: isSelected ? Colors.green.withAlpha(38) : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        if (isDefault)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: <Widget>[
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget>[
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 140),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(<Widget>[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: Color(0x14FFFFFF),
+                              shape: BoxShape.circle,
                             ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey.withAlpha(51),
-                            ),
-                            child: const Text(
-                              'Default',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                            child: IconButton(
+                              onPressed: () {
+                                Navigator.pushReplacementNamed(context, '/home');
+                              },
+                              icon: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: AppColors.textSecondary,
+                                size: 20,
                               ),
                             ),
                           ),
-                        if (isDefault) const SizedBox(width: 8),
-                        if (isSelected)
-                          const Icon(Icons.check_circle, color: Colors.green),
-                      ],
+                        ),
+                        const SizedBox(height: 18),
+                        const Center(
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            size: 56,
+                            color: AppColors.redStrong,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Text(
+                          'Select Your Exercise',
+                          style: theme.textTheme.headlineMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'What makes your heart race?',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
+                        ..._activities.map((activity) {
+                          final bool isSelected = _selectedActivity == activity;
+                          final bool isDefault = _defaultWorkout == activity;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.surfacePrimary,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.strokeSoft),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 4,
+                                ),
+                                leading: Icon(
+                                  _activityIcons[activity],
+                                  color: AppColors.textPrimary,
+                                ),
+                                title: Text(
+                                  activity,
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    if (isDefault)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          color: AppColors.textFaint,
+                                        ),
+                                        child: const Text(
+                                          'Default',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    if (isDefault) const SizedBox(width: 8),
+                                    if (isSelected)
+                                      const Icon(
+                                        Icons.check_circle,
+                                        color: AppColors.green,
+                                      ),
+                                  ],
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    _userManuallySelected = true;
+                                    _selectedActivity = activity;
+                                  });
+                                },
+                              ),
+                            ),
+                          );
+                        }),
+                      ]),
                     ),
-                    onTap: () {
-                      setState(() {
-                        _userManuallySelected = true;
-                        _selectedActivity = activity;
-                      });
-                    },
                   ),
-                );
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(34),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _selectedActivity == null ? null : _handleContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  textStyle: const TextStyle(fontSize: 24),
-                ),
-                child: Text(
-                  'Set Up Your Sensors',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color:
-                        _selectedActivity == null ? Colors.grey : Colors.white,
+                ],
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 24,
+                child: SizedBox(
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _selectedActivity == null ? null : _handleContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.redStrong,
+                      disabledBackgroundColor: AppColors.surfacePrimary,
+                      foregroundColor: AppColors.white,
+                      disabledForegroundColor: AppColors.textMuted,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    child: const Text('Continue'),
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
