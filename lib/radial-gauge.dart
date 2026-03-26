@@ -1107,11 +1107,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 enableAnimation: true,
                 animationDuration: 300,
                 markerType: MarkerType.triangle,
-                markerHeight: 33,
-                markerWidth: 35,
-                color: const Color(0xFFBFC6CE),
+                markerHeight: 40,
+                markerWidth: 42,
+                color: Colors.white,
                 borderColor: _zoneColor(),
-                borderWidth: 2.0,
+                borderWidth: 3.5,
                 markerOffset: 60,
               ),
               if (_guestConnected) ...[
@@ -1122,7 +1122,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   markerType: MarkerType.invertedTriangle,
                   markerHeight: 24,
                   markerWidth: 26,
-                  color: const Color(0xFFBFC6CE),
+                  color: Colors.white,
                   borderColor: _colorForZone(partnerZone),
                   borderWidth: 1.8,
                   markerOffset: -4,
@@ -1245,11 +1245,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
               // ensure screen does not overflow when keyboard appears
               physics: const ClampingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 16),
 
                     //toggle heart rate percentage
                     Center(
@@ -1272,7 +1272,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 16),
 
                     // GAUGE
                     SizedBox(
@@ -1301,7 +1301,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 20),
 
                     // MESSAGE CARD
                     Padding(
@@ -1318,12 +1318,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
 
                     // CONTROLS
                     Container(
                       width: MediaQuery.of(context).size.width * 0.78,
-                      height: 88,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: const Color(0xFF101113),
@@ -1348,17 +1348,23 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       children: [
                         Container(
                           width: MediaQuery.of(context).size.width * 0.37,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF101113),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _maxHeartRate != null && _maxSessionHR > 0
+                                  ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                  : Colors.white24,
+                              width: 1.2,
+                            ),
                           ),
                           child: Column(
                             children: [
                               Text(
                                 'Max HR',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: (_maxHeartRate != null && _maxSessionHR > 0
                                       ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
@@ -1383,17 +1389,23 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         const SizedBox(width: 12),
                         Container(
                           width: MediaQuery.of(context).size.width * 0.37,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           decoration: BoxDecoration(
                             color: const Color(0xFF101113),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _maxHeartRate != null && averageHR > 0
+                                  ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                  : Colors.white24,
+                              width: 1.2,
+                            ),
                           ),
                           child: Column(
                             children: [
                               Text(
                                 'Avg HR',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                   color: (_maxHeartRate != null && averageHR > 0
                                       ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
@@ -1418,7 +1430,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       ],
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 20),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
