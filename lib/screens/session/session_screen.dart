@@ -1,132 +1,130 @@
-// TODO Implement this library.
-//
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-
 
 class SessionScreen extends StatefulWidget {
   const SessionScreen({super.key});
+
   @override
-  _SessionScreenState createState() => _SessionScreenState();
+  State<SessionScreen> createState() => _SessionScreenState();
 }
 
 class _SessionScreenState extends State<SessionScreen> {
+  static const List<_ActivityOption> _activities = <_ActivityOption>[
+    _ActivityOption(
+      name: 'Running',
+      emoji: '🏃',
+      accent: AppColors.green,
+      accentBackground: Color(0x2605DF72),
+    ),
+    _ActivityOption(
+      name: 'Cycling',
+      emoji: '🚴',
+      accent: AppColors.blue,
+      accentBackground: Color(0x2651A2FF),
+    ),
+    _ActivityOption(
+      name: 'HIIT',
+      emoji: '⚡',
+      accent: AppColors.orange,
+      accentBackground: Color(0x26FF8904),
+    ),
+    _ActivityOption(
+      name: 'Walking',
+      emoji: '🚶',
+      accent: AppColors.purple,
+      accentBackground: Color(0x26C27AFF),
+    ),
+    _ActivityOption(
+      name: 'Swimming',
+      emoji: '🏊',
+      accent: AppColors.blue,
+      accentBackground: Color(0x2651A2FF),
+    ),
+  ];
+
   String? _selectedActivity;
   String? _defaultWorkout;
-
-  StreamSubscription<DocumentSnapshot>? _userSub;
-  bool _userManuallySelected = false;
-  StreamSubscription<User?>? _authSub;
+  bool _defaultApplied = false;
   String? _uid;
 
+  StreamSubscription<DocumentSnapshot>? _userSub;
+  StreamSubscription<User?>? _authSub;
 
-
-  final List<String> _activities = ['Running', 'Cycling', 'HIIT', 'Walking', 'Swimming'];
-    final Map<String, IconData> _activityIcons = {
-    'Running': Icons.directions_run,
-    'Cycling': Icons.directions_bike,
-    'HIIT': Icons.fitness_center,
-    'Walking': Icons.directions_walk,
-    'Swimming': Icons.pool,
-  };
-
-  bool _defaultApplied = false;
+  List<String> get _activityNames =>
+      _activities.map((activity) => activity.name).toList(growable: false);
 
   @override
   void initState() {
     super.initState();
-
     _uid = FirebaseAuth.instance.currentUser?.uid;
-
-    // Start listening for user doc changes (defaultWorkout)
     _listenForDefaultWorkoutChanges();
 
-    // FIX 2: listen for auth changes so SessionScreen resets between users
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
-      final newUid = user?.uid;
+      final String? newUid = user?.uid;
+      if (newUid == _uid) return;
 
-      if (newUid != _uid) {
-        // user changed (sign out / sign in as different user)
-        _uid = newUid;
+      _uid = newUid;
+      _userSub?.cancel();
+      _userSub = null;
 
-        // stop listening to old user's Firestore doc
-        _userSub?.cancel();
-        _userSub = null;
-
-        // IMPORTANT: reset session state so old defaults can't "stick"
-        if (mounted) {
-          setState(() {
-            _defaultWorkout = null;
-            _selectedActivity = null;
-            _userManuallySelected = false;
-            _defaultApplied = false; // allows didChangeDependencies to run again
-          });
-        } else {
+      if (mounted) {
+        setState(() {
           _defaultWorkout = null;
           _selectedActivity = null;
-          _userManuallySelected = false;
           _defaultApplied = false;
-        }
+        });
+      } else {
+        _defaultWorkout = null;
+        _selectedActivity = null;
+        _defaultApplied = false;
+      }
 
-        // Re-listen + reload for new user (if logged in)
-        if (newUid != null) {
-          _listenForDefaultWorkoutChanges();
-          _loadDefaultWorkout();
-        }
+      if (newUid != null) {
+        _listenForDefaultWorkoutChanges();
+        _loadDefaultWorkout();
       }
     });
   }
 
   String? get _prefsKeyDefaultWorkout {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final String? uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return null;
     return 'defaultWorkout_$uid';
   }
 
-
   void _listenForDefaultWorkoutChanges() {
-    final user = FirebaseAuth.instance.currentUser;
+    final User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     _userSub = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .snapshots()
-        .listen((snap) async {
-      final data = snap.data() as Map<String, dynamic>?;
-      final def = (data?['defaultWorkout'] as String?)?.trim();
+        .listen((DocumentSnapshot snap) async {
+      final Map<String, dynamic>? data = snap.data() as Map<String, dynamic>?;
+      final String? def = (data?['defaultWorkout'] as String?)?.trim();
 
-      if (def == null || !_activities.contains(def)) return;
+      if (def == null || !_activityNames.contains(def)) return;
 
-      // Update UI in real-time
       if (!mounted) return;
       setState(() {
-        final oldDefault = _defaultWorkout;
         _defaultWorkout = def;
-
-        // If user hasn't manually picked something this session,
-        // OR they were still on the old default, then auto-switch selection.
-        if (!_userManuallySelected || _selectedActivity == oldDefault) {
-          _selectedActivity = def;
-        }
       });
 
-      // Optional: keep SharedPrefs in sync so next load is instant
       try {
-        final sp = await SharedPreferences.getInstance();
-        final key = _prefsKeyDefaultWorkout;
+        final SharedPreferences sp = await SharedPreferences.getInstance();
+        final String? key = _prefsKeyDefaultWorkout;
         if (key != null) {
           await sp.setString(key, def);
         }
-
       } catch (_) {}
     });
   }
-
 
   @override
   void didChangeDependencies() {
@@ -134,247 +132,433 @@ class _SessionScreenState extends State<SessionScreen> {
     if (_defaultApplied) return;
     _defaultApplied = true;
 
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final argRaw = args?['defaultWorkout'];
-    final argDef = (argRaw is String) ? argRaw.trim() : null;
+    final Map<String, dynamic>? args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final Object? argRaw = args?['defaultWorkout'];
+    final String? argDef = argRaw is String ? argRaw.trim() : null;
 
-    // If a valid defaultWorkout is passed via arguments, use it immediately
-    if (argDef != null && _activities.contains(argDef)) {
+    if (argDef != null && _activityNames.contains(argDef)) {
       _defaultWorkout = argDef;
-      _selectedActivity ??= argDef;
-      // still refresh source-of-truth in background (optional)
       _loadDefaultWorkout();
       return;
     }
 
-    // Otherwise: load default from SharedPrefs -> Firestore -> fallback
     _loadDefaultWorkout();
   }
 
-  int _token = 0;
-
   @override
   void dispose() {
-    _token++; // invalidate any pending async work
     _userSub?.cancel();
     _authSub?.cancel();
     super.dispose();
   }
 
-
   Future<void> _loadDefaultWorkout() async {
-    // 1) SharedPreferences first (fastest)
     try {
-      final key = _prefsKeyDefaultWorkout;
+      final String? key = _prefsKeyDefaultWorkout;
       if (key != null) {
-        final sp = await SharedPreferences.getInstance();
-        final local = sp.getString(key)?.trim();
+        final SharedPreferences sp = await SharedPreferences.getInstance();
+        final String? local = sp.getString(key)?.trim();
 
-
-
-        if (local != null && _activities.contains(local)) {
+        if (local != null && _activityNames.contains(local)) {
           if (!mounted) return;
           setState(() {
             _defaultWorkout = local;
-            _selectedActivity ??= local;
           });
           return;
-        }}
-    } catch (_) {
-      // ignore local read errors
-    }
+        }
+      }
+    } catch (_) {}
 
-    // 2) Firestore fallback
-    final user = FirebaseAuth.instance.currentUser;
+    final User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      if (!mounted) return;
-      setState(() {
-        _selectedActivity ??= _activities.first;
-      });
       return;
     }
 
     try {
-      final doc = await FirebaseFirestore.instance
+      final DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
           .collection('users')
           .doc(user.uid)
           .get();
 
       if (!mounted) return;
 
-      final def = (doc.data()?['defaultWorkout'] as String?)?.trim();
-
-      if (def != null && _activities.contains(def)) {
+      final String? def = (doc.data()?['defaultWorkout'] as String?)?.trim();
+      if (def != null && _activityNames.contains(def)) {
         setState(() {
           _defaultWorkout = def;
-          _selectedActivity ??= def;
         });
         return;
       }
-
-      // 3) Final fallback if nothing exists
-      setState(() {
-        _selectedActivity ??= _activities.first;
-      });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _selectedActivity ??= _activities.first;
-      });
     }
   }
 
+  void _handleContinue() {
+    final String? selectedActivity = _selectedActivity;
+    if (selectedActivity == null) return;
 
+    Navigator.pushNamed(
+      context,
+      '/sensorSelection',
+      arguments: <String, dynamic>{'workoutMode': selectedActivity},
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool hasSelection = _selectedActivity != null;
+
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60), // height of your appbar
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: <Widget>[
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: <Widget>[
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 6, 24, 140),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate(<Widget>[
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: _BackButton(
+                            onPressed: () {
+                              Navigator.pushReplacementNamed(context, '/home');
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const Center(
+                          child: Icon(
+                            Icons.favorite_rounded,
+                            size: 56,
+                            color: AppColors.redStrong,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Text(
+                          'Select Your Exercise',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'What makes your heart race?',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
+                        ..._activities.map((activity) {
+                          final bool isSelected =
+                              _selectedActivity == activity.name;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _ActivityCard(
+                              activity: activity,
+                              isSelected: isSelected,
+                              isDefault: _defaultWorkout == activity.name,
+                              onTap: () {
+                                setState(() {
+                                  _selectedActivity =
+                                      _selectedActivity == activity.name
+                                          ? null
+                                          : activity.name;
+                                });
+                              },
+                            ),
+                          );
+                        }),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: 34,
+                child: IgnorePointer(
+                  ignoring: !hasSelection,
+                  child: AnimatedOpacity(
+                    opacity: hasSelection ? 1 : 0,
+                    duration: const Duration(milliseconds: 140),
+                    curve: Curves.easeOut,
+                    child: _ContinueButton(
+                      enabled: hasSelection,
+                      label: 'Continue',
+                      onPressed: _handleContinue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: AppBar(
-            backgroundColor: Colors.redAccent,
-            centerTitle: true,
-            leading: IconButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              icon: const Icon(Icons.arrow_back, color: Colors.white,),
-            ),
-            title: Image.asset(
-              'assets/images/logo.png',
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({
+    required this.activity,
+    required this.isSelected,
+    required this.isDefault,
+    required this.onTap,
+  });
+
+  final _ActivityOption activity;
+  final bool isSelected;
+  final bool isDefault;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    const BorderRadius cardRadius = BorderRadius.all(Radius.circular(20));
+    final List<BoxShadow> boxShadow =
+        isSelected
+            ? <BoxShadow>[
+              BoxShadow(
+                color: AppColors.green.withValues(alpha: 0.22),
+                blurRadius: 18,
+                spreadRadius: 0,
+                offset: const Offset(0, 6),
+              ),
+            ]
+            : <BoxShadow>[
+              const BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 18,
+                spreadRadius: 0,
+                offset: Offset(0, 8),
+              ),
+            ];
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: cardRadius,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: cardRadius,
+        child: Ink(
+          height: 72,
+          decoration: BoxDecoration(
+            borderRadius: cardRadius,
+            border: Border.all(color: AppColors.strokeSoft),
+            boxShadow: boxShadow,
+            gradient:
+                isSelected
+                    ? LinearGradient(
+                      begin: const Alignment(-0.95, -0.35),
+                      end: const Alignment(1, 0.65),
+                      colors: <Color>[
+                        AppColors.green.withValues(alpha: 0.30),
+                        const Color(0x9917191C),
+                      ],
+                    )
+                    : const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: <Color>[Color(0x6617191C), Color(0x4D17191C)],
+                    ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: activity.accentBackground,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    activity.emoji,
+                    style: const TextStyle(fontSize: 24, height: 1),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        activity.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (isDefault)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            'Default workout',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.textMuted,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: const BoxDecoration(
+                      color: AppColors.green,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      size: 18,
+                      color: AppColors.white,
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
       ),
-      body: Column(
-        // mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            "Select Your Exercise",
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.bold
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          const Divider(
-            color: Colors.grey, // Optional: Set the color of the divider
-            thickness: 1,      // Optional: Set the thickness of the line
-            indent: 16,        // Optional: Set the empty space at the start
-            endIndent: 16,     // Optional: Set the empty space at the end
-          ),
-          const SizedBox(height: 20),
-          // DropdownButton<String>(
-          //   hint: const Text('Select Activity'),
-          //   value: _selectedActivity,
-          //   items: _activities
-          //       .map((activity) => DropdownMenuItem(
-          //             value: activity,
-          //             child: Text(activity),
-          //           ))
-          //       .toList(),
-          //   onChanged: (val) {
-          //     setState(() {
-          //       _selectedActivity = val;
-          //     });
-          //   },
-          // ),
-          //Changing Dropdown to a Card like view to match our LowFi design
-          Expanded(
-            child: ListView.builder(
-              itemCount: _activities.length,
-              itemBuilder: (context, index) {
-                String activity = _activities[index];
-                final bool isSelected = _selectedActivity == activity;
-                final bool isDefault  = _defaultWorkout == activity;
-                return Card(
-                  child: ListTile(
-                    leading: Icon(_activityIcons[activity]),
-                    title: Text(activity),
-                    tileColor: isSelected ? Colors.green.withOpacity(0.15) : null,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isDefault)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.grey.withOpacity(0.2),
-                            ),
-                            child: const Text(
-                              'Default',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        if (isDefault) const SizedBox(width: 8),
-                        if (isSelected)
-                          const Icon(Icons.check_circle, color: Colors.green),
-                      ],
-                    ),
-                      onTap: () {
-                        setState(() {
-                          _userManuallySelected = true;
-                          _selectedActivity = activity;
-                        });
-                      },
+    );
+  }
+}
+
+class _ContinueButton extends StatelessWidget {
+  const _ContinueButton({
+    required this.enabled,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final bool enabled;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow:
+            enabled
+                ? const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x59FB2C36),
+                    blurRadius: 24,
+                    spreadRadius: 0,
+                    offset: Offset(0, 12),
                   ),
-                );
-              },
+                ]
+                : const <BoxShadow>[],
+      ),
+      child: SizedBox(
+        height: 56,
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: enabled ? onPressed : null,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            backgroundColor: Colors.transparent,
+            disabledBackgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
             ),
           ),
-          // ElevatedButton(
-          //   onPressed: _selectedActivity == null
-          //       ? null
-          //       : () {
-          //           Navigator.pushNamed(context, '/sensorSelection');
-          //         },
-          //   child: const Text('Next: Select Sensors'),
-          // ),
-          // Changing the UI element of the button to have a green like big button similar to our Lowfi design
-          Padding(
-            padding: const EdgeInsets.all(34),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _selectedActivity == null ? null : () {
-                  Navigator.pushNamed(
-                    context,
-                    '/sensorSelection',
-                    arguments: {
-                      'workoutMode': _selectedActivity
-                    }
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  textStyle: const TextStyle(fontSize: 24),
-                ),
-                // child: const Text('Next: Select Sensors'),
-                child: Text(
-                  'Set Up Your Sensors',
-                  style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _selectedActivity == null ? Colors.grey : Colors.white
-                  )
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient:
+                  enabled
+                      ? const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[Color(0xFFFF6467), AppColors.redStrong],
+                      )
+                      : const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[Color(0xFF3C3F44), Color(0xFF2A2C30)],
+                      ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: enabled ? AppColors.white : AppColors.textMuted,
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0x14FFFFFF),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 40,
+          height: 40,
+          child: Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityOption {
+  const _ActivityOption({
+    required this.name,
+    required this.emoji,
+    required this.accent,
+    required this.accentBackground,
+  });
+
+  final String name;
+  final String emoji;
+  final Color accent;
+  final Color accentBackground;
 }
