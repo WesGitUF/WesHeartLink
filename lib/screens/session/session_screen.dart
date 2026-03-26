@@ -49,7 +49,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
   String? _selectedActivity;
   String? _defaultWorkout;
-  bool _userManuallySelected = false;
   bool _defaultApplied = false;
   String? _uid;
 
@@ -77,13 +76,11 @@ class _SessionScreenState extends State<SessionScreen> {
         setState(() {
           _defaultWorkout = null;
           _selectedActivity = null;
-          _userManuallySelected = false;
           _defaultApplied = false;
         });
       } else {
         _defaultWorkout = null;
         _selectedActivity = null;
-        _userManuallySelected = false;
         _defaultApplied = false;
       }
 
@@ -116,12 +113,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
       if (!mounted) return;
       setState(() {
-        final String? oldDefault = _defaultWorkout;
         _defaultWorkout = def;
-
-        if (!_userManuallySelected || _selectedActivity == oldDefault) {
-          _selectedActivity = def;
-        }
       });
 
       try {
@@ -147,7 +139,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
     if (argDef != null && _activityNames.contains(argDef)) {
       _defaultWorkout = argDef;
-      _selectedActivity ??= argDef;
       _loadDefaultWorkout();
       return;
     }
@@ -173,7 +164,6 @@ class _SessionScreenState extends State<SessionScreen> {
           if (!mounted) return;
           setState(() {
             _defaultWorkout = local;
-            _selectedActivity ??= local;
           });
           return;
         }
@@ -182,10 +172,6 @@ class _SessionScreenState extends State<SessionScreen> {
 
     final User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      if (!mounted) return;
-      setState(() {
-        _selectedActivity ??= _activities.first.name;
-      });
       return;
     }
 
@@ -202,19 +188,11 @@ class _SessionScreenState extends State<SessionScreen> {
       if (def != null && _activityNames.contains(def)) {
         setState(() {
           _defaultWorkout = def;
-          _selectedActivity ??= def;
         });
         return;
       }
-
-      setState(() {
-        _selectedActivity ??= _activities.first.name;
-      });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _selectedActivity ??= _activities.first.name;
-      });
     }
   }
 
@@ -232,6 +210,7 @@ class _SessionScreenState extends State<SessionScreen> {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final bool hasSelection = _selectedActivity != null;
 
     return Scaffold(
       body: Container(
@@ -294,8 +273,10 @@ class _SessionScreenState extends State<SessionScreen> {
                               isDefault: _defaultWorkout == activity.name,
                               onTap: () {
                                 setState(() {
-                                  _userManuallySelected = true;
-                                  _selectedActivity = activity.name;
+                                  _selectedActivity =
+                                      _selectedActivity == activity.name
+                                          ? null
+                                          : activity.name;
                                 });
                               },
                             ),
@@ -306,16 +287,17 @@ class _SessionScreenState extends State<SessionScreen> {
                   ),
                 ],
               ),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 34,
-                child: _ContinueButton(
-                  enabled: _selectedActivity != null,
-                  label: 'Continue',
-                  onPressed: _handleContinue,
+              if (hasSelection)
+                Positioned(
+                  left: 24,
+                  right: 24,
+                  bottom: 34,
+                  child: _ContinueButton(
+                    enabled: true,
+                    label: 'Continue',
+                    onPressed: _handleContinue,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
