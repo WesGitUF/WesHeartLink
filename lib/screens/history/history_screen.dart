@@ -292,7 +292,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
               _pill(
                 icon: Icons.timer_rounded,
-                label: 'time',
+                label: '',
                 value: _fmt(w.duration),
                 color: Colors.blueGrey,
               ),
