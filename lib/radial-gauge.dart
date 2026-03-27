@@ -1063,43 +1063,43 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 startValue: _maxHeartRate! * 0.40,
                 endValue: _maxHeartRate! * 0.65,
                 color: const Color(0xFF7D98AA),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.65,
                 endValue: _maxHeartRate! * 0.80,
                 color: const Color(0xFF3795E8),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.80,
                 endValue: _maxHeartRate! * 0.89,
                 color: const Color(0xFF52B84D),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.89,
                 endValue: _maxHeartRate! * 0.95,
                 color: const Color(0xFFFFA700),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.95,
                 endValue: _maxHeartRate!.toDouble(),
                 color: const Color(0xFFFF5546),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
               GaugeRange(
                 startValue: _maxHeartRate!.toDouble(),
                 endValue: _maxHeartRate! * 1.10,
                 color: const Color(0xFF1A1A1E),
-                startWidth: 65,
-                endWidth: 65,
+                startWidth: 50,
+                endWidth: 50,
               ),
             ],
             pointers: <GaugePointer>[
@@ -1108,12 +1108,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 enableAnimation: true,
                 animationDuration: 300,
                 markerType: MarkerType.triangle,
-                markerHeight: 40,
-                markerWidth: 42,
+                markerHeight: 38,
+                markerWidth: 40,
                 color: Colors.white,
                 borderColor: _zoneColor(),
-                borderWidth: 3.5,
-                markerOffset: 70,
+                borderWidth: 6.0,
+                markerOffset: 57,
               ),
               if (_guestConnected) ...[
                 MarkerPointer(
@@ -1125,7 +1125,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                   markerWidth: 26,
                   color: Colors.white,
                   borderColor: _colorForZone(partnerZone),
-                  borderWidth: 1.8,
+                  borderWidth: 3.0,
                   markerOffset: -5,
                 ),
                 WidgetPointer(
@@ -1242,275 +1242,314 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       body: SafeArea(
         child: Stack(
           children: [
-            SingleChildScrollView(
-              // ensure screen does not overflow when keyboard appears
-              physics: const ClampingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.only(top: 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    //toggle heart rate percentage
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _showPercent = !_showPercent;
-                          });
-                        },
-                        child: Text(
-                          _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
-                              ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
-                              : '$_userHR BPM',
-                          style: const TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white,
-                            letterSpacing: 0.4,
-                          ),
-                        ),
-                      ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
                     ),
-                    const SizedBox(height: 10),
-
-                    // GAUGE
-                    SizedBox(
-                      width: 340,
-                      height: 340,
-                      child: Stack(
-                        alignment: Alignment.center,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 16),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _getGauge(),
+                          const SizedBox(height: 8),
 
-                          // center emoji
-                          Container(
-                            width: 88,
-                            height: 88,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                            ),
-                            child: ClipOval(
-                              child: Image.asset(
-                                userZone.emojiImg,
-                                fit: BoxFit.cover,
+                          //toggle heart rate percentage
+                          Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _showPercent = !_showPercent;
+                                });
+                              },
+                              child: Text(
+                                _showPercent && _maxHeartRate != null &&
+                                    _maxHeartRate! > 0
+                                    ? '${((_userHR / _maxHeartRate!) * 100)
+                                    .round()}%'
+                                    : '$_userHR BPM',
+                                style: const TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white,
+                                  letterSpacing: 0.4,
+                                ),
                               ),
                             ),
                           ),
+                          const SizedBox(height: 10),
+
+                          // GAUGE
+                          SizedBox(
+                            width: 340,
+                            height: 340,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                _getGauge(),
+
+                                // center emoji
+                                Container(
+                                  width: 130,
+                                  height: 130,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      userZone.emojiImg,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // MESSAGE CARD
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Text(
+                              workoutMessage.toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13,
+                                letterSpacing: 1.2,
+                                color: _zoneColor(),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // CONTROLS
+                          Container(
+                            width: MediaQuery
+                                .of(context)
+                                .size
+                                .width * 0.78,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF101113),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              _formatDuration(_elapsed),
+                              style: const TextStyle(
+                                fontSize: 25,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          // MAX HR & AVG HR BOXES
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: MediaQuery
+                                    .of(context)
+                                    .size
+                                    .width * 0.37,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF101113),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _maxHeartRate != null &&
+                                        _maxSessionHR > 0
+                                        ? _colorForZone(getZoneForHR(
+                                        _maxSessionHR, _maxHeartRate!))
+                                        : Colors.white24,
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Max HR',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: (_maxHeartRate != null &&
+                                            _maxSessionHR > 0
+                                            ? _colorForZone(getZoneForHR(
+                                            _maxSessionHR, _maxHeartRate!))
+                                            : Colors.white)
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '$_maxSessionHR bpm',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: _maxHeartRate != null &&
+                                            _maxSessionHR > 0
+                                            ? _colorForZone(getZoneForHR(
+                                            _maxSessionHR, _maxHeartRate!))
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                width: MediaQuery
+                                    .of(context)
+                                    .size
+                                    .width * 0.37,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF101113),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: _maxHeartRate != null &&
+                                        averageHR > 0
+                                        ? _colorForZone(getZoneForHR(
+                                        averageHR.round(), _maxHeartRate!))
+                                        : Colors.white24,
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Avg HR',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                        color: (_maxHeartRate != null &&
+                                            averageHR > 0
+                                            ? _colorForZone(getZoneForHR(
+                                            averageHR.round(), _maxHeartRate!))
+                                            : Colors.white)
+                                            .withOpacity(0.5),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${averageHR.round()} bpm',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: _maxHeartRate != null &&
+                                            averageHR > 0
+                                            ? _colorForZone(getZoneForHR(
+                                            averageHR.round(), _maxHeartRate!))
+                                            : Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 15),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _isPaused = !_isPaused;
+                                    if (_isPaused) {
+                                      _stopwatch.stop();
+                                    } else {
+                                      _stopwatch.start();
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  width: 68,
+                                  height: 68,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF101113),
+                                  ),
+                                  child: Icon(
+                                    _isPaused ? Icons.play_arrow_rounded : Icons
+                                        .pause_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 22),
+                              GestureDetector(
+                                onTap: () => _confirmEndWorkout(context),
+                                child: Container(
+                                  width: 68,
+                                  height: 68,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF101113),
+                                  ),
+                                  child: const Icon(
+                                    Icons.stop_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // debug slider — only shown when using fake device
+                          if (userDeviceId == '00:11:22:33:44:55' &&
+                              _maxHeartRate != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'BPM: $_sliderHR',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 18,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  Slider(
+                                    value: _sliderHR.clamp(
+                                      (_maxHeartRate! * 0.40).round(),
+                                      _maxHeartRate!,
+                                    ).toDouble(),
+                                    min: (_maxHeartRate! * 0.40)
+                                        .roundToDouble(),
+                                    max: _maxHeartRate!.toDouble(),
+                                    divisions: (_maxHeartRate! -
+                                        (_maxHeartRate! * 0.40).round()),
+                                    label: '$_sliderHR',
+                                    onChanged: (v) =>
+                                        setState(() => _sliderHR = v.round()),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 10),
-
-                    // MESSAGE CARD
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: Text(
-                        workoutMessage.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 13,
-                          letterSpacing: 1.2,
-                          color: _zoneColor(),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // CONTROLS
-                    Container(
-                      width: MediaQuery.of(context).size.width * 0.78,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF101113),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        _formatDuration(_elapsed),
-                        style: const TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // MAX HR & AVG HR BOXES
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.37,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF101113),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _maxHeartRate != null && _maxSessionHR > 0
-                                  ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
-                                  : Colors.white24,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Max HR',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: (_maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
-                                      : Colors.white)
-                                      .withOpacity(0.5),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '$_maxSessionHR bpm',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: _maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
-                                      : Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.37,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF101113),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _maxHeartRate != null && averageHR > 0
-                                  ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
-                                  : Colors.white24,
-                              width: 1.2,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Avg HR',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: (_maxHeartRate != null && averageHR > 0
-                                      ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
-                                      : Colors.white)
-                                      .withOpacity(0.5),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${averageHR.round()} bpm',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: _maxHeartRate != null && averageHR > 0
-                                      ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
-                                      : Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isPaused = !_isPaused;
-                              if (_isPaused) {
-                                _stopwatch.stop();
-                              } else {
-                                _stopwatch.start();
-                              }
-                            });
-                          },
-                          child: Container(
-                            width: 68,
-                            height: 68,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF101113),
-                            ),
-                            child: Icon(
-                              _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 22),
-                        GestureDetector(
-                          onTap: () => _confirmEndWorkout(context),
-                          child: Container(
-                            width: 68,
-                            height: 68,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF101113),
-                            ),
-                            child: const Icon(
-                              Icons.stop_rounded,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // debug slider — only shown when using fake device
-                    if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'BPM: $_sliderHR',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
-                            Slider(
-                              value: _sliderHR.clamp(
-                                (_maxHeartRate! * 0.40).round(),
-                                _maxHeartRate!,
-                              ).toDouble(),
-                              min: (_maxHeartRate! * 0.40).roundToDouble(),
-                              max: _maxHeartRate!.toDouble(),
-                              divisions: (_maxHeartRate! - (_maxHeartRate! * 0.40).round()),
-                              label: '$_sliderHR',
-                              onChanged: (v) => setState(() => _sliderHR = v.round()),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
             if (_showOverlay) _buildSessionOverlay(),
           ],
