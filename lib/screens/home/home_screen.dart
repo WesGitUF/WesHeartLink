@@ -1830,12 +1830,12 @@ class _WorkoutCalendarScreenState extends State<WorkoutCalendarScreen> {
                             ),
                             if (hasWorkout)
                               const Positioned(
-                                bottom: 8,
-                                right: 8,
+                                top: 1.5,
+                                right: 1.5,
                                 child: Icon(
                                   Icons.favorite,
                                   color: Colors.redAccent,
-                                  size: 16,
+                                  size: 15,
                                 ),
                               ),
                           ],
