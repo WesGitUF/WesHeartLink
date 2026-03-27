@@ -11,6 +11,8 @@ import 'package:heart_link_app/services/weather_service.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/screens/history/history_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onTabVisible});
@@ -848,7 +850,13 @@ class _QuickActionsSection extends StatelessWidget {
                   svgAsset: 'assets/icons/calendaricon.svg',
                   iconColor: AppColors.purpleStrong,
                   iconBackground: const Color(0x1AAD46FF),
-                  onTap: () => showComingSoon('Calendar'),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const WorkoutCalendarScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -1570,6 +1578,288 @@ class _ExerciseAreaChart extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// Calendar Screen Widget
+class WorkoutCalendarScreen extends StatefulWidget {
+  const WorkoutCalendarScreen({super.key});
+
+  @override
+  State<WorkoutCalendarScreen> createState() => _WorkoutCalendarScreenState();
+}
+
+class _WorkoutCalendarScreenState extends State<WorkoutCalendarScreen> {
+  bool _loading = true;
+  DateTime _focusedMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  Set<DateTime> _workoutDays = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkoutDays();
+  }
+
+  DateTime _onlyDate(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  Future<void> _loadWorkoutDays() async {
+    try {
+      await HistoryRepo.instance.loadFromCloud();
+      final entries = HistoryRepo.instance.entries;
+
+      final days = entries.map((e) => _onlyDate(e.workout.start)).toSet();
+
+      if (!mounted) return;
+      setState(() {
+        _workoutDays = days;
+        _loading = false;
+      });
+    } catch (e) {
+      debugPrint('calendar load error: $e');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  bool _hasWorkout(DateTime day) {
+    return _workoutDays.contains(_onlyDate(day));
+  }
+
+  void _goToPreviousMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1);
+    });
+  }
+
+  void _goToNextMonth() {
+    setState(() {
+      _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1);
+    });
+  }
+
+  void _openDayHistory(DateTime day) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HistoryScreen(filterDate: day),
+      ),
+    );
+  }
+
+  String _monthLabel(DateTime month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return '${months[month.month - 1]} ${month.year}';
+  }
+
+  List<DateTime> _buildCalendarDays(DateTime month) {
+    final firstDayOfMonth = DateTime(month.year, month.month, 1);
+    final lastDayOfMonth = DateTime(month.year, month.month + 1, 0);
+
+    final startOffset = firstDayOfMonth.weekday % 7; // Sunday = 0
+    final firstGridDay = firstDayOfMonth.subtract(Duration(days: startOffset));
+
+    final totalDays =
+    ((startOffset + lastDayOfMonth.day) <= 35) ? 35 : 42;
+
+    return List.generate(
+      totalDays,
+          (index) => firstGridDay.add(Duration(days: index)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final days = _buildCalendarDays(_focusedMonth);
+    final today = DateTime.now();
+    final todayOnly = DateTime(today.year, today.month, today.day);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Workout Calendar'),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppGradients.pageBackground,
+        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.strokeSoft),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                      Color(0x5217191C),
+                      Color(0x3D17191C),
+                    ],
+                    stops: <double>[0.0266, 0.9709],
+                  ),
+                  boxShadow: const <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: _goToPreviousMonth,
+                      icon: const Icon(Icons.chevron_left),
+                    ),
+                    Expanded(
+                      child: Text(
+                        _monthLabel(_focusedMonth),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _goToNextMonth,
+                      icon: const Icon(Icons.chevron_right),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: const [
+                  Expanded(child: Center(child: Text('Sun', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Mon', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Tue', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Wed', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Thu', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Fri', style: TextStyle(color: Colors.white54)))),
+                  Expanded(child: Center(child: Text('Sat', style: TextStyle(color: Colors.white54)))),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              Expanded(
+                child: GridView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: days.length,
+                  gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) {
+                    final day = days[index];
+                    final isCurrentMonth =
+                        day.month == _focusedMonth.month;
+                    final isToday = day == todayOnly;
+                    final hasWorkout = _hasWorkout(day);
+
+                    return GestureDetector(
+                      onTap: () => _openDayHistory(day),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isToday
+                                ? AppColors.redStrong
+                                : AppColors.strokeSoft,
+                          ),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: isCurrentMonth
+                                ? const [
+                              Color(0x5217191C),
+                              Color(0x3D17191C),
+                            ]
+                                : const [
+                              Color(0x2217191C),
+                              Color(0x1817191C),
+                            ],
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              top: 8,
+                              left: 10,
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  color: isCurrentMonth
+                                      ? AppColors.textSecondary
+                                      : AppColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (hasWorkout)
+                              const Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Icon(
+                                  Icons.favorite,
+                                  color: Colors.redAccent,
+                                  size: 16,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.favorite, color: Colors.redAccent, size: 16),
+                  SizedBox(width: 6),
+                  Text(
+                    'Workout completed on this day',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
