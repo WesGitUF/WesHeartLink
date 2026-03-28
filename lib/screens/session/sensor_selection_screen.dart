@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/session/mode_selection_screen.dart';
 import 'package:heart_link_app/screens/session/widgets/session_action_card.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -242,57 +243,19 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     }
   }
 
-  Future<String?> _showModeDialog() {
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        final theme = Theme.of(context);
-
-        return AlertDialog(
-          backgroundColor: AppColors.surfacePrimary,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: AppColors.strokeSoft),
-          ),
-          title: Text('Choose mode', style: theme.textTheme.titleMedium),
-          content: Text(
-            'Would you like to start in online or offline mode? '
-            'Offline mode is not supported on iPhone.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'offline'),
-              child: const Text('Offline'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, 'online'),
-              child: const Text('Online'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _openSession({required bool isHost}) async {
     if (!_hasSelectedDevice) return;
 
-    final result = await _showModeDialog();
-    if (result == null || !mounted) return;
-
-    final isOnline = result == 'online';
-
-    Navigator.pushNamed(
+    await Navigator.push(
       context,
-      '/radialGauge',
-      arguments: {
-        'userDeviceId': _selectedUserDevice!.id,
-        'isOnline': isOnline,
-        'isHost': isHost,
-        'workoutMode': _workoutMode,
-      },
+      MaterialPageRoute(
+        builder:
+            (context) => ModeSelectionScreen(
+              userDeviceId: _selectedUserDevice!.id,
+              isHost: isHost,
+              workoutMode: _workoutMode,
+            ),
+      ),
     );
   }
 
