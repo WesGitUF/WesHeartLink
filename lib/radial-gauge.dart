@@ -1063,43 +1063,43 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 startValue: _maxHeartRate! * 0.40,
                 endValue: _maxHeartRate! * 0.65,
                 color: const Color(0xFF7D98AA),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.65,
                 endValue: _maxHeartRate! * 0.80,
                 color: const Color(0xFF3795E8),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.80,
                 endValue: _maxHeartRate! * 0.89,
                 color: const Color(0xFF52B84D),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.89,
                 endValue: _maxHeartRate! * 0.95,
                 color: const Color(0xFFFFA700),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
               GaugeRange(
                 startValue: _maxHeartRate! * 0.95,
                 endValue: _maxHeartRate!.toDouble(),
                 color: const Color(0xFFFF5546),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
               GaugeRange(
                 startValue: _maxHeartRate!.toDouble(),
                 endValue: _maxHeartRate! * 1.10,
                 color: const Color(0xFF1A1A1E),
-                startWidth: 50,
-                endWidth: 50,
+                startWidth: 55,
+                endWidth: 55,
               ),
             ],
             pointers: <GaugePointer>[
@@ -1113,7 +1113,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                 color: Colors.white,
                 borderColor: _zoneColor(),
                 borderWidth: 6.0,
-                markerOffset: 57,
+                markerOffset: 60,
               ),
               if (_guestConnected) ...[
                 MarkerPointer(
@@ -1293,8 +1293,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
                                 // center emoji
                                 Container(
-                                  width: 130,
-                                  height: 130,
+                                  width: 115,
+                                  height: 115,
                                   decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
                                   ),
