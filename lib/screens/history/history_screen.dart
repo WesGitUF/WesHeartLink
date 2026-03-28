@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:heart_link_app/screens/history/workoutdetail_screen.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 
 // simple workout data class
 class Workout {
@@ -53,6 +54,14 @@ class _HistoryScreenState extends State<HistoryScreen>
     final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
     return 'swipe_hint_last_shown_$uid';
   }
+
+  final Map<String, _ExerciseStyle> _exerciseStyles = {
+    'running': _ExerciseStyle('🏃', AppColors.green, const Color(0x2605DF72)),
+    'cycling': _ExerciseStyle('🚴', AppColors.blue, const Color(0x2651A2FF)),
+    'hiit': _ExerciseStyle('⚡', AppColors.orange, const Color(0x26FF8904)),
+    'walking': _ExerciseStyle('🚶', AppColors.purple, const Color(0x26C27AFF)),
+    'swimming': _ExerciseStyle('🏊', AppColors.blue, const Color(0x2651A2FF)),
+  };
 
   @override
   void initState() {
@@ -163,22 +172,6 @@ class _HistoryScreenState extends State<HistoryScreen>
     return h > 0 ? '${h}h ${m}m' : '${m}m ${s}s';
   }
 
-  // icon for workout type
-  IconData _iconFor(String type) {
-    switch (type.toLowerCase()) {
-      case 'running':
-        return Icons.directions_run_rounded;
-      case 'walking':
-        return Icons.directions_walk_rounded;
-      case 'cycling':
-        return Icons.pedal_bike_rounded;
-      case 'swimming':
-        return Icons.pool_rounded;
-      default:
-        return Icons.fitness_center_rounded;
-    }
-  }
-
   // select color for workout type
   Color _colorFor(BuildContext context, String type) {
     final scheme = Theme.of(context).colorScheme;
@@ -207,98 +200,76 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    // loading state from firebase
     if (_loading) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(title: Text(_title())),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppGradients.pageBackground,
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
       );
     }
 
-    // once load, listen to historyrepo update
     return AnimatedBuilder(
       animation: HistoryRepo.instance,
       builder: (context, _) {
         final all = HistoryRepo.instance.entries;
         final items = _filteredEntries(all);
+
         return Scaffold(
+          backgroundColor: AppColors.background,
           appBar: AppBar(title: Text(_title())),
-          body: items.isEmpty
-              ? Center(
-                  child: Text(
-                    widget.filterDate == null
-                        ? 'No sessions yet'
-                        : 'No sessions on this day',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, i) =>
-                      _workoutTile(context, items[i], nudge: i == 0 && _showSwipeHint),
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: AppGradients.pageBackground,
+            ),
+            child: items.isEmpty
+                ? Center(
+              child: Text(
+                widget.filterDate == null
+                    ? 'No sessions yet'
+                    : 'No sessions on this day',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textSecondary,
                 ),
+              ),
+            )
+                : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, i) => _workoutTile(
+                context,
+                items[i],
+                nudge: i == 0 && _showSwipeHint,
+              ),
+            ),
+          ),
         );
       },
     );
   }
 
-  // single workout tile
   Widget _workoutTile(BuildContext context, HistoryEntry entry, {bool nudge = false}) {
     final w = entry.workout;
-    final c = _colorFor(context, w.type);
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
 
-    final titleColor = scheme.onSurface;
-    final subColor = scheme.onSurfaceVariant;
-    final maxChipWidth = MediaQuery.of(context).size.width * 0.50;
+    final style =
+        _exerciseStyles[w.type.toLowerCase()] ??
+            const _ExerciseStyle('💪', AppColors.blue, Color(0x2651A2FF));
 
-    final card = Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    final card = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
       clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: c.withOpacity(0.12),
-          foregroundColor: c,
-          child: Icon(_iconFor(w.type)),
-        ),
-        title: Text(
-          w.type,
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: titleColor,
-          ),
-        ),
-        subtitle: Text(
-          _hm(context,w.start),
-          style: TextStyle(color: subColor),
-        ),
-        trailing: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxChipWidth),
-          child: Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            alignment: WrapAlignment.end,
-            children: [
-              _pill(
-                icon: Icons.favorite_rounded,
-                label: 'Avg',
-                value: '${w.avgHr} bpm',
-                color: const Color.fromARGB(255, 160, 52, 52),
-              ),
-              _pill(
-                icon: Icons.timer_rounded,
-                label: 'time',
-                value: _fmt(w.duration),
-                color: Colors.blueGrey,
-              ),
-            ],
-          ),
-        ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -309,6 +280,84 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
           );
         },
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.strokeSoft),
+            boxShadow: AppShadows.cardShadow,
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[
+                Color(0x6617191C),
+                Color(0x4D17191C),
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: style.background,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    style.emoji,
+                    style: const TextStyle(fontSize: 24, height: 1),
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        w.type,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _hm(context, w.start),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      Row(
+                        children: [
+                          _inlineStat(
+                            icon: Icons.favorite_border_rounded,
+                            value: '${w.avgHr} bpm',
+                            color: AppColors.red,
+                          ),
+                          const SizedBox(width: 16),
+                          _inlineStat(
+                            icon: Icons.timer_outlined,
+                            value: _fmt(w.duration),
+                            color: AppColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
 
@@ -316,10 +365,13 @@ class _HistoryScreenState extends State<HistoryScreen>
       key: ValueKey(entry.id ?? '${w.type}_${w.start.millisecondsSinceEpoch}'),
       direction: DismissDirection.endToStart,
       background: Container(
-        color: Colors.redAccent,
+        decoration: BoxDecoration(
+          color: AppColors.redStrong,
+          borderRadius: BorderRadius.circular(20),
+        ),
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete, color: Colors.white, size: 28),
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
       ),
       confirmDismiss: (direction) async {
         return await showDialog<bool>(
@@ -343,7 +395,8 @@ class _HistoryScreenState extends State<HistoryScreen>
               ],
             );
           },
-        ) ?? false;
+        ) ??
+            false;
       },
       onDismissed: (_) {
         HistoryRepo.instance.delete(entry);
@@ -353,18 +406,17 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     if (!nudge) return dismissible;
 
-    // nudge: stack red background behind + animate the card sliding left
     return Stack(
       children: [
         Positioned.fill(
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.redAccent,
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.redStrong,
+              borderRadius: BorderRadius.circular(20),
             ),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
-            child: const Icon(Icons.delete, color: Colors.white, size: 28),
+            child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
           ),
         ),
         AnimatedBuilder(
@@ -381,47 +433,37 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  // single pill widget
-  Widget _pill({
+  Widget _inlineStat({
     required IconData icon,
-    required String label,
     required String value,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: color,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textMuted,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style:
-                TextStyle(fontSize: 11, color: color.withOpacity(0.9)),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
+
+class _ExerciseStyle {
+  final String emoji;
+  final Color accent;
+  final Color background;
+
+  const _ExerciseStyle(this.emoji, this.accent, this.background);
 }
