@@ -37,10 +37,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _handleFacebookLogin() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Facebook login coming soon')),
-    );
+  Future<void> _handleFacebookLogin() async {
+    try {
+      final User? user = await _authService.signInWithFacebook();
+      if (user != null && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _handleGoogleLogin() async {

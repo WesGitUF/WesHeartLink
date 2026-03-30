@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
@@ -79,13 +80,16 @@ class AuthService {
 
   // Facebook Sign In
   Future<User?> signInWithFacebook() async {
-    // TODO: implement Facebook login
-    // 1. Add flutter_facebook_auth to pubspec.yaml
-    // 2. Call FacebookAuth.instance.login()
-    // 3. Get credential via FacebookAuthProvider.credential(accessToken)
-    // 4. Call _auth.signInWithCredential(credential)
-    // 5. Call _ensureUserDoc on result
-    throw UnimplementedError('Facebook login not yet implemented');
+    final result = await FacebookAuth.instance.login();
+    if (result.status != LoginStatus.success || result.accessToken == null) {
+      return null; // User cancelled or failed
+    }
+    final credential = FacebookAuthProvider.credential(
+      result.accessToken!.tokenString,
+    );
+    final userCredential = await _auth.signInWithCredential(credential);
+    if (userCredential.user != null) await _ensureUserDoc(userCredential.user!);
+    return userCredential.user;
   }
 
   // Google Sign In

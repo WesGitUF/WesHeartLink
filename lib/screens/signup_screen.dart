@@ -316,30 +316,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _socialButton('G'),
+        _socialButton('G', onTap: _handleGoogleSignUp),
         const SizedBox(width: 16),
-        _socialButton('f'),
+        _socialButton('f', onTap: _handleFacebookSignUp),
       ],
     );
   }
 
-  Widget _socialButton(String label) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        // rgba(23,25,28,0.8) = cardOverlayStrong
-        color: AppColors.cardOverlayStrong,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.strokeSoft),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textTertiary,
+  Widget _socialButton(String label, {required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          // rgba(23,25,28,0.8) = cardOverlayStrong
+          color: AppColors.cardOverlayStrong,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.strokeSoft),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textTertiary,
+          ),
         ),
       ),
     );
@@ -378,6 +381,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ── Auth logic ────────────────────────────────────────────────────────────
+
+  Future<void> _handleGoogleSignUp() async {
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (user != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppShell()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _handleFacebookSignUp() async {
+    try {
+      final user = await _authService.signInWithFacebook();
+      if (user != null && mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppShell()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
 
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;
