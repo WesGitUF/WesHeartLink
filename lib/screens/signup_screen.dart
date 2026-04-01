@@ -7,6 +7,7 @@ import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/screens/complete_profile_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -179,7 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       items: const [
         DropdownMenuItem(value: 'male', child: Text('Male')),
         DropdownMenuItem(value: 'female', child: Text('Female')),
-        DropdownMenuItem(value: 'other', child: Text('Other')),
       ],
       onChanged: (v) => setState(() => _gender = v),
       validator: (v) => v == null ? 'Select gender' : null,
@@ -404,7 +404,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       if (user != null) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AppShell()),
+          MaterialPageRoute(
+            builder: (_) => CompleteProfileScreen(user: user),
+          ),
           (route) => false,
         );
       }
