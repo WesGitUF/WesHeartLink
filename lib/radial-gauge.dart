@@ -19,6 +19,7 @@ import 'package:heart_link_app/services/workout_notification_service.dart';
 import 'package:heart_link_app/services/workout_haptic_settings.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
 class GaugeChart extends StatefulWidget {
   final String userDeviceId;
@@ -26,6 +27,7 @@ class GaugeChart extends StatefulWidget {
   final bool isHost;
   final String workoutMode;
   final bool isOnline;
+  final bool embeddedInShell;
 
   const GaugeChart({
     Key? key,
@@ -34,6 +36,7 @@ class GaugeChart extends StatefulWidget {
     required this.isOnline,
     required this.isHost,
     required this.workoutMode,
+    this.embeddedInShell = false,
   }) : super(key: key);
 
   @override
@@ -271,6 +274,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     }
   }
 
+  void _markWorkoutActive() {
+    hrState.startWorkout(
+      ActiveWorkoutConfig(
+        userDeviceId: widget.userDeviceId,
+        isHost: widget.isHost,
+        isOnline: widget.isOnline,
+        workoutMode: widget.workoutMode,
+      ),
+    );
+  }
+
 
   Future<void> _stopWorkoutNotification() async {
     if (kIsWeb) return;
@@ -426,6 +440,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       // End session check
       if (data['sessionActive'] == false) {
         await _stopWorkoutNotification();
+        hrState.endWorkout();
+
         final averageHR = _hrCount > 0 ? _hrSum ~/ _hrCount : 0;
         _timer?.cancel();
         _stopwatch.stop();
@@ -445,22 +461,25 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => TrackingResultScreen(
-              elapsedTime: _elapsed,
-              sameZoneTime: _sameZone,
-              workoutMode: _workoutMode,
-              workoutModeIcon: _workoutModeIcon!,
-              maxHeartRate: _maxSessionHR,
-              avgHeartRate: averageHR.toDouble(),
-              calories: calories.toDouble(),
-              series: hrValues,
-              isSolo: isSolo,
-              topZone: peakZoneName,
-              theoreticalMaxHr: _maxHeartRate!)),
-            (_) => false,
+            MaterialPageRoute(
+              builder: (context) => TrackingResultScreen(
+                elapsedTime: _elapsed,
+                sameZoneTime: _sameZone,
+                workoutMode: _workoutMode,
+                workoutModeIcon: _workoutModeIcon!,
+                maxHeartRate: _maxSessionHR,
+                avgHeartRate: averageHR.toDouble(),
+                calories: calories.toDouble(),
+                series: hrValues,
+                isSolo: isSolo,
+                topZone: peakZoneName,
+                theoreticalMaxHr: _maxHeartRate!,
+              ),
+            ),
+                (_) => false,
           );
         }
-      } 
+      }
     });
   }
 
@@ -652,6 +671,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
             _guestConnected = true;
             _showOverlay = false;
           });
+
+          _markWorkoutActive();
           _stopwatch.start();
           _startTimer();
           await _startWorkoutNotification();
@@ -719,13 +740,16 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       if (data != null && data['user2Id'] != null && !_guestConnected) {
         final ok = await _ensureBackgroundSetupBeforeStart();
         if (!ok) return;
+
         setState(() {
           _guestConnected = true;
           _showOverlay = false;
-          _listenForPartnerHR();
-          _stopwatch.start();
-          _startTimer();
         });
+
+        _listenForPartnerHR();
+        _markWorkoutActive();
+        _stopwatch.start();
+        _startTimer();
         await _startWorkoutNotification();
       }
     });
@@ -846,6 +870,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     if (!_isActiveSession) return;
     await _stopWorkoutNotification();
 
+    hrState.endWorkout();
+
     setState(() {
       _isActiveSession = false;
     });
@@ -871,19 +897,22 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => TrackingResultScreen(
-        elapsedTime: _elapsed,
-        sameZoneTime: _sameZone,
-        workoutMode: _workoutMode,
-        workoutModeIcon: _workoutModeIcon!,
-        maxHeartRate: _maxSessionHR,
-        avgHeartRate: averageHR.toDouble(),
-        calories: calories.toDouble(),
-        series: hrValues,
-        isSolo: isSolo,
-        topZone: peakZoneName,
-        theoreticalMaxHr: _maxHeartRate!)),
-      (_) => false,
+      MaterialPageRoute(
+        builder: (context) => TrackingResultScreen(
+          elapsedTime: _elapsed,
+          sameZoneTime: _sameZone,
+          workoutMode: _workoutMode,
+          workoutModeIcon: _workoutModeIcon!,
+          maxHeartRate: _maxSessionHR,
+          avgHeartRate: averageHR.toDouble(),
+          calories: calories.toDouble(),
+          series: hrValues,
+          isSolo: isSolo,
+          topZone: peakZoneName,
+          theoreticalMaxHr: _maxHeartRate!,
+        ),
+      ),
+          (_) => false,
     );
   }
 
@@ -915,24 +944,27 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                       builder: (context, guestConnected, _) {
                         return ElevatedButton(
                           onPressed: (_isOnline! && !guestConnected)
-                            ? null
-                            : () async {
+                              ? null
+                              : () async {
                             final ok = await _ensureBackgroundSetupBeforeStart();
                             if (!ok) return;
-                              setState(() {
-                                _showOverlay = false;
 
-                                if (guestConnected) {
-                                  _guestConnected = true;      // paired workout
-                                } else {
-                                  _guestConnected = false;
-                                  isSolo = true;   // solo fallback
-                                }
-                              });
+                            setState(() {
+                              _showOverlay = false;
 
-                              _stopwatch.start();
-                              _startTimer();
-                              await _startWorkoutNotification();
+                              if (guestConnected) {
+                                _guestConnected = true;
+                                isSolo = false;
+                              } else {
+                                _guestConnected = false;
+                                isSolo = true;
+                              }
+                            });
+
+                            _markWorkoutActive();
+                            _stopwatch.start();
+                            _startTimer();
+                            await _startWorkoutNotification();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -1006,12 +1038,15 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
                         final ok = await _ensureBackgroundSetupBeforeStart();
                         if (!ok) return;
+
                         setState(() {
                           _isHost = false;
                           _guestConnected = true;
                           _showOverlay = false;
                         });
+
                         _listenForPartnerHR();
+                        _markWorkoutActive();
                         _stopwatch.start();
                         _startTimer();
                         await _startWorkoutNotification();
@@ -1228,333 +1263,317 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    //draw circular loading widget if still loading
-    if (isLoading || _maxHeartRate == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    // App bar (heart logo w/ workout icon)
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 16),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 8),
+  Widget _buildWorkoutBody() {
+    return SafeArea(
+      child: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 8),
 
-                          //toggle heart rate percentage
-                          Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _showPercent = !_showPercent;
-                                });
-                              },
-                              child: Text(
-                                _showPercent && _maxHeartRate != null &&
-                                    _maxHeartRate! > 0
-                                    ? '${((_userHR / _maxHeartRate!) * 100)
-                                    .round()}%'
-                                    : '$_userHR BPM',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.white,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // GAUGE
-                          SizedBox(
-                            width: 340,
-                            height: 340,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                _getGauge(),
-
-                                // center emoji
-                                Container(
-                                  width: 115,
-                                  height: 115,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      userZone.emojiImg,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // MESSAGE CARD
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _showPercent = !_showPercent;
+                              });
+                            },
                             child: Text(
-                              workoutMessage.toUpperCase(),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                letterSpacing: 1.2,
-                                color: _zoneColor(),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // CONTROLS
-                          Container(
-                            width: MediaQuery
-                                .of(context)
-                                .size
-                                .width * 0.78,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF101113),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text(
-                              _formatDuration(_elapsed),
+                              _showPercent && _maxHeartRate != null && _maxHeartRate! > 0
+                                  ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
+                                  : '$_userHR BPM',
                               style: const TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w400,
                                 color: Colors.white,
-                                letterSpacing: 0.5,
+                                letterSpacing: 0.4,
                               ),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 10),
 
-                          const SizedBox(height: 8),
-
-                          // MAX HR & AVG HR BOXES
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                        SizedBox(
+                          width: 340,
+                          height: 340,
+                          child: Stack(
+                            alignment: Alignment.center,
                             children: [
+                              _getGauge(),
                               Container(
-                                width: MediaQuery
-                                    .of(context)
-                                    .size
-                                    .width * 0.37,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF101113),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _maxHeartRate != null &&
-                                        _maxSessionHR > 0
-                                        ? _colorForZone(getZoneForHR(
-                                        _maxSessionHR, _maxHeartRate!))
-                                        : Colors.white24,
-                                    width: 1.2,
-                                  ),
+                                width: 115,
+                                height: 115,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
                                 ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Max HR',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: (_maxHeartRate != null &&
-                                            _maxSessionHR > 0
-                                            ? _colorForZone(getZoneForHR(
-                                            _maxSessionHR, _maxHeartRate!))
-                                            : Colors.white)
-                                            .withOpacity(0.5),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$_maxSessionHR bpm',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: _maxHeartRate != null &&
-                                            _maxSessionHR > 0
-                                            ? _colorForZone(getZoneForHR(
-                                            _maxSessionHR, _maxHeartRate!))
-                                            : Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Container(
-                                width: MediaQuery
-                                    .of(context)
-                                    .size
-                                    .width * 0.37,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF101113),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _maxHeartRate != null &&
-                                        averageHR > 0
-                                        ? _colorForZone(getZoneForHR(
-                                        averageHR.round(), _maxHeartRate!))
-                                        : Colors.white24,
-                                    width: 1.2,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Avg HR',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: (_maxHeartRate != null &&
-                                            averageHR > 0
-                                            ? _colorForZone(getZoneForHR(
-                                            averageHR.round(), _maxHeartRate!))
-                                            : Colors.white)
-                                            .withOpacity(0.5),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${averageHR.round()} bpm',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: _maxHeartRate != null &&
-                                            averageHR > 0
-                                            ? _colorForZone(getZoneForHR(
-                                            averageHR.round(), _maxHeartRate!))
-                                            : Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _isPaused = !_isPaused;
-                                    if (_isPaused) {
-                                      _stopwatch.stop();
-                                    } else {
-                                      _stopwatch.start();
-                                    }
-                                  });
-                                },
-                                child: Container(
-                                  width: 68,
-                                  height: 68,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xFF101113),
-                                  ),
-                                  child: Icon(
-                                    _isPaused ? Icons.play_arrow_rounded : Icons
-                                        .pause_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 22),
-                              GestureDetector(
-                                onTap: () => _confirmEndWorkout(context),
-                                child: Container(
-                                  width: 68,
-                                  height: 68,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Color(0xFF101113),
-                                  ),
-                                  child: const Icon(
-                                    Icons.stop_rounded,
-                                    color: Colors.white,
-                                    size: 24,
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    userZone.emojiImg,
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                        ),
 
-                          // debug slider — only shown when using fake device
-                          if (userDeviceId == '00:11:22:33:44:55' &&
-                              _maxHeartRate != null)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                        const SizedBox(height: 40),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          child: Text(
+                            workoutMessage.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              letterSpacing: 1.2,
+                              color: _zoneColor(),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        Container(
+                          width: MediaQuery.of(context).size.width * 0.78,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF101113),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            _formatDuration(_elapsed),
+                            style: const TextStyle(
+                              fontSize: 25,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.37,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101113),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _maxHeartRate != null && _maxSessionHR > 0
+                                      ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                      : Colors.white24,
+                                  width: 1.2,
+                                ),
+                              ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   Text(
-                                    'BPM: $_sliderHR',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 18,
-                                        fontWeight: FontWeight.w600),
+                                    'Max HR',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: (_maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                          : Colors.white)
+                                          .withOpacity(0.5),
+                                    ),
                                   ),
-                                  Slider(
-                                    value: _sliderHR.clamp(
-                                      (_maxHeartRate! * 0.40).round(),
-                                      _maxHeartRate!,
-                                    ).toDouble(),
-                                    min: (_maxHeartRate! * 0.40)
-                                        .roundToDouble(),
-                                    max: _maxHeartRate!.toDouble(),
-                                    divisions: (_maxHeartRate! -
-                                        (_maxHeartRate! * 0.40).round()),
-                                    label: '$_sliderHR',
-                                    onChanged: (v) =>
-                                        setState(() => _sliderHR = v.round()),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '$_maxSessionHR bpm',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(getZoneForHR(_maxSessionHR, _maxHeartRate!))
+                                          : Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 12),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.37,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101113),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _maxHeartRate != null && averageHR > 0
+                                      ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                      : Colors.white24,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Avg HR',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: (_maxHeartRate != null && averageHR > 0
+                                          ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                          : Colors.white)
+                                          .withOpacity(0.5),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${averageHR.round()} bpm',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: _maxHeartRate != null && averageHR > 0
+                                          ? _colorForZone(getZoneForHR(averageHR.round(), _maxHeartRate!))
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
 
-                        ],
-                      ),
+                        const SizedBox(height: 15),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isPaused = !_isPaused;
+                                  if (_isPaused) {
+                                    _stopwatch.stop();
+                                  } else {
+                                    _stopwatch.start();
+                                  }
+                                });
+                              },
+                              child: Container(
+                                width: 68,
+                                height: 68,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF101113),
+                                ),
+                                child: Icon(
+                                  _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 22),
+                            GestureDetector(
+                              onTap: () => _confirmEndWorkout(context),
+                              child: Container(
+                                width: 68,
+                                height: 68,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF101113),
+                                ),
+                                child: const Icon(
+                                  Icons.stop_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Text(
+                                  'BPM: $_sliderHR',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Slider(
+                                  value: _sliderHR.clamp(
+                                    (_maxHeartRate! * 0.40).round(),
+                                    _maxHeartRate!,
+                                  ).toDouble(),
+                                  min: (_maxHeartRate! * 0.40).roundToDouble(),
+                                  max: _maxHeartRate!.toDouble(),
+                                  divisions: (_maxHeartRate! - (_maxHeartRate! * 0.40).round()),
+                                  label: '$_sliderHR',
+                                  onChanged: (v) => setState(() => _sliderHR = v.round()),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-            if (_showOverlay) _buildSessionOverlay(),
-          ],
-        ),
+                ),
+              );
+            },
+          ),
+          if (_showOverlay) _buildSessionOverlay(),
+        ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading || _maxHeartRate == null) {
+      final loading = const Center(child: CircularProgressIndicator());
+
+      if (widget.embeddedInShell) {
+        return Container(
+          color: AppColors.background,
+          child: loading,
+        );
+      }
+
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final content = Container(
+      color: AppColors.background,
+      child: _buildWorkoutBody(),
+    );
+
+    if (widget.embeddedInShell) {
+      return content;
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: content,
     );
   }
 }
