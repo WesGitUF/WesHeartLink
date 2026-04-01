@@ -8,6 +8,7 @@ import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/services/hrm_connection_controller.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
   final String workoutMode;
@@ -22,21 +23,38 @@ class SensorSelectionScreen extends StatefulWidget {
 }
 
 class _SensorSelectionScreenState extends State<SensorSelectionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final List<DiscoveredDevice> _devicesList = [];
   DiscoveredDevice? _selectedUserDevice;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
+  late final HrmConnectionController _hrmController;
+  StreamSubscription<HrmConnectionState>? _hrmStateSub;
+  HrmConnectionState _hrmState = HrmConnectionState.disconnected;
   late final AnimationController _glowController;
   late final Animation<double> _glowOpacity;
   late final Animation<double> _glowScale;
+  late final AnimationController _beatController;
+  late final Animation<double> _beatScale;
 
+  static const String _fakeDeviceId = '00:11:22:33:44:55';
   late String _workoutMode;
 
   @override
   void initState() {
     super.initState();
     _workoutMode = widget.workoutMode;
+    _hrmController = HrmConnectionController(_ble);
+    _hrmStateSub = _hrmController.stateStream.listen((state) {
+      if (!mounted) return;
+      setState(() => _hrmState = state);
+      if (state == HrmConnectionState.connected) {
+        _beatController.repeat();
+      } else {
+        _beatController.stop();
+        _beatController.reset();
+      }
+    });
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
@@ -53,10 +71,21 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     ).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
+    _beatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _beatScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.22), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.22, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.12), weight: 12),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 12),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 46),
+    ]).animate(_beatController);
     // Dummy device for testing
     setState(() {
       _devicesList.add(DiscoveredDevice(
-        id: '00:11:22:33:44:55', // Valid Bluetooth address format.
+        id: _fakeDeviceId,
         name: 'Fake HRM Device',
         serviceData: {},
         manufacturerData: Uint8List(0),
@@ -85,13 +114,11 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   }
 
   void _startScan() {
-    // Filter for the Heart Rate Service (UUID: 180D).
-    final serviceUuid = Uuid.parse("180D");
+    final serviceUuid = Uuid.parse('180D');
     _scanSubscription = _ble.scanForDevices(
       withServices: [serviceUuid],
       scanMode: ScanMode.lowLatency,
     ).listen((DiscoveredDevice device) {
-      print("Discovered device: ${device.name.isNotEmpty ? device.name : device.id}, RSSI: ${device.rssi}");
       if (!_devicesList.any((d) => d.id == device.id)) {
         setState(() {
           _devicesList.add(device);
@@ -103,19 +130,44 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   }
 
   bool get _hasSelectedDevice => _selectedUserDevice != null;
+  bool get _isConnected => _hrmState == HrmConnectionState.connected;
 
   String get _selectedDeviceLabel {
     final device = _selectedUserDevice;
     if (device == null) return 'No sensor connected';
-
     final name = device.name.trim();
     return name.isNotEmpty ? name : device.id;
+  }
+
+  String get _connectionStatusLabel {
+    switch (_hrmState) {
+      case HrmConnectionState.connected:
+        return 'Connected';
+      case HrmConnectionState.connecting:
+        return 'Connecting...';
+      case HrmConnectionState.disconnected:
+        return _selectedUserDevice != null ? 'Disconnected' : 'No sensor connected';
+    }
+  }
+
+  Color _connectionStatusColor(BuildContext context) {
+    switch (_hrmState) {
+      case HrmConnectionState.connected:
+        return AppColors.green.withValues(alpha: 0.9);
+      case HrmConnectionState.connecting:
+        return AppColors.textSecondary;
+      case HrmConnectionState.disconnected:
+        return AppColors.red.withValues(alpha: 0.9);
+    }
   }
 
   @override
   void dispose() {
     _scanSubscription?.cancel();
+    _hrmStateSub?.cancel();
+    _hrmController.dispose();
     _glowController.dispose();
+    _beatController.dispose();
     super.dispose();
   }
 
@@ -221,11 +273,12 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
       },
     );
     if (selected != null) {
-      setState(() {
-        if (forUser) {
-          _selectedUserDevice = selected;
-        }
-      });
+      setState(() => _selectedUserDevice = selected);
+      if (selected.id == _fakeDeviceId) {
+        _hrmController.connectFake(selected.id);
+      } else {
+        _hrmController.connect(selected.id);
+      }
     }
   }
 
@@ -310,7 +363,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                if (_hasSelectedDevice)
+                if (_isConnected)
                   Positioned(
                     top: 24,
                     child: AnimatedBuilder(
@@ -356,17 +409,32 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     ),
                   ),
                   child: Center(
-                    child: SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: SvgPicture.asset(
-                        'assets/icons/hearticon.svg',
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.red,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
+                    child: _isConnected
+                        ? ScaleTransition(
+                            scale: _beatScale,
+                            child: SizedBox(
+                              width: 72,
+                              height: 72,
+                              child: SvgPicture.asset(
+                                'assets/icons/hearticon.svg',
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.red,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            width: 72,
+                            height: 72,
+                            child: SvgPicture.asset(
+                              'assets/icons/hearticon.svg',
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.red,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 if (!_hasSelectedDevice)
@@ -410,7 +478,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
           duration: const Duration(milliseconds: 200),
           child: _hasSelectedDevice
               ? Column(
-                  key: const ValueKey('connected'),
+                  key: ValueKey(_hrmState),
                   children: [
                     Text(
                       _selectedDeviceLabel,
@@ -421,17 +489,17 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Connected',
+                      _connectionStatusLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: AppColors.green.withValues(alpha: 0.9),
+                        color: _connectionStatusColor(context),
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 )
               : Text(
-                  _selectedDeviceLabel,
-                  key: const ValueKey('disconnected'),
+                  _connectionStatusLabel,
+                  key: const ValueKey('none'),
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: AppColors.red.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w400,
@@ -624,7 +692,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                       iconBackground: const Color(0x1AFF6467),
                       title: 'Create Session',
                       subtitle: 'Start a new workout',
-                      onTap: _hasSelectedDevice
+                      onTap: _isConnected
                           ? () => _openSession(isHost: true)
                           : null,
                     ),
@@ -636,7 +704,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                       iconBackground: const Color(0x1A2B7FFF),
                       title: 'Join Session',
                       subtitle: 'Connect with others',
-                      onTap: _hasSelectedDevice
+                      onTap: _isConnected
                           ? () => _openSession(isHost: false)
                           : null,
                     ),
