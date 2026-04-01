@@ -22,7 +22,7 @@ class SensorSelectionScreen extends StatefulWidget {
 }
 
 class _SensorSelectionScreenState extends State<SensorSelectionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final List<DiscoveredDevice> _devicesList = [];
   DiscoveredDevice? _selectedUserDevice;
@@ -30,6 +30,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   late final AnimationController _glowController;
   late final Animation<double> _glowOpacity;
   late final Animation<double> _glowScale;
+  late final AnimationController _beatController;
+  late final Animation<double> _beatScale;
 
   late String _workoutMode;
 
@@ -53,6 +55,17 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     ).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
+    _beatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _beatScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.22), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.22, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.12), weight: 12),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 12),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 46),
+    ]).animate(_beatController);
     // Dummy device for testing
     setState(() {
       _devicesList.add(DiscoveredDevice(
@@ -116,6 +129,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   void dispose() {
     _scanSubscription?.cancel();
     _glowController.dispose();
+    _beatController.dispose();
     super.dispose();
   }
 
@@ -224,6 +238,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
       setState(() {
         if (forUser) {
           _selectedUserDevice = selected;
+          _beatController.repeat();
         }
       });
     }
@@ -356,14 +371,17 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     ),
                   ),
                   child: Center(
-                    child: SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: SvgPicture.asset(
-                        'assets/icons/hearticon.svg',
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.red,
-                          BlendMode.srcIn,
+                    child: ScaleTransition(
+                      scale: _beatScale,
+                      child: SizedBox(
+                        width: 72,
+                        height: 72,
+                        child: SvgPicture.asset(
+                          'assets/icons/hearticon.svg',
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.red,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                     ),
