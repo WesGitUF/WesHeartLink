@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart' show Workout;
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 
 class WorkoutDetailScreen extends StatelessWidget {
   final Workout workout;
@@ -86,36 +88,51 @@ class WorkoutDetailScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(workout.type), scrolledUnderElevation: 0),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          workout.type,
+          style: theme.textTheme.titleMedium,
+        ),
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppGradients.pageBackground,
+        ),
+        child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           // User info row
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
-                backgroundColor: const Color(0xFF424242),
+                radius: 20,
+                backgroundColor: AppColors.surfacePrimary,
                 backgroundImage: (user?.photoURL?.isNotEmpty == true)
                     ? NetworkImage(user!.photoURL!)
                     : null,
                 child: (user?.photoURL?.isNotEmpty == true)
                     ? null
-                    : const Icon(Icons.person, size: 18),
+                    : const Icon(Icons.person_outline, size: 18, color:AppColors.textSecondary),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _displayName(user),
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
                       _timeRange(context, start, end),
-                      style: const TextStyle(fontSize: 12, color: Colors.white70),
+                      style: theme.textTheme.labelMedium,
                     ),
                   ],
                 ),
@@ -125,48 +142,54 @@ class WorkoutDetailScreen extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Average heart rate card
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
-            ),
+          _GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.favorite, size: 22, color: Color(0xFFE53935)),
-                    SizedBox(width: 8),
-                    Text(
-                      'Average Heart Rate',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.favorite_border_rounded,
+                            size: 22,
+                            color: AppColors.redStrong,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Average Heart Rate',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '${workout.avgHr}',
-                      style: const TextStyle(
-                        fontSize: 70,
-                        fontWeight: FontWeight.w900,
-                        height: 1.0,
-                        letterSpacing: 0.5,
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        fontSize: 64,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 6),
+                    const SizedBox(width: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
                         'bpm',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white70,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textMuted,
                         ),
                       ),
                     ),
@@ -179,80 +202,232 @@ class WorkoutDetailScreen extends StatelessWidget {
 
           // Heart rate trend graph
           if (series.isNotEmpty) ...[
-            const Text(
+            Text(
               'Heart Rate Trend',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 260,
-              child: CustomPaint(
-                painter: _HrCurvePainter(
-                  series: series,
-                  theoreticalMaxHr: theoreticalMaxHr,
-                  yAxisMax: sessionMaxHr,
-                  tickCount: 4,
-                  startLabel: '0:00',
-                  endLabel: _formatDuration(workout.duration),
-                ),
-                size: Size.infinite,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
-            const Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              children: [
-                _ZoneDot(color: Color(0xFF666A70), label: '40–65%'),
-                _ZoneDot(color: Color(0xFF2F6BDA), label: '66–80%'),
-                _ZoneDot(color: Color(0xFF66B35B), label: '81–89%'),
-                _ZoneDot(color: Color(0xFFF3A43B), label: '90–95%'),
-                _ZoneDot(color: Color(0xFFE25353), label: '95–100%'),
-              ],
+            const SizedBox(height: 10),
+            _GlassCard(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 260,
+                    child: CustomPaint(
+                      painter: _HrCurvePainter(
+                        series: series,
+                        theoreticalMaxHr: theoreticalMaxHr,
+                        yAxisMax: sessionMaxHr,
+                        tickCount: 4,
+                        startLabel: '0:00',
+                        endLabel: _formatDuration(workout.duration),
+                      ),
+                      size: Size.infinite,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: const [
+                        _ZoneDot(color: Color(0xFF666A70), label: '40–65%'),
+                        SizedBox(width: 10),
+                        _ZoneDot(color: Color(0xFF2F6BDA), label: '66–80%'),
+                        SizedBox(width: 10),
+                        _ZoneDot(color: Color(0xFF66B35B), label: '81–89%'),
+                        SizedBox(width: 10),
+                        _ZoneDot(color: Color(0xFFF3A43B), label: '90–95%'),
+                        SizedBox(width: 10),
+                        _ZoneDot(color: Color(0xFFE25353), label: '95–100%'),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
           ],
 
           // Time in Zone
           if (series.isNotEmpty) ...[
-            const Text(
+            Text(
               'Time in Zone',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
+            _GlassCard(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
               child: _ZoneBarChart(zonePercents: zonePercents),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
           ],
 
           // Workout stats
-          const Text(
-            'Workout Data',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(12),
+          if (series.isNotEmpty) ...[
+            Text(
+              'Workout Data',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _statCell('Duration', _formatDuration(workout.duration)),
-                _statCell('Calories', '${workout.calories} kcal'),
-                _statCell('Max HR', '$sessionMaxHr bpm'),
-              ],
-            ),
+              const SizedBox(height: 10),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 1.15,
+                children: [
+                  _WorkoutStatCard(
+                    label: 'Duration',
+                    value: _formatDuration(workout.duration),
+                    icon: Icons.schedule_outlined,
+                    accent: AppColors.blue,
+                  ),
+                  _WorkoutStatCard(
+                    label: 'Calories',
+                    value: '${workout.calories} kcal',
+                    icon: Icons.local_fire_department_outlined,
+                    accent: AppColors.orange,
+                  ),
+                  _WorkoutStatCard(
+                    label: 'Max HR',
+                    value: '$sessionMaxHr bpm',
+                    icon: Icons.favorite_border_rounded,
+                    accent: AppColors.redStrong,
+                  ),
+                  _WorkoutStatCard(
+                    label: 'Peak Zone',
+                    value: workout.topZone ?? 'N/A',
+                    icon: Icons.monitor_heart_outlined,
+                    accent: AppColors.purple
+                  ),
+                ],
+              ),
+            ],
+           ],
           ),
-        ],
+        ),
+    );
+  }
+}
+
+class _WorkoutStatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color accent;
+
+  const _WorkoutStatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.strokeSoft),
+          boxShadow: AppShadows.cardShadow,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              Color(0x6617191C),
+              Color(0x4D17191C),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 24,
+                color: accent,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: AppColors.textMuted,
+                  fontSize: 14,
+                  letterSpacing: 0.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  const _GlassCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.strokeSoft),
+          boxShadow: AppShadows.cardShadow,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: <Color>[
+              Color(0x6617191C),
+              Color(0x4D17191C),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: padding,
+          child: child,
+        ),
       ),
     );
   }
@@ -270,12 +445,22 @@ class _ZoneDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
         ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(color: Colors.white70)),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
@@ -320,7 +505,8 @@ class _ZoneBarChart extends StatelessWidget{
                           Container(
                             height: 14,
                             decoration: BoxDecoration(
-                              color: Colors.white10,
+                              color: AppColors.surfaceSecondary,
+                              border: Border.all(color: AppColors.strokeSoft),
                               borderRadius: BorderRadius.circular(7),
                             ),
                           ),
@@ -345,7 +531,10 @@ class _ZoneBarChart extends StatelessWidget{
                   child: Text(
                     '${(zonePercents[i] * 100).round()}%',
                     textAlign: TextAlign.right,
-                    style: const TextStyle(fontSize: 13, color: Colors.white70),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -426,7 +615,7 @@ class _HrCurvePainter extends CustomPainter {
     if (series.isEmpty) return;
 
     const double paddingLeft   = 44;
-    const double paddingRight  = 44;
+    const double paddingRight  = 16;
     const double paddingTop    = 8;
     const double paddingBottom = 26;
 
@@ -468,12 +657,6 @@ class _HrCurvePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
       leftLabel.paint(canvas, Offset(chartArea.left - 4 - leftLabel.width, y - leftLabel.height / 2));
-
-      final rightLabel = TextPainter(
-        text: TextSpan(text: '$tick', style: labelStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      rightLabel.paint(canvas, Offset(chartArea.right + 4, y - rightLabel.height / 2));
     }
 
     // X-axis baseline
@@ -481,7 +664,7 @@ class _HrCurvePainter extends CustomPainter {
       Offset(chartArea.left,  chartArea.bottom),
       Offset(chartArea.right, chartArea.bottom),
       Paint()
-        ..color = Colors.black26
+        ..color = AppColors.strokeSoft
         ..strokeWidth = 2,
     );
     _drawText(canvas, Offset(chartArea.left,  chartArea.bottom + 14), startLabel,
