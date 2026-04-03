@@ -45,7 +45,7 @@ class GaugeChart extends StatefulWidget {
   _GaugeChartState createState() => _GaugeChartState();
 }
 
-class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
+class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final SessionService _sessionService = SessionService();
 
@@ -109,6 +109,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
   Timer? _timer;
 
   StreamSubscription<Map<String, dynamic>?>? _sessionListener;
+
+  // play animation controller
+  late final AnimationController _pulseController;
 
   //keep track of if displayed emoji is user or partner
   bool userImage = true;
@@ -829,6 +832,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
       _audioPlayer.setSource(AssetSource(asset));
     });
     _initAsync();
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -843,6 +851,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     nearbyService.stopAll();
 
     WorkoutNotificationService.dispose();
+
+    _pulseController.dispose();
 
     super.dispose();
   }
@@ -1334,7 +1344,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                     minHeight: constraints.maxHeight,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 16),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1386,7 +1396,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                           ),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 24),
 
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -1402,7 +1412,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                           ),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 35),
 
                         Container(
                           width: MediaQuery.of(context).size.width * 0.78,
@@ -1525,11 +1535,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                                   setState(() {
                                     _isPaused = false;
                                   });
+                                  _pulseController.stop();
                                   _stopwatch.start();
                                   _startTimer();
                                   await _startWorkoutNotification();
                                 } else {
-                                  //toggle pause/resume
                                   setState(() {
                                     _isPaused = !_isPaused;
                                     if (_isPaused) {
@@ -1540,21 +1550,54 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                                   });
                                 }
                               },
-                              child: Container(
-                                width: 68,
-                                height: 68,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFF101113),
-                                ),
-                                child: Icon(
-                                  _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                                  color: Colors.white,
-                                  size: 28,
+                              child: AnimatedBuilder(
+                                animation: _pulseController,
+                                builder: (context, child) {
+                                  final shouldPulse = _isPaused && _elapsed == Duration.zero;
+                                  final scale = shouldPulse
+                                      ? 1.0 + (_pulseController.value * 0.15)
+                                      : 1.0;
+                                  final glowOpacity = shouldPulse
+                                      ? 0.3 + (_pulseController.value * 0.4)
+                                      : 0.0;
+
+                                  return Container(
+                                    decoration: shouldPulse
+                                        ? BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.redStrong.withOpacity(glowOpacity),
+                                          blurRadius: 24,
+                                          spreadRadius: 8,
+                                        ),
+                                      ],
+                                    )
+                                        : null,
+                                    child: Transform.scale(
+                                      scale: scale,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: 68,
+                                  height: 68,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: (_isPaused && _elapsed == Duration.zero)
+                                        ? AppColors.red
+                                        : const Color(0xFF101113),
+                                  ),
+                                  child: Icon(
+                                    _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 22),
+                            const SizedBox(width: 70),
                             GestureDetector(
                               onTap: () => _confirmEndWorkout(context),
                               child: Container(
