@@ -1772,90 +1772,90 @@ class _WorkoutCalendarScreenState extends State<WorkoutCalendarScreen> {
 
               const SizedBox(height: 10),
 
-              Expanded(
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: days.length,
-                  gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemBuilder: (context, index) {
-                    final day = days[index];
-                    final isCurrentMonth =
-                        day.month == _focusedMonth.month;
-                    final isToday = day == todayOnly;
-                    final hasWorkout = _hasWorkout(day);
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: days.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemBuilder: (context, index) {
+                      final day = days[index];
+                      final isCurrentMonth = day.month == _focusedMonth.month;
+                      final isToday = day == todayOnly;
+                      final hasWorkout = _hasWorkout(day);
 
-                    return GestureDetector(
-                      onTap: () => _openDayHistory(day),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isToday
-                                ? AppColors.redStrong
-                                : AppColors.strokeSoft,
+                      return GestureDetector(
+                        onTap: () => _openDayHistory(day),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isToday
+                                  ? AppColors.redStrong
+                                  : AppColors.strokeSoft,
+                            ),
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isCurrentMonth
+                                  ? const [
+                                Color(0x5217191C),
+                                Color(0x3D17191C),
+                              ]
+                                  : const [
+                                Color(0x2217191C),
+                                Color(0x1817191C),
+                              ],
+                            ),
                           ),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: isCurrentMonth
-                                ? const [
-                              Color(0x5217191C),
-                              Color(0x3D17191C),
-                            ]
-                                : const [
-                              Color(0x2217191C),
-                              Color(0x1817191C),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                top: 8,
+                                left: 10,
+                                child: Text(
+                                  '${day.day}',
+                                  style: TextStyle(
+                                    color: isCurrentMonth
+                                        ? AppColors.textSecondary
+                                        : AppColors.textMuted,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              if (hasWorkout)
+                                const Positioned(
+                                  top: 1.5,
+                                  right: 1.5,
+                                  child: Icon(
+                                    Icons.favorite,
+                                    color: Colors.redAccent,
+                                    size: 15,
+                                  ),
+                                ),
                             ],
                           ),
                         ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              top: 8,
-                              left: 10,
-                              child: Text(
-                                '${day.day}',
-                                style: TextStyle(
-                                  color: isCurrentMonth
-                                      ? AppColors.textSecondary
-                                      : AppColors.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            if (hasWorkout)
-                              const Positioned(
-                                top: 1.5,
-                                right: 1.5,
-                                child: Icon(
-                                  Icons.favorite,
-                                  color: Colors.redAccent,
-                                  size: 15,
-                                ),
-                              ),
-                          ],
-                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite, color: Colors.redAccent, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        'Workout completed on this day',
+                        style: TextStyle(color: Colors.white70),
                       ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.favorite, color: Colors.redAccent, size: 16),
-                  SizedBox(width: 6),
-                  Text(
-                    'Workout completed on this day',
-                    style: TextStyle(color: Colors.white70),
+                    ],
                   ),
                 ],
               ),
