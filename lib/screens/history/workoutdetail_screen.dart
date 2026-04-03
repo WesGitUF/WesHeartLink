@@ -15,6 +15,18 @@ class WorkoutDetailScreen extends StatelessWidget {
     required this.series,
   });
 
+  String _computePeakZone(int sessionMaxHr, int theoreticalMaxHr) {
+    if (theoreticalMaxHr <= 0) return 'Unknown';
+
+    final p = sessionMaxHr / theoreticalMaxHr;
+
+    if (p <= 0.65) return 'Zone 1';
+    if (p <= 0.80) return 'Zone 2';
+    if (p <= 0.89) return 'Zone 3';
+    if (p <= 0.95) return 'Zone 4';
+    return 'Zone 5';
+  }
+
   String _formatDuration(Duration d) {
     String pad(int n) => n.toString().padLeft(2, '0');
     return '${pad(d.inHours)}:${pad(d.inMinutes.remainder(60))}:${pad(d.inSeconds.remainder(60))}';
@@ -70,6 +82,8 @@ class WorkoutDetailScreen extends StatelessWidget {
         : series.reduce((a, b) => a > b ? a : b);
 
     final int theoreticalMaxHr = workout.theoreticalMaxHr ?? hrState.maxHr;
+
+    final String peakZone = _computePeakZone(sessionMaxHr, theoreticalMaxHr);
 
     // Count readings per zone for the Time in Zone chart
     final zoneCounts = List<int>.filled(5, 0);
@@ -307,7 +321,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                   ),
                   _WorkoutStatCard(
                     label: 'Peak Zone',
-                    value: workout.topZone ?? 'N/A',
+                    value: peakZone,
                     icon: Icons.monitor_heart_outlined,
                     accent: AppColors.purple
                   ),
