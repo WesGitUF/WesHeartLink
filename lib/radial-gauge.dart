@@ -17,6 +17,8 @@ import 'package:heart_link_app/services/background_setup.dart';
 import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:heart_link_app/services/workout_notification_service.dart';
 import 'package:heart_link_app/services/workout_haptic_settings.dart';
+import 'package:heart_link_app/services/active_workout_store.dart';
+import 'package:heart_link_app/services/bpm_log_file.dart';
 import 'package:heart_link_app/services/workout_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
@@ -123,8 +125,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   // For HR tracking over session
   int _maxSessionHR = 0;
-  int _hrSum = 0; 
+  int _hrSum = 0;
   int _hrCount = 0;  // to calculate average efficiently
+
+  // For crash-recovery auto-save
+  DateTime? _workoutStartTime;
+  int _ticksSinceLastSave = 0;
+  int _lastSavedBpmIndex = 0;   // tracks how many BPM entries have been flushed
+  static const int _saveIntervalTicks = 10; // save every 10 s
 
   String? sessionId;
   final TextEditingController _sessionIdController = TextEditingController();
@@ -283,6 +291,31 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         workoutMode: widget.workoutMode,
       ),
     );
+    // Clear any BPM data left over from a previous session so the new workout
+    // starts with a clean file. _lastSavedBpmIndex is reset to 0 so appends
+    // start from the beginning of the new hrValues list.
+    _lastSavedBpmIndex = 0;
+    BpmLogFile.clear(); // fire-and-forget
+  }
+
+  Future<void> _saveCurrentState() async {
+    if (!_isActiveSession || _showOverlay || _workoutStartTime == null) return;
+    // Append only the new BPM entries since the last save — O(new entries) not O(total)
+    final newEntries = hrValues.sublist(_lastSavedBpmIndex);
+    await BpmLogFile.append(newEntries);
+    _lastSavedBpmIndex = hrValues.length;
+
+    await ActiveWorkoutStore.save(
+      active: true,
+      start: _workoutStartTime!,
+      elapsed: _stopwatch.elapsed,
+      paused: _isPaused,
+      maxHr: _maxSessionHR,
+      sumHr: _hrSum,
+      timesHr: _hrCount,
+      workoutMode: _workoutMode,
+      theoreticalMaxHr: _maxHeartRate ?? 0,
+    );
   }
 
 
@@ -383,6 +416,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
       _elapsed = _stopwatch.elapsed;
     });
+
+    // Persist state periodically so a crash can be recovered on next launch
+    _ticksSinceLastSave++;
+    if (_ticksSinceLastSave >= _saveIntervalTicks) {
+      _ticksSinceLastSave = 0;
+      _saveCurrentState();
+    }
 
     if (zoneBumpUp) {
       final now = DateTime.now();
@@ -674,6 +714,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
           _markWorkoutActive();
           _stopwatch.start();
+          _workoutStartTime = DateTime.now();
           _startTimer();
           await _startWorkoutNotification();
         }
@@ -749,6 +790,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
         _listenForPartnerHR();
         _markWorkoutActive();
         _stopwatch.start();
+        _workoutStartTime = DateTime.now();
         _startTimer();
         await _startWorkoutNotification();
       }
@@ -802,6 +844,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // If user just changed settings/permissions, react immediately
       await _onPermissionsPossiblyChanged();
+    } else if (state == AppLifecycleState.paused ||
+               state == AppLifecycleState.detached) {
+      // App is being backgrounded or killed — persist session immediately
+      await _saveCurrentState();
     }
   }
 
@@ -871,6 +917,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
     await _stopWorkoutNotification();
 
     hrState.endWorkout();
+    await ActiveWorkoutStore.clear();
+    await BpmLogFile.clear();
 
     setState(() {
       _isActiveSession = false;
@@ -963,6 +1011,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
                             _markWorkoutActive();
                             _stopwatch.start();
+                            _workoutStartTime = DateTime.now();
                             _startTimer();
                             await _startWorkoutNotification();
                           },
@@ -1048,6 +1097,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                         _listenForPartnerHR();
                         _markWorkoutActive();
                         _stopwatch.start();
+                        _workoutStartTime = DateTime.now();
                         _startTimer();
                         await _startWorkoutNotification();
                       },

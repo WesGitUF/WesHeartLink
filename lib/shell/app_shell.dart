@@ -6,6 +6,7 @@ import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/screens/session/workout_root_screen.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/services/workout_service.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -29,6 +30,19 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _index = widget.initialIndex;
+    _recoverCrashedWorkoutIfNeeded();
+  }
+
+  Future<void> _recoverCrashedWorkoutIfNeeded() async {
+    final recovered = await WorkoutService.recoverCrashedWorkout();
+    if (recovered && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your previous workout was automatically saved.'),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   // switch tab
