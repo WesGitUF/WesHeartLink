@@ -72,7 +72,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
 
   //booleans to check state of session
   bool isLoading = true;
-  bool _isPaused = false;
+  bool _isPaused = true;
   bool done = false;
   bool isSolo = false;
 
@@ -678,6 +678,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
           await _startWorkoutNotification();
         }
       });
+    }
+
+    if (!_isOnline! && _isHost!) {
+      setState(() {
+        _showOverlay = false;
+        isSolo = true;
+      });
+      _markWorkoutActive();
     }
 
     // Initialize data before calling tickupdate
@@ -1460,15 +1468,27 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isPaused = !_isPaused;
-                                  if (_isPaused) {
-                                    _stopwatch.stop();
-                                  } else {
-                                    _stopwatch.start();
-                                  }
-                                });
+                              onTap: () async {
+                                if (!_stopwatch.isRunning && _elapsed == Duration.zero) {
+                                  final ok = await _ensureBackgroundSetupBeforeStart();
+                                  if (!ok) return;
+                                  setState(() {
+                                    _isPaused = false;
+                                  });
+                                  _stopwatch.start();
+                                  _startTimer();
+                                  await _startWorkoutNotification();
+                                } else {
+                                  //toggle pause/resume
+                                  setState(() {
+                                    _isPaused = !_isPaused;
+                                    if (_isPaused) {
+                                      _stopwatch.stop();
+                                    } else {
+                                      _stopwatch.start();
+                                    }
+                                  });
+                                }
                               },
                               child: Container(
                                 width: 68,
