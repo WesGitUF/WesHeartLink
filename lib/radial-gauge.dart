@@ -1414,23 +1414,83 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
                         const SizedBox(height: 35),
 
-                        Container(
-                          width: MediaQuery.of(context).size.width * 0.78,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF101113),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            _formatDuration(_elapsed),
-                            style: const TextStyle(
-                              fontSize: 25,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: 0.5,
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.37,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101113),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Duration',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.5),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDuration(_elapsed),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 12),
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.37,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101113),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white24,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Calories',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.5),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${WorkoutService.calculateCalories(
+                                      avgHr: averageHR.toInt(),
+                                      age: userAge,
+                                      weight: _userWeight,
+                                      gender: _userGender,
+                                      duration: _elapsed,
+                                    )} cal',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
 
                         const SizedBox(height: 8),
