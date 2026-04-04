@@ -1344,7 +1344,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                     minHeight: constraints.maxHeight,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.only(top: 8, bottom: 50),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1524,22 +1524,73 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
                         const SizedBox(height: 15),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            GestureDetector(
+                        if (_isPaused && _elapsed == Duration.zero)
+                        // START BUTTON — matches session screen Continue button
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: GestureDetector(
                               onTap: () async {
-                                if (!_stopwatch.isRunning && _elapsed == Duration.zero) {
-                                  final ok = await _ensureBackgroundSetupBeforeStart();
-                                  if (!ok) return;
-                                  setState(() {
-                                    _isPaused = false;
-                                  });
-                                  _pulseController.stop();
-                                  _stopwatch.start();
-                                  _startTimer();
-                                  await _startWorkoutNotification();
-                                } else {
+                                final ok = await _ensureBackgroundSetupBeforeStart();
+                                if (!ok) return;
+                                setState(() {
+                                  _isPaused = false;
+                                });
+                                _pulseController.stop();
+                                _stopwatch.start();
+                                _startTimer();
+                                await _startWorkoutNotification();
+                              },
+                              child: AnimatedBuilder(
+                                animation: _pulseController,
+                                builder: (context, child) {
+                                  final glowOpacity = 0.3 + (_pulseController.value * 0.3);
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(18),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.redStrong.withOpacity(glowOpacity),
+                                          blurRadius: 24,
+                                          spreadRadius: 0,
+                                          offset: const Offset(0, 12),
+                                        ),
+                                      ],
+                                    ),
+                                    child: child,
+                                  );
+                                },
+                                child: Container(
+                                  height: 56,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(18),
+                                    gradient: const LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [Color(0xFFFF6467), AppColors.redStrong],
+                                    ),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Start',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                        // PAUSE + STOP BUTTONS — shown after workout starts
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
                                   setState(() {
                                     _isPaused = !_isPaused;
                                     if (_isPaused) {
@@ -1548,46 +1599,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                       _stopwatch.start();
                                     }
                                   });
-                                }
-                              },
-                              child: AnimatedBuilder(
-                                animation: _pulseController,
-                                builder: (context, child) {
-                                  final shouldPulse = _isPaused && _elapsed == Duration.zero;
-                                  final scale = shouldPulse
-                                      ? 1.0 + (_pulseController.value * 0.15)
-                                      : 1.0;
-                                  final glowOpacity = shouldPulse
-                                      ? 0.3 + (_pulseController.value * 0.4)
-                                      : 0.0;
-
-                                  return Container(
-                                    decoration: shouldPulse
-                                        ? BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.redStrong.withOpacity(glowOpacity),
-                                          blurRadius: 24,
-                                          spreadRadius: 8,
-                                        ),
-                                      ],
-                                    )
-                                        : null,
-                                    child: Transform.scale(
-                                      scale: scale,
-                                      child: child,
-                                    ),
-                                  );
                                 },
                                 child: Container(
                                   width: 68,
                                   height: 68,
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: (_isPaused && _elapsed == Duration.zero)
-                                        ? AppColors.red
-                                        : const Color(0xFF101113),
+                                    color: Color(0xFF101113),
                                   ),
                                   child: Icon(
                                     _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
@@ -1596,26 +1614,25 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 70),
-                            GestureDetector(
-                              onTap: () => _confirmEndWorkout(context),
-                              child: Container(
-                                width: 68,
-                                height: 68,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Color(0xFF101113),
-                                ),
-                                child: const Icon(
-                                  Icons.stop_rounded,
-                                  color: Colors.white,
-                                  size: 24,
+                              const SizedBox(width: 70),
+                              GestureDetector(
+                                onTap: () => _confirmEndWorkout(context),
+                                child: Container(
+                                  width: 68,
+                                  height: 68,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Color(0xFF101113),
+                                  ),
+                                  child: const Icon(
+                                    Icons.stop_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
 
                         if (userDeviceId == '00:11:22:33:44:55' && _maxHeartRate != null)
                           Padding(
