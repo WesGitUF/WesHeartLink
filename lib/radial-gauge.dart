@@ -327,6 +327,28 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     await WorkoutNotificationService.stop();
   }
 
+  void _showTrackingSummary(BuildContext context, {required double calories}) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TrackingResultScreen(
+          elapsedTime: _elapsed,
+          sameZoneTime: _sameZone,
+          workoutMode: _workoutMode,
+          workoutModeIcon: _workoutModeIcon!,
+          maxHeartRate: _maxSessionHR,
+          avgHeartRate: averageHR.toDouble(),
+          calories: calories,
+          series: hrValues,
+          isSolo: isSolo,
+          topZone: peakZoneName,
+          theoreticalMaxHr: _maxHeartRate!,
+        ),
+      ),
+      (_) => false,
+    );
+  }
+
   Future<void> _startWorkoutNotification() async {
     if (kIsWeb) return;
 
@@ -483,9 +505,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       // End session check
       if (data['sessionActive'] == false) {
         await _stopWorkoutNotification();
-        hrState.endWorkout();
 
-        final averageHR = _hrCount > 0 ? _hrSum ~/ _hrCount : 0;
         _timer?.cancel();
         _stopwatch.stop();
         _isActiveSession = false;
@@ -494,7 +514,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
         _sessionListener = null;
 
         final calories = WorkoutService.calculateCalories(
-          avgHr: averageHR,
+          avgHr: averageHR.toInt(),
           age: userAge,
           weight: _userWeight,
           gender: _userGender,
@@ -502,26 +522,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
         );
 
         if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TrackingResultScreen(
-                elapsedTime: _elapsed,
-                sameZoneTime: _sameZone,
-                workoutMode: _workoutMode,
-                workoutModeIcon: _workoutModeIcon!,
-                maxHeartRate: _maxSessionHR,
-                avgHeartRate: averageHR.toDouble(),
-                calories: calories.toDouble(),
-                series: hrValues,
-                isSolo: isSolo,
-                topZone: peakZoneName,
-                theoreticalMaxHr: _maxHeartRate!,
-              ),
-            ),
-                (_) => false,
-          );
+          _showTrackingSummary(context, calories: calories.toDouble());
         }
+
+        hrState.endWorkout();
       }
     });
   }
@@ -934,7 +938,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     if (!_isActiveSession) return;
     await _stopWorkoutNotification();
 
-    hrState.endWorkout();
     await ActiveWorkoutStore.clear();
     await BpmLogFile.clear();
 
@@ -961,25 +964,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       duration: _elapsed,
     );
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TrackingResultScreen(
-          elapsedTime: _elapsed,
-          sameZoneTime: _sameZone,
-          workoutMode: _workoutMode,
-          workoutModeIcon: _workoutModeIcon!,
-          maxHeartRate: _maxSessionHR,
-          avgHeartRate: averageHR.toDouble(),
-          calories: calories.toDouble(),
-          series: hrValues,
-          isSolo: isSolo,
-          topZone: peakZoneName,
-          theoreticalMaxHr: _maxHeartRate!,
-        ),
-      ),
-          (_) => false,
-    );
+    _showTrackingSummary(context, calories: calories.toDouble());
+    hrState.endWorkout();
   }
 
   // Session overlay widget
