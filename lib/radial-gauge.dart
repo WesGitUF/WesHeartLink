@@ -108,6 +108,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   late final AudioPlayer _audioPlayer;
 
   Timer? _timer;
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 5;
+  static const Duration _reconnectDelay = Duration(seconds: 5);
 
   StreamSubscription<Map<String, dynamic>?>? _sessionListener;
 
@@ -603,11 +607,27 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
             _hasBleReading = false;
             _userHR = 0;
           });
+          _scheduleReconnect();
         }
       });
     }
     // Once connections start, cancel scanning to reduce load.
     _scanSubscription?.cancel();
+  }
+
+  void _scheduleReconnect() {
+    _reconnectTimer?.cancel();
+    if (!mounted || !_isActiveSession) return;
+    if (userDeviceId == null || userDeviceId == '00:11:22:33:44:55') return;
+    if (_reconnectAttempts >= _maxReconnectAttempts) return;
+
+    _reconnectTimer = Timer(_reconnectDelay, () async {
+      if (!mounted || !_isActiveSession || _hasBleReading) return;
+      _reconnectAttempts++;
+      await _userConnection?.cancel();
+      _userConnection = null;
+      _connectToDevices();
+    });
   }
 
   void _subscribeToCharacteristic(String deviceId) {
@@ -624,6 +644,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
           if (userDeviceId == '00:11:22:33:44:55') { return;}
           _userHR = _parseHeartRate(data);
           _hasBleReading = true;
+          _reconnectAttempts = 0;
+          _reconnectTimer?.cancel();
         });
       },
       onError: (error) {
@@ -862,6 +884,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     _userSubscription?.cancel();
     _userConnection?.cancel();
     _timer?.cancel();
+    _reconnectTimer?.cancel();
     _audioPlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
