@@ -83,7 +83,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   int userAge = 0;
   double _userWeight = 70.0;
   String _userGender = '';
-  int _userHR = 100;
+  int _userHR = 0;
+  bool _hasBleReading = false;
   int _partnerHR = 0;
   int _sliderHR = 100;
 
@@ -426,18 +427,20 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
         );
       }
 
-      // Update session stats
-      _hrSum += _userHR;
-      _hrCount++;
+      // Update session stats — only when BLE is actively delivering readings
+      if (_hasBleReading) {
+        _hrSum += _userHR;
+        _hrCount++;
 
-      if (_userHR > _maxSessionHR) {
-        _maxSessionHR = _userHR;
+        if (_userHR > _maxSessionHR) {
+          _maxSessionHR = _userHR;
+        }
+
+        // Update time spent in current zone
+        final zoneName = userZone.name;
+        zoneTime[zoneName] = (zoneTime[zoneName] ?? 0) + 1000;
+        hrValues.add(_userHR);
       }
-
-      // Update time spent in current zone
-      final zoneName = userZone.name;
-      zoneTime[zoneName] = (zoneTime[zoneName] ?? 0) + 1000;
-      hrValues.add(_userHR);
 
       _elapsed = _stopwatch.elapsed;
     });
@@ -593,6 +596,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       ).listen((connectionState) {
         if (connectionState.connectionState == DeviceConnectionState.connected) {
           _subscribeToCharacteristic(userDeviceId!);
+        } else if (connectionState.connectionState == DeviceConnectionState.disconnected) {
+          _userSubscription?.cancel();
+          _userSubscription = null;
+          setState(() {
+            _hasBleReading = false;
+            _userHR = 0;
+          });
         }
       });
     }
@@ -607,14 +617,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       characteristicId: Uuid.parse("2A37"),
     );
 
+    _userSubscription?.cancel();
     final subscription = _ble.subscribeToCharacteristic(characteristic).listen(
       (data) {
         setState(() {
           if (userDeviceId == '00:11:22:33:44:55') { return;}
           _userHR = _parseHeartRate(data);
+          _hasBleReading = true;
         });
       },
       onError: (error) {
+        setState(() => _hasBleReading = false);
         print("Error on device $deviceId: $error");
       },
     );
