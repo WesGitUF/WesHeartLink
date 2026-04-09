@@ -6,8 +6,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
-import 'package:heart_link_app/shell/app_shell.dart';
 import 'package:heart_link_app/services/hrm_connection_controller.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
@@ -324,21 +322,15 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
     final isOnline = result == 'online';
 
-    hrState.setWorkoutConfig(
-      ActiveWorkoutConfig(
-        userDeviceId: _selectedUserDevice!.id,
-        isHost: isHost,
-        isOnline: isOnline,
-        workoutMode: _workoutMode,
-      ),
-    );
-
-    Navigator.pushAndRemoveUntil(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AppShell(initialIndex: 2),
-      ),
-          (_) => false,
+      '/radialGauge',
+      arguments: {
+        'userDeviceId': _selectedUserDevice!.id,
+        'isOnline': isOnline,
+        'isHost': isHost,
+        'workoutMode': _workoutMode,
+      },
     );
   }
 

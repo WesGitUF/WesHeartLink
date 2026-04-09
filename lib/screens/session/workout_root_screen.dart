@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
-import 'package:heart_link_app/screens/session/active_workout_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 
 class WorkoutRootScreen extends StatelessWidget {
@@ -11,12 +10,6 @@ class WorkoutRootScreen extends StatelessWidget {
     return AnimatedBuilder(
       animation: hrState,
       builder: (context, _) {
-        final activeConfig = hrState.activeWorkout;
-
-        if (activeConfig != null) {
-          return ActiveWorkoutScreen(config: activeConfig);
-        }
-
         return Scaffold(
           backgroundColor: AppColors.background,
           body: Container(
@@ -37,7 +30,7 @@ class WorkoutRootScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 18),
                       Text(
-                        'No workout in progress',
+                        'Current Workout Page WIP',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,
@@ -47,7 +40,7 @@ class WorkoutRootScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'Press + to start a workout and track your progress.',
+                        'For now, press + to start a workout and track your progress.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
