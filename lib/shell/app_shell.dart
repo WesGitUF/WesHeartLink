@@ -4,18 +4,14 @@ import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/profile/profile_screen.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
-import 'package:heart_link_app/screens/session/workout_root_screen.dart';
-import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
 import 'package:heart_link_app/services/workout_service.dart';
+import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/session/workout_root_screen.dart';
 
 class AppShell extends StatefulWidget {
-  const AppShell({
-    super.key,
-    this.initialIndex = 0,
-  });
+  const AppShell({super.key});
 
-  final int initialIndex;
   @override
   State<AppShell> createState() => _AppShellState();
 }
@@ -23,14 +19,13 @@ class AppShell extends StatefulWidget {
 // use to manage bottom navigation and floating action button
 class _AppShellState extends State<AppShell> {
   // current selected index
-  late int _index;
+  int _index = 0;
   final ValueNotifier<int> _historyTabs = ValueNotifier(0);
   final ValueNotifier<int> _homeTabs = ValueNotifier(0);
 
   @override
   void initState() {
     super.initState();
-    _index = widget.initialIndex;
     _recoverCrashedWorkoutIfNeeded();
   }
 
@@ -55,21 +50,15 @@ class _AppShellState extends State<AppShell> {
   }
 
   // switch tab
-  void _go(int i) {
-    setState(() {
-      if (i == 1) _historyTabs.value++;
-      if (i == 0) _homeTabs.value++;
-      _index = i;
-    });
-  }
+  void _go(int i) => setState(() {
+    if (i == 1) _historyTabs.value++;
+    if (i == 0) _homeTabs.value++;
+    _index = i;
+  });
 
   // floating action button opens the session selection flow
   Future<void> _openSessionFlow() async {
-    if (hrState.sessionActive) {
-      _go(2); // go to Workout tab if one is already active
-      return;
-    }
-
+    //if (_index != 3) _go(3);
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => const SessionScreen(),
@@ -151,7 +140,17 @@ class _AppShellState extends State<AppShell> {
           boxShadow: AppShadows.fabGlow,
         ),
         child: FloatingActionButton(
-          onPressed: _openSessionFlow,
+          onPressed: () {
+            if (hrState.sessionActive) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("You can't start a new session while a workout is active."),
+                ),
+              );
+              return;
+            }
+            _openSessionFlow();
+          },
           elevation: 0,
           backgroundColor: Colors.transparent,
           foregroundColor: AppColors.white,
