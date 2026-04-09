@@ -28,6 +28,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
   late final HrmConnectionController _hrmController;
   StreamSubscription<HrmConnectionState>? _hrmStateSub;
+  bool _previewReleased = false;
   HrmConnectionState _hrmState = HrmConnectionState.disconnected;
   late final AnimationController _glowController;
   late final Animation<double> _glowOpacity;
@@ -102,6 +103,19 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     });
   }
 
+  Future<void> _releasePreviewConnection() async {
+    if (_previewReleased) return;
+    _previewReleased = true;
+
+    await _scanSubscription?.cancel();
+    _scanSubscription = null;
+
+    await _hrmStateSub?.cancel();
+    _hrmStateSub = null;
+
+    _hrmController.dispose();
+  }
+
   Future<bool> requestPermissions() async {
     final statuses = await [
       Permission.location,
@@ -161,9 +175,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
   @override
   void dispose() {
-    _scanSubscription?.cancel();
-    _hrmStateSub?.cancel();
-    _hrmController.dispose();
+    _releasePreviewConnection();
     _glowController.dispose();
     _beatController.dispose();
     super.dispose();
@@ -322,7 +334,10 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
     final isOnline = result == 'online';
 
-    Navigator.pushNamed(
+    await _releasePreviewConnection();
+    if (!mounted) return;
+
+    Navigator.pushReplacementNamed(
       context,
       '/radialGauge',
       arguments: {
