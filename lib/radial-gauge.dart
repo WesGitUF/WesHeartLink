@@ -57,6 +57,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   StreamSubscription<List<int>>? _userSubscription;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
 
+  DateTime? _lastHrPacketAt;
+  int? _latestPacketHr;
+
   //store device ID
   String? userDeviceId;
 
@@ -81,7 +84,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   int userAge = 0;
   double _userWeight = 70.0;
   String _userGender = '';
-  int _userHR = 100;
+  int _userHR = 0;
   int _partnerHR = 0;
   int _sliderHR = 100;
 
@@ -379,6 +382,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     bool zoneBumpUp = false;
 
+    final now = DateTime.now();
+    final bool isFakeDevice = userDeviceId == '00:11:22:33:44:55';
+    final bool hasFreshRealReading = isFakeDevice
+        ? true
+        : (_lastHrPacketAt != null &&
+        now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
+
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
@@ -412,28 +422,30 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       }
 
       // Send user HR to partner via Nearby or Firestore
-      if (!_isOnline!) {
-        nearbyService.sendHeartRate(_userHR);
-      } else if (sessionId != null) {
-        _sessionService.updateHeartRate(
-          sessionId!,
-          isHost: _isHost!,
-          hr: _userHR,
-        );
+      if (isFakeDevice || hasFreshRealReading) {
+        // Send user HR to partner via Nearby or Firestore
+        if (!_isOnline!) {
+          nearbyService.sendHeartRate(_userHR);
+        } else if (sessionId != null) {
+          _sessionService.updateHeartRate(
+            sessionId!,
+            isHost: _isHost!,
+            hr: _userHR,
+          );
+        }
+
+        // Update session stats only when the reading is fresh
+        _hrSum += _userHR;
+        _hrCount++;
+
+        if (_userHR > _maxSessionHR) {
+          _maxSessionHR = _userHR;
+        }
+
+        final zoneName = userZone.name;
+        zoneTime[zoneName] = (zoneTime[zoneName] ?? 0) + 1000;
+        hrValues.add(_userHR);
       }
-
-      // Update session stats
-      _hrSum += _userHR;
-      _hrCount++;
-
-      if (_userHR > _maxSessionHR) {
-        _maxSessionHR = _userHR;
-      }
-
-      // Update time spent in current zone
-      final zoneName = userZone.name;
-      zoneTime[zoneName] = (zoneTime[zoneName] ?? 0) + 1000;
-      hrValues.add(_userHR);
 
       _elapsed = _stopwatch.elapsed;
     });
@@ -616,13 +628,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     final subscription = _ble.subscribeToCharacteristic(characteristic).listen(
           (data) {
-        setState(() {
-          if (userDeviceId == '00:11:22:33:44:55') {
-            return;
-          }
-          _userHR = _parseHeartRate(data);
-        });
-      },
+            if (!mounted) return;
+
+            if (userDeviceId == '00:11:22:33:44:55') return;
+            final parsedHr = _parseHeartRate(data);
+            if (parsedHr == null || parsedHr <= 0) return;
+
+            setState(() {
+              _userHR = parsedHr;
+              _latestPacketHr = parsedHr;
+              _lastHrPacketAt = DateTime.now();
+            });
+          },
       onError: (error) {
         print("Error on device $deviceId: $error");
       },
@@ -631,8 +648,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   }
 
   // Parse heart rate from characteristic data
-  int _parseHeartRate(List<int> data) {
-    if (data.isEmpty) return 0;
+  int? _parseHeartRate(List<int> data) {
+    if (data.isEmpty) return null;
 
     final flags = data[0];
     final is16Bit = (flags & 0x01) != 0;
@@ -643,7 +660,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       return data[1];
     }
 
-    return 0;
+    return null;
   }
 
 
