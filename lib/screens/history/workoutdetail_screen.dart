@@ -244,21 +244,17 @@ class WorkoutDetailScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: const [
-                        _ZoneDot(color: Color(0xFF666A70), label: '40–65%'),
-                        SizedBox(width: 10),
-                        _ZoneDot(color: Color(0xFF2F6BDA), label: '66–80%'),
-                        SizedBox(width: 10),
-                        _ZoneDot(color: Color(0xFF66B35B), label: '81–89%'),
-                        SizedBox(width: 10),
-                        _ZoneDot(color: Color(0xFFF3A43B), label: '90–95%'),
-                        SizedBox(width: 10),
-                        _ZoneDot(color: Color(0xFFE25353), label: '95–100%'),
-                      ],
-                    ),
+                  const Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 6,
+                    children: [
+                       _ZoneDot(color: Color(0xFF666A70), label: '40–65%'),
+                      _ZoneDot(color: Color(0xFF2F6BDA), label: '66–80%'),
+                      _ZoneDot(color: Color(0xFF66B35B), label: '81–89%'),
+                      _ZoneDot(color: Color(0xFFF3A43B), label: '90–95%'),
+                      _ZoneDot(color: Color(0xFFE25353), label: '95–100%'),
+                    ],
                   ),
                 ],
               ),
