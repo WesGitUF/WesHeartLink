@@ -79,6 +79,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   bool done = false;
   bool isSolo = false;
 
+  // Auto-pause state
+  bool _isAutoPaused = false;
+  bool _hasReachedHighHR = false; // latches true once HR >= 70% maxHR
+
   //define user max HR, as well as current user and partner HR values
   int? _maxHeartRate;
   int userAge = 0;
@@ -376,7 +380,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   Future<void> _tickUpdate() async {
     if (!mounted) return;
     //return if paused, inactive, or no max HR set
-    if (_isPaused) return;
+    if (_isPaused || _isAutoPaused) return;
     if (!_stopwatch.isRunning || !_isActiveSession) return;
     if (_maxHeartRate == null || _showOverlay) return;
 
@@ -394,6 +398,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR = _sliderHR;
+        _checkAutoPause(_sliderHR);
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -595,6 +600,30 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     return "$hours:$minutes:$seconds";
   }
 
+  void _checkAutoPause(int hr) {
+    if (_isPaused && _elapsed == Duration.zero) return; // workout not started yet
+    if (_maxHeartRate == null) return;
+
+    final double highThreshold = _maxHeartRate! * 0.70;
+    final double lowThreshold = _maxHeartRate! * 0.55;
+
+    if (hr >= highThreshold) {
+      _hasReachedHighHR = true;
+    }
+
+    if (!_hasReachedHighHR) return;
+
+    if (!_isAutoPaused && hr < lowThreshold) {
+      // Drop below 55% after having been above 70% — auto pause
+      setState(() => _isAutoPaused = true);
+      if (!_isPaused) _stopwatch.stop();
+    } else if (_isAutoPaused && hr >= lowThreshold) {
+      // Recovered above 55% — auto resume (only if not also manually paused)
+      setState(() => _isAutoPaused = false);
+      if (!_isPaused) _stopwatch.start();
+    }
+  }
+
   void _connectToDevices() {
     if (userDeviceId == '00:11:22:33:44:55') {
       return;
@@ -639,6 +668,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
               _latestPacketHr = parsedHr;
               _lastHrPacketAt = DateTime.now();
             });
+            _checkAutoPause(parsedHr);
           },
       onError: (error) {
         print("Error on device $deviceId: $error");
@@ -1641,6 +1671,32 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
                         const SizedBox(height: 15),
 
+                        if (_isAutoPaused)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12, left: 24, right: 24),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade800,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.pause_circle_filled, color: Colors.white, size: 18),
+                                  SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      'Auto-Paused — HR below 55%, pick up the pace!',
+                                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
                         if (_isPaused && _elapsed == Duration.zero)
                         // START BUTTON — matches session screen Continue button
                           Padding(
@@ -1715,11 +1771,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                               GestureDetector(
                                 onTap: () {
                                   setState(() {
-                                    _isPaused = !_isPaused;
-                                    if (_isPaused) {
-                                      _stopwatch.stop();
-                                    } else {
+                                    if (_isAutoPaused) {
+                                      // User manually overrides auto-pause
+                                      _isAutoPaused = false;
+                                      _isPaused = false;
                                       _stopwatch.start();
+                                    } else {
+                                      _isPaused = !_isPaused;
+                                      if (_isPaused) {
+                                        _stopwatch.stop();
+                                      } else {
+                                        _stopwatch.start();
+                                      }
                                     }
                                   });
                                 },
@@ -1731,8 +1794,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                     color: Color(0xFF101113),
                                   ),
                                   child: Icon(
-                                    _isPaused ? Icons.play_arrow_rounded : Icons
-                                        .pause_rounded,
+                                    (_isPaused || _isAutoPaused) ? Icons.play_arrow_rounded : Icons.pause_rounded,
                                     color: Colors.white,
                                     size: 28,
                                   ),
@@ -1783,8 +1845,13 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                   divisions: (_maxHeartRate! -
                                       (_maxHeartRate! * 0.40).round()),
                                   label: '$_sliderHR',
-                                  onChanged: (v) =>
-                                      setState(() => _sliderHR = v.round()),
+                                  onChanged: (v) {
+                                    setState(() {
+                                      _sliderHR = v.round();
+                                      _userHR = _sliderHR;
+                                    });
+                                    _checkAutoPause(_sliderHR);
+                                  },
                                 ),
                               ],
                             ),
