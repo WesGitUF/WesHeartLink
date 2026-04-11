@@ -443,7 +443,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: SizedBox(
-          height: 82,
+          height: 88,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -459,12 +459,12 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
               ),
               Positioned(
                 left: 6,
-                top: 7,
+                top: 8,
                 child: ImageFiltered(
                   imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: 82,
-                    height: 82,
+                    width: 88,
+                    height: 88,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: blurColor,
@@ -505,10 +505,9 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                         children: [
                           Text(
                             title,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontSize: 16,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontSize: 18,
                               fontWeight: FontWeight.w500,
-                              height: 1.1,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -516,8 +515,6 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                             subtitle,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppColors.textMuted,
-                              fontSize: 13,
-                              height: 1.2,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
