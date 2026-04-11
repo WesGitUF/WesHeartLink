@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 
 class ChooseModeScreen extends StatelessWidget {
@@ -104,9 +103,10 @@ class ChooseModeScreen extends StatelessWidget {
                     const Spacer(),
                     _ModeActionCard(
                       theme: theme,
-                      svgAsset: 'assets/icons/createsessionicon.svg',
+                      icon: Icons.wifi_off_rounded,
                       blurColor: const Color(0x26FF6467),
                       iconBackground: const Color(0x1AFF6467),
+                      iconColor: const Color(0xFFFF8DA1),
                       title: 'Use without Internet',
                       subtitle:
                           'Choose this option if you are together (same location)',
@@ -115,9 +115,10 @@ class ChooseModeScreen extends StatelessWidget {
                     const SizedBox(height: 18),
                     _ModeActionCard(
                       theme: theme,
-                      svgAsset: 'assets/icons/joinsessionicon.svg',
+                      icon: Icons.wifi_rounded,
                       blurColor: const Color(0x262B7FFF),
                       iconBackground: const Color(0x1A2B7FFF),
+                      iconColor: const Color(0xFF6EA8FF),
                       title: 'Use with Internet',
                       subtitle:
                           'Choose this option if you are apart. (different locations)',
@@ -138,18 +139,20 @@ class ChooseModeScreen extends StatelessWidget {
 class _ModeActionCard extends StatelessWidget {
   const _ModeActionCard({
     required this.theme,
-    required this.svgAsset,
+    required this.icon,
     required this.blurColor,
     required this.iconBackground,
+    required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.onTap,
   });
 
   final ThemeData theme;
-  final String svgAsset;
+  final IconData icon;
   final Color blurColor;
   final Color iconBackground;
+  final Color iconColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -204,13 +207,7 @@ class _ModeActionCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: iconBackground,
                         ),
-                        child: Center(
-                          child: SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: SvgPicture.asset(svgAsset),
-                          ),
-                        ),
+                        child: Icon(icon, color: iconColor, size: 30),
                       ),
                     ),
                   ),
