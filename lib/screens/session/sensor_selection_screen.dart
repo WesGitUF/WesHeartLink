@@ -428,9 +428,11 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
   Widget _buildSessionActionCard({
     required ThemeData theme,
-    required String svgAsset,
+    String? svgAsset,
+    IconData? icon,
     required Color blurColor,
     required Color iconBackground,
+    Color iconColor = AppColors.textPrimary,
     required String title,
     required String subtitle,
     required VoidCallback? onTap,
@@ -488,11 +490,14 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                             color: iconBackground,
                           ),
                           child: Center(
-                            child: SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: SvgPicture.asset(svgAsset),
-                            ),
+                            child:
+                                icon != null
+                                    ? Icon(icon, color: iconColor, size: 24)
+                                    : SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: SvgPicture.asset(svgAsset!),
+                                    ),
                           ),
                         ),
                       ),
@@ -608,9 +613,10 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     const Spacer(),
                     _buildSessionActionCard(
                       theme: theme,
-                      svgAsset: 'assets/icons/createsessionicon.svg',
-                      blurColor: const Color(0x26FF6467),
-                      iconBackground: const Color(0x1AFF6467),
+                      icon: Icons.person_outline_rounded,
+                      blurColor: const Color(0x26FFD34D),
+                      iconBackground: const Color(0x26FFD34D),
+                      iconColor: const Color(0xFFFFE082),
                       title: 'Solo Session',
                       subtitle: 'Start your workout on your own',
                       onTap: _hasSelectedDevice ? _startSoloWorkout : null,
