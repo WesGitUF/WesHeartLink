@@ -982,9 +982,27 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text("Cancel"),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.white,
+                backgroundColor: AppColors.redStrong.withOpacity(0.16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: AppColors.red.withOpacity(0.35),
+                    width: 1,
+                  ),
+                ),
+              ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text("End"),
             ),
