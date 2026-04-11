@@ -28,6 +28,7 @@ class GaugeChart extends StatefulWidget {
   final bool isHost;
   final String workoutMode;
   final bool isOnline;
+  final bool isSoloWorkout;
 
   const GaugeChart({
     Key? key,
@@ -36,13 +37,15 @@ class GaugeChart extends StatefulWidget {
     required this.isOnline,
     required this.isHost,
     required this.workoutMode,
+    this.isSoloWorkout = false,
   }) : super(key: key);
 
   @override
   _GaugeChartState createState() => _GaugeChartState();
 }
 
-class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+class _GaugeChartState extends State<GaugeChart>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final SessionService _sessionService = SessionService();
 
@@ -155,9 +158,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
   String get mostFrequentZone {
     if (zoneTime.isEmpty) return 'Unknown';
-    return zoneTime.entries
-        .reduce((a, b) => a.value > b.value ? a : b)
-        .key;
+    return zoneTime.entries.reduce((a, b) => a.value > b.value ? a : b).key;
   }
 
   String get currentMaxZone => userZone.name;
@@ -189,10 +190,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
           barrierDismissible: false, // MUST answer before starting
           builder: (context) {
             final problems = <String>[];
-            if (!s.batteryOk) problems.add(
-                "Switch battery optimization to unrestricted");
-            if (!s.notifOk) problems.add(
-                "Allow workout in progress notifications");
+            if (!s.batteryOk)
+              problems.add("Switch battery optimization to unrestricted");
+            if (!s.notifOk)
+              problems.add("Allow workout in progress notifications");
 
             return AlertDialog(
               title: const Text("Enable background tracking"),
@@ -202,17 +203,15 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                 children: [
                   const Text("Before starting, we recommend you:"),
                   const SizedBox(height: 10),
-                  ...problems.map((p) =>
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("• "),
-                            Expanded(child: Text(p)),
-                          ],
-                        ),
-                      )),
+                  ...problems.map(
+                    (p) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [const Text("• "), Expanded(child: Text(p))],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   const Text(
                     "This helps keep tracking running in the background.",
@@ -323,7 +322,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     );
   }
 
-
   Future<void> _stopWorkoutNotification() async {
     if (kIsWeb) return;
     await WorkoutNotificationService.stop();
@@ -333,8 +331,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            TrackingResultScreen(
+        builder:
+            (context) => TrackingResultScreen(
               elapsedTime: _elapsed,
               sameZoneTime: _sameZone,
               workoutMode: _workoutMode,
@@ -348,7 +346,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
               theoreticalMaxHr: _maxHeartRate!,
             ),
       ),
-          (_) => false,
+      (_) => false,
     );
   }
 
@@ -373,7 +371,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(
-        const Duration(milliseconds: 1000), (_) => _tickUpdate());
+      const Duration(milliseconds: 1000),
+      (_) => _tickUpdate(),
+    );
   }
 
   //update function to run every second during active session
@@ -388,10 +388,11 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     final now = DateTime.now();
     final bool isFakeDevice = userDeviceId == '00:11:22:33:44:55';
-    final bool hasFreshRealReading = isFakeDevice
-        ? true
-        : (_lastHrPacketAt != null &&
-        now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
+    final bool hasFreshRealReading =
+        isFakeDevice
+            ? true
+            : (_lastHrPacketAt != null &&
+                now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
 
     setState(() {
       //check if using simulated HR (device ID is placeholder)
@@ -415,12 +416,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       if (prevZone != userZone) {
         updateImage();
         workoutMessage = _pickMessage(userZone);
-        final prevNum = int.tryParse(prevZone.name
-            .split(' ')
-            .last) ?? 0;
-        final newNum = int.tryParse(userZone.name
-            .split(' ')
-            .last) ?? 0;
+        final prevNum = int.tryParse(prevZone.name.split(' ').last) ?? 0;
+        final newNum = int.tryParse(userZone.name.split(' ').last) ?? 0;
         if (newNum > prevNum) {
           zoneBumpUp = true;
         }
@@ -465,7 +462,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     if (zoneBumpUp) {
       final now = DateTime.now();
 
-      final canFire = _lastZoneUpFeedbackAt == null ||
+      final canFire =
+          _lastZoneUpFeedbackAt == null ||
           now.difference(_lastZoneUpFeedbackAt!) >= _zoneUpCooldown;
 
       if (canFire) {
@@ -505,65 +503,63 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   void _listenForPartnerHR() {
     if (sessionId == null) return;
 
-    _sessionListener =
-        _sessionService.sessionStream(sessionId!).listen((data) async {
-          if (data == null) return;
+    _sessionListener = _sessionService.sessionStream(sessionId!).listen((
+      data,
+    ) async {
+      if (data == null) return;
 
-          // Update partner HR logic
-          if (!_isHost! && data['user1HR'] != null) {
-            setState(() => _partnerHR = data['user1HR']);
-          } else if (_isHost! && data['user2HR'] != null) {
-            setState(() => _partnerHR = data['user2HR']);
-          }
+      // Update partner HR logic
+      if (!_isHost! && data['user1HR'] != null) {
+        setState(() => _partnerHR = data['user1HR']);
+      } else if (_isHost! && data['user2HR'] != null) {
+        setState(() => _partnerHR = data['user2HR']);
+      }
 
-          // End session check
-          if (data['sessionActive'] == false) {
-            await _stopWorkoutNotification();
+      // End session check
+      if (data['sessionActive'] == false) {
+        await _stopWorkoutNotification();
 
-            _timer?.cancel();
-            _stopwatch.stop();
-            _isActiveSession = false;
+        _timer?.cancel();
+        _stopwatch.stop();
+        _isActiveSession = false;
 
-            await _sessionListener?.cancel();
-            _sessionListener = null;
+        await _sessionListener?.cancel();
+        _sessionListener = null;
 
-            final calories = WorkoutService.calculateCalories(
-              avgHr: averageHR.toInt(),
-              age: userAge,
-              weight: _userWeight,
-              gender: _userGender,
-              duration: _elapsed,
-            );
+        final calories = WorkoutService.calculateCalories(
+          avgHr: averageHR.toInt(),
+          age: userAge,
+          weight: _userWeight,
+          gender: _userGender,
+          duration: _elapsed,
+        );
 
-            if (mounted) {
-              _showTrackingSummary(context, calories: calories.toDouble());
-            }
-          }
-        });
+        if (mounted) {
+          _showTrackingSummary(context, calories: calories.toDouble());
+        }
+      }
+    });
   }
 
   // Update displayed emoji based on current zone
   // Also called when the user clicks on the emoji to change it to their partner's
   void updateImage() {
-    userImage ? currentImage = userZone.emojiImg : currentImage =
-        partnerZone.emojiImg;
+    userImage
+        ? currentImage = userZone.emojiImg
+        : currentImage = partnerZone.emojiImg;
   }
 
   void pickIcon() {
     // Assign workout icon in App Bar
     if (_workoutMode == "Running") {
       _workoutModeIcon = Icons.directions_run;
-    }
-    else if (_workoutMode == "Cycling") {
+    } else if (_workoutMode == "Cycling") {
       _workoutModeIcon = Icons.directions_bike;
-    }
-    else if (_workoutMode == "HIIT") {
+    } else if (_workoutMode == "HIIT") {
       _workoutModeIcon = Icons.fitness_center;
-    }
-    else if (_workoutMode == "Walking") {
+    } else if (_workoutMode == "Walking") {
       _workoutModeIcon = Icons.directions_walk;
-    }
-    else if (_workoutMode == "Swimming") {
+    } else if (_workoutMode == "Swimming") {
       _workoutModeIcon = Icons.pool;
     }
   }
@@ -601,7 +597,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   }
 
   void _checkAutoPause(int hr) {
-    if (_isPaused && _elapsed == Duration.zero) return; // workout not started yet
+    if (_isPaused && _elapsed == Duration.zero)
+      return; // workout not started yet
     if (_maxHeartRate == null) return;
 
     final double highThreshold = _maxHeartRate! * 0.70;
@@ -634,15 +631,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     }
 
     if (userDeviceId != null) {
-      _userConnection = _ble.connectToDevice(
-        id: userDeviceId!,
-        connectionTimeout: const Duration(seconds: 10),
-      ).listen((connectionState) {
-        if (connectionState.connectionState ==
-            DeviceConnectionState.connected) {
-          _subscribeToCharacteristic(userDeviceId!);
-        }
-      });
+      _userConnection = _ble
+          .connectToDevice(
+            id: userDeviceId!,
+            connectionTimeout: const Duration(seconds: 10),
+          )
+          .listen((connectionState) {
+            if (connectionState.connectionState ==
+                DeviceConnectionState.connected) {
+              _subscribeToCharacteristic(userDeviceId!);
+            }
+          });
     }
     // Once connections start, cancel scanning to reduce load.
     _scanSubscription?.cancel();
@@ -655,7 +654,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       characteristicId: Uuid.parse("2A37"),
     );
 
-    final subscription = _ble.subscribeToCharacteristic(characteristic).listen(
+    final subscription = _ble
+        .subscribeToCharacteristic(characteristic)
+        .listen(
           (data) {
             if (!mounted) return;
 
@@ -670,10 +671,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
             });
             _checkAutoPause(parsedHr);
           },
-      onError: (error) {
-        print("Error on device $deviceId: $error");
-      },
-    );
+          onError: (error) {
+            print("Error on device $deviceId: $error");
+          },
+        );
     _userSubscription = subscription;
   }
 
@@ -693,7 +694,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     return null;
   }
 
-
   Future<void> _setUserHR() async {
     final age = await _sessionService.fetchUserAge();
     if (age == 0) return;
@@ -712,12 +712,17 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(
-            currentUser.uid).get();
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(currentUser.uid)
+                .get();
         final data = doc.data();
         if (data != null) {
-          _userWeight = (data['weight'] != null) ? double.tryParse(
-              data['weight'].toString()) ?? 70.0 : 70.0;
+          _userWeight =
+              (data['weight'] != null)
+                  ? double.tryParse(data['weight'].toString()) ?? 70.0
+                  : 70.0;
           _userGender = data['gender'] ?? '';
         }
       } catch (_) {}
@@ -728,14 +733,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     setState(() {
       // Calculate screen size ratios, based off of reference design size (412x915 emulator)
-      double screenWidth = MediaQuery
-          .of(context)
-          .size
-          .width;
-      double screenHeight = MediaQuery
-          .of(context)
-          .size
-          .height;
+      double screenWidth = MediaQuery.of(context).size.width;
+      double screenHeight = MediaQuery.of(context).size.height;
 
       widthRatio = screenWidth / refWidth;
       heightRatio = screenHeight / refHeight;
@@ -743,12 +742,20 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     _isHost = widget.isHost;
     _isOnline = widget.isOnline;
+    final bool isSoloWorkout = widget.isSoloWorkout;
 
-    if (_isHost!) {
+    if (isSoloWorkout) {
+      setState(() {
+        isSolo = true;
+        _showOverlay = false;
+      });
+    }
+
+    if (!isSoloWorkout && _isHost!) {
       createSession();
     }
 
-    if (!_isOnline!) {
+    if (!isSoloWorkout && !_isOnline!) {
       bool permissionsGranted = await requestNearbyPermissions();
 
       if (!permissionsGranted) {
@@ -758,9 +765,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
       if (_isHost!) {
         await nearbyService.initializeNearby(
-            role: "host",
-            userName: FirebaseAuth.instance.currentUser?.displayName ?? "User",
-            sessionCode: sessionId
+          role: "host",
+          userName: FirebaseAuth.instance.currentUser?.displayName ?? "User",
+          sessionCode: sessionId,
         );
       }
 
@@ -791,7 +798,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
       });
     }
 
-    if (!_isOnline! && _isHost!) {
+    if (!isSoloWorkout && !_isOnline! && _isHost!) {
       setState(() {
         _showOverlay = false;
         isSolo = true;
@@ -811,7 +818,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     workoutMessage = _pickMessage(userZone);
 
-    if (_isOnline!) _listenForGuestJoin();
+    if (!isSoloWorkout && _isOnline!) _listenForGuestJoin();
 
     // Trigger rebuild
     setState(() {
@@ -832,9 +839,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     final allGranted =
         location.isGranted &&
-            scan.isGranted &&
-            connect.isGranted &&
-            advertise.isGranted;
+        scan.isGranted &&
+        connect.isGranted &&
+        advertise.isGranted;
 
     print("Permissions:");
     print("Location: $location");
@@ -844,7 +851,6 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
     return allGranted;
   }
-
 
   Future<void> createSession() async {
     sessionId = _sessionService.generateSessionId();
@@ -903,8 +909,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )
-      ..repeat(reverse: true);
+    )..repeat(reverse: true);
   }
 
   @override
@@ -994,7 +999,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.white,
                 backgroundColor: AppColors.redStrong.withOpacity(0.16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
@@ -1064,163 +1072,195 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
               color: const Color.fromARGB(255, 40, 40, 41),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: _isHost!
-                ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Share this Session ID:", style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.redAccent)),
-                const SizedBox(height: 10),
-                SelectableText(sessionId ?? "Loading...",
-                    style: const TextStyle(
-                        fontSize: 24, color: Colors.redAccent)),
-                const SizedBox(height: 20),
-                ValueListenableBuilder(
-                    valueListenable: nearbyService.guestConnectedNotifier,
-                    builder: (context, guestConnected, _) {
-                      return ElevatedButton(
-                        onPressed: (_isOnline! && !guestConnected)
-                            ? null
-                            : () async {
-                          final ok = await _ensureBackgroundSetupBeforeStart();
-                          if (!ok) return;
-
-                          setState(() {
-                            _showOverlay = false;
-
-                            if (guestConnected) {
-                              _guestConnected = true;
-                            } else {
-                              _guestConnected = false;
-                              isSolo = true;
-                            }
-                          });
-
-                          _markWorkoutActive();
-                          _stopwatch.start();
-                          _workoutStartTime = DateTime.now();
-                          _startTimer();
-                          await _startWorkoutNotification();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          padding: const EdgeInsets.symmetric(vertical: 20,
-                              horizontal: 24),
-                          textStyle: const TextStyle(fontSize: 24),
-                        ),
-                        child: Text(
-                          guestConnected
-                              ? 'Start Workout'
-                              : (_isOnline!
-                              ? 'Waiting for partner...'
-                              : 'Start Solo Workout'),
-                          style: const TextStyle(
-                            fontSize: 24,
+            child:
+                _isHost!
+                    ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Share this Session ID:",
+                          style: TextStyle(
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.redAccent,
                           ),
                         ),
-                      );
-                    }
-                )
-              ],
-            )
-                : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text("Enter Session ID to Join:", style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.redAccent)),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _sessionIdController,
-                  decoration: const InputDecoration(
-                    filled: true,
-                    fillColor: Colors.black,
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black, width: 2),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.red, width: 2),
-                    ),
-                    hintText: "Enter code",
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                    onPressed: () async {
-                      if (_sessionIdController.text.isEmpty) return;
+                        const SizedBox(height: 10),
+                        SelectableText(
+                          sessionId ?? "Loading...",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ValueListenableBuilder(
+                          valueListenable: nearbyService.guestConnectedNotifier,
+                          builder: (context, guestConnected, _) {
+                            return ElevatedButton(
+                              onPressed:
+                                  (_isOnline! && !guestConnected)
+                                      ? null
+                                      : () async {
+                                        final ok =
+                                            await _ensureBackgroundSetupBeforeStart();
+                                        if (!ok) return;
 
-                      sessionId = _sessionIdController.text.trim();
+                                        setState(() {
+                                          _showOverlay = false;
 
+                                          if (guestConnected) {
+                                            _guestConnected = true;
+                                          } else {
+                                            _guestConnected = false;
+                                            isSolo = true;
+                                          }
+                                        });
 
-                      if (!_isOnline!) {
-                        await nearbyService.initializeNearby(
-                          role: "peer",
-                          userName: FirebaseAuth.instance.currentUser
-                              ?.displayName ?? "Guest",
-                          sessionCode: sessionId,
-                        );
-                        return;
-                      }
-
-                      final result = await _sessionService.joinSession(
-                          sessionId!);
-                      if (result is String) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(result)),
-                          );
-                        }
-                        return;
-                      }
-
-                      final ok = await _ensureBackgroundSetupBeforeStart();
-                      if (!ok) return;
-
-                      setState(() {
-                        _isHost = false;
-                        _guestConnected = true;
-                        _showOverlay = false;
-                      });
-
-                      _listenForPartnerHR();
-                      _markWorkoutActive();
-                      _stopwatch.start();
-                      _workoutStartTime = DateTime.now();
-                      _startTimer();
-                      await _startWorkoutNotification();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 20, horizontal: 24),
-                      textStyle: const TextStyle(fontSize: 24),
-                    ),
-                    child: Text(
-                      'Join Session',
-                      style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white
-                      ),
+                                        _markWorkoutActive();
+                                        _stopwatch.start();
+                                        _workoutStartTime = DateTime.now();
+                                        _startTimer();
+                                        await _startWorkoutNotification();
+                                      },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
+                                  horizontal: 24,
+                                ),
+                                textStyle: const TextStyle(fontSize: 24),
+                              ),
+                              child: Text(
+                                guestConnected
+                                    ? 'Start Workout'
+                                    : (_isOnline!
+                                        ? 'Waiting for partner...'
+                                        : 'Start Solo Workout'),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     )
-                )
-              ],
-            ),
+                    : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          "Enter Session ID to Join:",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _sessionIdController,
+                          decoration: const InputDecoration(
+                            filled: true,
+                            fillColor: Colors.black,
+                            border: OutlineInputBorder(),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.black,
+                                width: 2,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.black,
+                                width: 2,
+                              ),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Colors.red,
+                                width: 2,
+                              ),
+                            ),
+                            hintText: "Enter code",
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (_sessionIdController.text.isEmpty) return;
+
+                            sessionId = _sessionIdController.text.trim();
+
+                            if (!_isOnline!) {
+                              await nearbyService.initializeNearby(
+                                role: "peer",
+                                userName:
+                                    FirebaseAuth
+                                        .instance
+                                        .currentUser
+                                        ?.displayName ??
+                                    "Guest",
+                                sessionCode: sessionId,
+                              );
+                              return;
+                            }
+
+                            final result = await _sessionService.joinSession(
+                              sessionId!,
+                            );
+                            if (result is String) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).showSnackBar(SnackBar(content: Text(result)));
+                              }
+                              return;
+                            }
+
+                            final ok =
+                                await _ensureBackgroundSetupBeforeStart();
+                            if (!ok) return;
+
+                            setState(() {
+                              _isHost = false;
+                              _guestConnected = true;
+                              _showOverlay = false;
+                            });
+
+                            _listenForPartnerHR();
+                            _markWorkoutActive();
+                            _stopwatch.start();
+                            _workoutStartTime = DateTime.now();
+                            _startTimer();
+                            await _startWorkoutNotification();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 20,
+                              horizontal: 24,
+                            ),
+                            textStyle: const TextStyle(fontSize: 24),
+                          ),
+                          child: Text(
+                            'Join Session',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
           ),
         ),
       ),
     );
   }
-
 
   // Radial gauge widget
   // Circular gauge with colored zones and pointers for user/partner HR
@@ -1238,9 +1278,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
             endAngle: 390,
             showTicks: false,
             showLabels: false,
-            axisLineStyle: const AxisLineStyle(
-              thickness: 0,
-            ),
+            axisLineStyle: const AxisLineStyle(thickness: 0),
             ranges: <GaugeRange>[
               GaugeRange(
                 startValue: _maxHeartRate! * 0.40,
@@ -1330,59 +1368,59 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
             annotations: <GaugeAnnotation>[
               // range labels for each zone
               _rangeLabel(
-                  text: 'I',
-                  start: _maxHeartRate! * 0.4,
-                  end: _maxHeartRate! * 0.65,
-                  axisMin: _maxHeartRate! * 0.4,
-                  axisMax: _maxHeartRate! * 1.10,
-                  startAngle: 30,
-                  endAngle: 390,
-                  positionFactor: 0.8,
-                  color: Colors.blueGrey[800]!
+                text: 'I',
+                start: _maxHeartRate! * 0.4,
+                end: _maxHeartRate! * 0.65,
+                axisMin: _maxHeartRate! * 0.4,
+                axisMax: _maxHeartRate! * 1.10,
+                startAngle: 30,
+                endAngle: 390,
+                positionFactor: 0.8,
+                color: Colors.blueGrey[800]!,
               ),
               _rangeLabel(
-                  text: 'II',
-                  start: _maxHeartRate! * 0.65,
-                  end: _maxHeartRate! * 0.8,
-                  axisMin: _maxHeartRate! * 0.4,
-                  axisMax: _maxHeartRate! * 1.10,
-                  startAngle: 30,
-                  endAngle: 390,
-                  positionFactor: 0.8,
-                  color: Colors.blue[800]!
+                text: 'II',
+                start: _maxHeartRate! * 0.65,
+                end: _maxHeartRate! * 0.8,
+                axisMin: _maxHeartRate! * 0.4,
+                axisMax: _maxHeartRate! * 1.10,
+                startAngle: 30,
+                endAngle: 390,
+                positionFactor: 0.8,
+                color: Colors.blue[800]!,
               ),
               _rangeLabel(
-                  text: 'III',
-                  start: _maxHeartRate! * 0.8,
-                  end: _maxHeartRate! * 0.89,
-                  axisMin: _maxHeartRate! * 0.4,
-                  axisMax: _maxHeartRate! * 1.10,
-                  startAngle: 30,
-                  endAngle: 390,
-                  positionFactor: 0.8,
-                  color: Colors.green[800]!
+                text: 'III',
+                start: _maxHeartRate! * 0.8,
+                end: _maxHeartRate! * 0.89,
+                axisMin: _maxHeartRate! * 0.4,
+                axisMax: _maxHeartRate! * 1.10,
+                startAngle: 30,
+                endAngle: 390,
+                positionFactor: 0.8,
+                color: Colors.green[800]!,
               ),
               _rangeLabel(
-                  text: 'IV',
-                  start: _maxHeartRate! * 0.89,
-                  end: _maxHeartRate! * 0.95,
-                  axisMin: _maxHeartRate! * 0.4,
-                  axisMax: _maxHeartRate! * 1.10,
-                  startAngle: 30,
-                  endAngle: 390,
-                  positionFactor: 0.8,
-                  color: Colors.yellow[800]!
+                text: 'IV',
+                start: _maxHeartRate! * 0.89,
+                end: _maxHeartRate! * 0.95,
+                axisMin: _maxHeartRate! * 0.4,
+                axisMax: _maxHeartRate! * 1.10,
+                startAngle: 30,
+                endAngle: 390,
+                positionFactor: 0.8,
+                color: Colors.yellow[800]!,
               ),
               _rangeLabel(
-                  text: 'V',
-                  start: _maxHeartRate! * 0.95,
-                  end: _maxHeartRate!.toDouble(),
-                  axisMin: _maxHeartRate! * 0.4,
-                  axisMax: _maxHeartRate! * 1.10,
-                  startAngle: 30,
-                  endAngle: 390,
-                  positionFactor: 0.8,
-                  color: Colors.red[800]!
+                text: 'V',
+                start: _maxHeartRate! * 0.95,
+                end: _maxHeartRate!.toDouble(),
+                axisMin: _maxHeartRate! * 0.4,
+                axisMax: _maxHeartRate! * 1.10,
+                startAngle: 30,
+                endAngle: 390,
+                positionFactor: 0.8,
+                color: Colors.red[800]!,
               ),
             ],
           ),
@@ -1420,9 +1458,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
               return SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
                   child: Padding(
                     padding: const EdgeInsets.only(top: 8, bottom: 50),
                     child: Column(
@@ -1438,10 +1474,10 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                               });
                             },
                             child: Text(
-                              _showPercent && _maxHeartRate != null &&
-                                  _maxHeartRate! > 0
-                                  ? '${((_userHR / _maxHeartRate!) * 100)
-                                  .round()}%'
+                              _showPercent &&
+                                      _maxHeartRate != null &&
+                                      _maxHeartRate! > 0
+                                  ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
                                   : '$_userHR BPM',
                               style: const TextStyle(
                                 fontSize: 36,
@@ -1500,10 +1536,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: MediaQuery
-                                  .of(context)
-                                  .size
-                                  .width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF101113),
@@ -1537,10 +1570,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                             ),
                             const SizedBox(width: 12),
                             Container(
-                              width: MediaQuery
-                                  .of(context)
-                                  .size
-                                  .width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF101113),
@@ -1562,13 +1592,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${WorkoutService.calculateCalories(
-                                      avgHr: averageHR.toInt(),
-                                      age: userAge,
-                                      weight: _userWeight,
-                                      gender: _userGender,
-                                      duration: _elapsed,
-                                    )} cal',
+                                    '${WorkoutService.calculateCalories(avgHr: averageHR.toInt(), age: userAge, weight: _userWeight, gender: _userGender, duration: _elapsed)} cal',
                                     style: const TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
@@ -1587,20 +1611,21 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: MediaQuery
-                                  .of(context)
-                                  .size
-                                  .width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF101113),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _maxHeartRate != null &&
-                                      _maxSessionHR > 0
-                                      ? _colorForZone(getZoneForHR(
-                                      _maxSessionHR, _maxHeartRate!))
-                                      : Colors.white24,
+                                  color:
+                                      _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              _maxSessionHR,
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : Colors.white24,
                                   width: 1.2,
                                 ),
                               ),
@@ -1612,10 +1637,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                       color: (_maxHeartRate != null &&
-                                          _maxSessionHR > 0
-                                          ? _colorForZone(getZoneForHR(
-                                          _maxSessionHR, _maxHeartRate!))
-                                          : Colors.white)
+                                                  _maxSessionHR > 0
+                                              ? _colorForZone(
+                                                getZoneForHR(
+                                                  _maxSessionHR,
+                                                  _maxHeartRate!,
+                                                ),
+                                              )
+                                              : Colors.white)
                                           .withOpacity(0.5),
                                     ),
                                   ),
@@ -1625,11 +1654,16 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
-                                      color: _maxHeartRate != null &&
-                                          _maxSessionHR > 0
-                                          ? _colorForZone(getZoneForHR(
-                                          _maxSessionHR, _maxHeartRate!))
-                                          : Colors.white,
+                                      color:
+                                          _maxHeartRate != null &&
+                                                  _maxSessionHR > 0
+                                              ? _colorForZone(
+                                                getZoneForHR(
+                                                  _maxSessionHR,
+                                                  _maxHeartRate!,
+                                                ),
+                                              )
+                                              : Colors.white,
                                     ),
                                   ),
                                 ],
@@ -1637,19 +1671,21 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                             ),
                             const SizedBox(width: 12),
                             Container(
-                              width: MediaQuery
-                                  .of(context)
-                                  .size
-                                  .width * 0.37,
+                              width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF101113),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _maxHeartRate != null && averageHR > 0
-                                      ? _colorForZone(getZoneForHR(
-                                      averageHR.round(), _maxHeartRate!))
-                                      : Colors.white24,
+                                  color:
+                                      _maxHeartRate != null && averageHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              averageHR.round(),
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : Colors.white24,
                                   width: 1.2,
                                 ),
                               ),
@@ -1661,10 +1697,14 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                       color: (_maxHeartRate != null &&
-                                          averageHR > 0
-                                          ? _colorForZone(getZoneForHR(
-                                          averageHR.round(), _maxHeartRate!))
-                                          : Colors.white)
+                                                  averageHR > 0
+                                              ? _colorForZone(
+                                                getZoneForHR(
+                                                  averageHR.round(),
+                                                  _maxHeartRate!,
+                                                ),
+                                              )
+                                              : Colors.white)
                                           .withOpacity(0.5),
                                     ),
                                   ),
@@ -1674,11 +1714,15 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
-                                      color: _maxHeartRate != null &&
-                                          averageHR > 0
-                                          ? _colorForZone(getZoneForHR(
-                                          averageHR.round(), _maxHeartRate!))
-                                          : Colors.white,
+                                      color:
+                                          _maxHeartRate != null && averageHR > 0
+                                              ? _colorForZone(
+                                                getZoneForHR(
+                                                  averageHR.round(),
+                                                  _maxHeartRate!,
+                                                ),
+                                              )
+                                              : Colors.white,
                                     ),
                                   ),
                                 ],
@@ -1691,9 +1735,16 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
 
                         if (_isAutoPaused)
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 12, left: 24, right: 24),
+                            padding: const EdgeInsets.only(
+                              bottom: 12,
+                              left: 24,
+                              right: 24,
+                            ),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 16,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade800,
                                 borderRadius: BorderRadius.circular(12),
@@ -1701,12 +1752,20 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.pause_circle_filled, color: Colors.white, size: 18),
+                                  Icon(
+                                    Icons.pause_circle_filled,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
                                   SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
                                       'Auto-Paused — HR below 55%, pick up the pace!',
-                                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -1716,13 +1775,15 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                           ),
 
                         if (_isPaused && _elapsed == Duration.zero)
-                        // START BUTTON — matches session screen Continue button
+                          // START BUTTON — matches session screen Continue button
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                             child: GestureDetector(
                               onTap: () async {
-                                final ok = await _ensureBackgroundSetupBeforeStart();
+                                final ok =
+                                    await _ensureBackgroundSetupBeforeStart();
                                 if (!ok) return;
+                                _markWorkoutActive();
                                 setState(() {
                                   _isPaused = false;
                                 });
@@ -1735,8 +1796,8 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                               child: AnimatedBuilder(
                                 animation: _pulseController,
                                 builder: (context, child) {
-                                  final glowOpacity = 0.3 +
-                                      (_pulseController.value * 0.3);
+                                  final glowOpacity =
+                                      0.3 + (_pulseController.value * 0.3);
                                   return Container(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(18),
@@ -1763,7 +1824,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                       end: Alignment.bottomCenter,
                                       colors: [
                                         Color(0xFFFF6467),
-                                        AppColors.redStrong
+                                        AppColors.redStrong,
                                       ],
                                     ),
                                   ),
@@ -1782,7 +1843,7 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                             ),
                           )
                         else
-                        // PAUSE + STOP BUTTONS — shown after workout starts
+                          // PAUSE + STOP BUTTONS — shown after workout starts
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -1812,7 +1873,9 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                     color: Color(0xFF101113),
                                   ),
                                   child: Icon(
-                                    (_isPaused || _isAutoPaused) ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                                    (_isPaused || _isAutoPaused)
+                                        ? Icons.play_arrow_rounded
+                                        : Icons.pause_rounded,
                                     color: Colors.white,
                                     size: 28,
                                   ),
@@ -1854,14 +1917,18 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
                                   ),
                                 ),
                                 Slider(
-                                  value: _sliderHR.clamp(
-                                    (_maxHeartRate! * 0.40).round(),
-                                    _maxHeartRate!,
-                                  ).toDouble(),
+                                  value:
+                                      _sliderHR
+                                          .clamp(
+                                            (_maxHeartRate! * 0.40).round(),
+                                            _maxHeartRate!,
+                                          )
+                                          .toDouble(),
                                   min: (_maxHeartRate! * 0.40).roundToDouble(),
                                   max: _maxHeartRate!.toDouble(),
-                                  divisions: (_maxHeartRate! -
-                                      (_maxHeartRate! * 0.40).round()),
+                                  divisions:
+                                      (_maxHeartRate! -
+                                          (_maxHeartRate! * 0.40).round()),
                                   label: '$_sliderHR',
                                   onChanged: (v) {
                                     setState(() {
@@ -1890,17 +1957,12 @@ class _GaugeChartState extends State<GaugeChart> with WidgetsBindingObserver, Si
   @override
   Widget build(BuildContext context) {
     if (isLoading || _maxHeartRate == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Container(
-        color: AppColors.background,
-        child: _buildWorkoutBody(),
-      ),
+      body: Container(color: AppColors.background, child: _buildWorkoutBody()),
     );
   }
 }
