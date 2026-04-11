@@ -11,6 +11,7 @@ import 'package:heart_link_app/services/workout_audio_settings.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:heart_link_app/services/workout_haptic_settings.dart';
 import 'dart:async';
+import 'package:heart_link_app/app/theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -266,15 +267,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   ),
                 ),
               ),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: _primaryActionColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.white,
+                  backgroundColor: AppColors.redStrong.withOpacity(0.16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: _primaryActionBorder,
+                      color: AppColors.red.withOpacity(0.35),
                       width: 1,
                     ),
                   ),
@@ -322,12 +323,18 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text("Profile"),
+        backgroundColor: Colors.transparent,
       ),
 
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppGradients.pageBackground,
+        ),
       // STREAM FIRESTORE DOC ───────────────────────────────────────
-      body: StreamBuilder<DocumentSnapshot>(
+      child: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection("users")
             .doc(user.uid)
@@ -656,14 +663,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   width: double.infinity,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: Colors.redAccent.withOpacity(0.25),
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.redStrong.withOpacity(0.16),
+                      foregroundColor: AppColors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                         side: BorderSide(
-                          color: Colors.white.withOpacity(0.08),
+                          color: AppColors.red.withOpacity(0.35),
                           width: 1,
                         ),
                       ),
@@ -685,7 +692,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ],
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }

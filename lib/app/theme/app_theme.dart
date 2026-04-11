@@ -269,3 +269,61 @@ class AppTheme {
     );
   }
 }
+
+class AppButtonStyles {
+  AppButtonStyles._();
+
+  static BoxDecoration primaryGradient({
+    double radius = 18,
+    bool glow = false,
+  }) {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      gradient: AppGradients.accentPink,
+      boxShadow: glow ? AppShadows.fabGlow : AppShadows.cardShadow,
+    );
+  }
+
+  static BoxDecoration destructive({
+    double radius = 18,
+  }) {
+    return BoxDecoration(
+      borderRadius: BorderRadius.circular(radius),
+      color: AppColors.redStrong.withOpacity(0.16),
+      border: Border.all(
+        color: AppColors.red.withOpacity(0.35),
+        width: 1,
+      ),
+      boxShadow: AppShadows.cardShadow,
+    );
+  }
+
+  static ButtonStyle filledPrimary({double radius = 14}) {
+    return FilledButton.styleFrom(
+      backgroundColor: Colors.transparent,
+      foregroundColor: AppColors.white,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  static ButtonStyle tonalDestructive({double radius = 14}) {
+    return FilledButton.styleFrom(
+      backgroundColor: AppColors.redStrong.withOpacity(0.16),
+      foregroundColor: AppColors.white,
+      elevation: 0,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: BorderSide(
+          color: AppColors.red.withOpacity(0.35),
+          width: 1,
+        ),
+      ),
+    );
+  }
+}
