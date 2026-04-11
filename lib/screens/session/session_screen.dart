@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:heart_link_app/screens/session/session_flow_widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionScreen extends StatefulWidget {
@@ -105,24 +106,25 @@ class _SessionScreenState extends State<SessionScreen> {
         .doc(user.uid)
         .snapshots()
         .listen((DocumentSnapshot snap) async {
-      final Map<String, dynamic>? data = snap.data() as Map<String, dynamic>?;
-      final String? def = (data?['defaultWorkout'] as String?)?.trim();
+          final Map<String, dynamic>? data =
+              snap.data() as Map<String, dynamic>?;
+          final String? def = (data?['defaultWorkout'] as String?)?.trim();
 
-      if (def == null || !_activityNames.contains(def)) return;
+          if (def == null || !_activityNames.contains(def)) return;
 
-      if (!mounted) return;
-      setState(() {
-        _defaultWorkout = def;
-      });
+          if (!mounted) return;
+          setState(() {
+            _defaultWorkout = def;
+          });
 
-      try {
-        final SharedPreferences sp = await SharedPreferences.getInstance();
-        final String? key = _prefsKeyDefaultWorkout;
-        if (key != null) {
-          await sp.setString(key, def);
-        }
-      } catch (_) {}
-    });
+          try {
+            final SharedPreferences sp = await SharedPreferences.getInstance();
+            final String? key = _prefsKeyDefaultWorkout;
+            if (key != null) {
+              await sp.setString(key, def);
+            }
+          } catch (_) {}
+        });
   }
 
   @override
@@ -175,11 +177,11 @@ class _SessionScreenState extends State<SessionScreen> {
     }
 
     try {
-      final DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
-          .instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final DocumentSnapshot<Map<String, dynamic>> doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
       if (!mounted) return;
 
@@ -201,7 +203,7 @@ class _SessionScreenState extends State<SessionScreen> {
 
     Navigator.pushNamed(
       context,
-      '/sensorSelection',
+      '/sessionType',
       arguments: <String, dynamic>{'workoutMode': selectedActivity},
     );
   }
@@ -227,7 +229,7 @@ class _SessionScreenState extends State<SessionScreen> {
                       delegate: SliverChildListDelegate(<Widget>[
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: _BackButton(
+                          child: SessionFlowBackButton(
                             onPressed: () {
                               Navigator.pushReplacementNamed(context, '/home');
                             },
@@ -296,7 +298,7 @@ class _SessionScreenState extends State<SessionScreen> {
                     opacity: hasSelection ? 1 : 0,
                     duration: const Duration(milliseconds: 140),
                     curve: Curves.easeOut,
-                    child: _ContinueButton(
+                    child: SessionFlowContinueButton(
                       enabled: hasSelection,
                       label: 'Continue',
                       onPressed: _handleContinue,
@@ -437,110 +439,6 @@ class _ActivityCard extends StatelessWidget {
                   ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ContinueButton extends StatelessWidget {
-  const _ContinueButton({
-    required this.enabled,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final bool enabled;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow:
-            enabled
-                ? const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x59FB2C36),
-                    blurRadius: 24,
-                    spreadRadius: 0,
-                    offset: Offset(0, 12),
-                  ),
-                ]
-                : const <BoxShadow>[],
-      ),
-      child: SizedBox(
-        height: 56,
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: enabled ? onPressed : null,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.zero,
-            backgroundColor: Colors.transparent,
-            disabledBackgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-          ),
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient:
-                  enabled
-                      ? const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[Color(0xFFFF6467), AppColors.redStrong],
-                      )
-                      : const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[Color(0xFF3C3F44), Color(0xFF2A2C30)],
-                      ),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: enabled ? AppColors.white : AppColors.textMuted,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0x14FFFFFF),
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: const SizedBox(
-          width: 40,
-          height: 40,
-          child: Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textSecondary,
-            size: 20,
           ),
         ),
       ),
