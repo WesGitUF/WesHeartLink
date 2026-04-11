@@ -1,19 +1,18 @@
 import 'dart:async';
 import 'dart:ui';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
   final String workoutMode;
 
-  const SensorSelectionScreen({
-    Key? key,
-    required this.workoutMode,
-  }) : super(key: key);
+  const SensorSelectionScreen({Key? key, required this.workoutMode})
+    : super(key: key);
 
   @override
   _SensorSelectionScreenState createState() => _SensorSelectionScreenState();
@@ -39,28 +38,24 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
-    _glowOpacity = Tween<double>(
-      begin: 0.45,
-      end: 0.85,
-    ).animate(
+    _glowOpacity = Tween<double>(begin: 0.45, end: 0.85).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
-    _glowScale = Tween<double>(
-      begin: 0.94,
-      end: 1.05,
-    ).animate(
+    _glowScale = Tween<double>(begin: 0.94, end: 1.05).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
     // Dummy device for testing
     setState(() {
-      _devicesList.add(DiscoveredDevice(
-        id: '00:11:22:33:44:55', // Valid Bluetooth address format.
-        name: 'Fake HRM Device',
-        serviceData: {},
-        manufacturerData: Uint8List(0),
-        rssi: -50,
-        serviceUuids: [],
-      ));
+      _devicesList.add(
+        DiscoveredDevice(
+          id: '00:11:22:33:44:55', // Valid Bluetooth address format.
+          name: 'Fake HRM Device',
+          serviceData: {},
+          manufacturerData: Uint8List(0),
+          rssi: -50,
+          serviceUuids: [],
+        ),
+      );
     });
 
     // Request permissions then start scanning for real devices.
@@ -74,30 +69,38 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
   }
 
   Future<bool> requestPermissions() async {
-    final statuses = await [
-      Permission.location,
-      Permission.bluetoothScan,
-      Permission.bluetoothConnect,
-    ].request();
+    final statuses =
+        await [
+          Permission.location,
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+        ].request();
     return statuses.values.every((status) => status.isGranted);
   }
 
   void _startScan() {
     // Filter for the Heart Rate Service (UUID: 180D).
     final serviceUuid = Uuid.parse("180D");
-    _scanSubscription = _ble.scanForDevices(
-      withServices: [serviceUuid],
-      scanMode: ScanMode.lowLatency,
-    ).listen((DiscoveredDevice device) {
-      print("Discovered device: ${device.name.isNotEmpty ? device.name : device.id}, RSSI: ${device.rssi}");
-      if (!_devicesList.any((d) => d.id == device.id)) {
-        setState(() {
-          _devicesList.add(device);
-        });
-      }
-    }, onError: (error) {
-      print("Scan error: $error");
-    });
+    _scanSubscription = _ble
+        .scanForDevices(
+          withServices: [serviceUuid],
+          scanMode: ScanMode.lowLatency,
+        )
+        .listen(
+          (DiscoveredDevice device) {
+            print(
+              "Discovered device: ${device.name.isNotEmpty ? device.name : device.id}, RSSI: ${device.rssi}",
+            );
+            if (!_devicesList.any((d) => d.id == device.id)) {
+              setState(() {
+                _devicesList.add(device);
+              });
+            }
+          },
+          onError: (error) {
+            print("Scan error: $error");
+          },
+        );
   }
 
   bool get _hasSelectedDevice => _selectedUserDevice != null;
@@ -136,84 +139,96 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
               border: Border.all(color: AppColors.strokeSoft),
               boxShadow: AppShadows.cardShadow,
             ),
-            child: devices.isEmpty
-                ? Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.bluetooth_searching_rounded,
-                    color: AppColors.textSecondary,
-                    size: 28,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Searching for heart rate monitors...',
-                    style: theme.textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            )
-                : Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.textMuted,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text('Select sensor', style: theme.textTheme.titleMedium),
-                const SizedBox(height: 8),
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: devices.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final device = devices[index];
-                      final title =
-                      device.name.trim().isNotEmpty ? device.name : device.id;
+            child:
+                devices.isEmpty
+                    ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.bluetooth_searching_rounded,
+                            color: AppColors.textSecondary,
+                            size: 28,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Searching for heart rate monitors...',
+                            style: theme.textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                    : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 44,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: AppColors.textMuted,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Select sensor',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: devices.length,
+                            separatorBuilder:
+                                (_, __) => const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final device = devices[index];
+                              final title =
+                                  device.name.trim().isNotEmpty
+                                      ? device.name
+                                      : device.id;
 
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.06),
-                            border: Border.all(color: AppColors.strokeSoft),
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withValues(alpha: 0.06),
+                                    border: Border.all(
+                                      color: AppColors.strokeSoft,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.favorite_border_rounded,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                title: Text(
+                                  title,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
+                                subtitle: Text(
+                                  'RSSI ${device.rssi}',
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                                trailing: const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textSecondary,
+                                ),
+                                onTap: () => Navigator.pop(context, device),
+                              );
+                            },
                           ),
-                          child: const Icon(
-                            Icons.favorite_border_rounded,
-                            color: AppColors.textPrimary,
-                          ),
                         ),
-                        title: Text(title, style: theme.textTheme.bodyLarge),
-                        subtitle: Text(
-                          'RSSI ${device.rssi}',
-                          style: theme.textTheme.labelMedium,
-                        ),
-                        trailing: const Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.textSecondary,
-                        ),
-                        onTap: () => Navigator.pop(context, device),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                      ],
+                    ),
           ),
         );
       },
@@ -227,56 +242,32 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     }
   }
 
-  Future<String?> _showModeDialog() {
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        final theme = Theme.of(context);
+  Future<void> _openChooseMode({required bool isHost}) async {
+    if (!_hasSelectedDevice) return;
 
-        return AlertDialog(
-          backgroundColor: AppColors.surfacePrimary,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-            side: const BorderSide(color: AppColors.strokeSoft),
-          ),
-          title: Text('Choose mode', style: theme.textTheme.titleMedium),
-          content: Text(
-            'Would you like to start in online or offline mode? '
-                'Offline mode is not supported on iPhone.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, 'offline'),
-              child: const Text('Offline'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, 'online'),
-              child: const Text('Online'),
-            ),
-          ],
-        );
+    Navigator.pushNamed(
+      context,
+      '/chooseMode',
+      arguments: <String, dynamic>{
+        'userDeviceId': _selectedUserDevice!.id,
+        'isHost': isHost,
+        'workoutMode': _workoutMode,
       },
     );
   }
 
-  Future<void> _openSession({required bool isHost}) async {
+  void _startSoloWorkout() {
     if (!_hasSelectedDevice) return;
-
-    final result = await _showModeDialog();
-    if (result == null || !mounted) return;
-
-    final isOnline = result == 'online';
 
     Navigator.pushNamed(
       context,
       '/radialGauge',
-      arguments: {
+      arguments: <String, dynamic>{
         'userDeviceId': _selectedUserDevice!.id,
-        'isOnline': isOnline,
-        'isHost': isHost,
+        'isOnline': false,
+        'isHost': true,
         'workoutMode': _workoutMode,
+        'isSoloWorkout': true,
       },
     );
   }
@@ -292,19 +283,19 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
             fontWeight: FontWeight.w400,
           ),
         ),
-        const SizedBox(height: 22),
+        const SizedBox(height: 16),
         GestureDetector(
           onTap: () => _showDeviceSelectionMenu(true),
           child: SizedBox(
-            width: 240,
-            height: 240,
+            width: 220,
+            height: 220,
             child: Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
                 if (_hasSelectedDevice)
                   Positioned(
-                    top: 24,
+                    top: 22,
                     child: AnimatedBuilder(
                       animation: _glowController,
                       builder: (context, child) {
@@ -319,8 +310,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                       child: ImageFiltered(
                         imageFilter: ImageFilter.blur(sigmaX: 32, sigmaY: 32),
                         child: Container(
-                          width: 220,
-                          height: 220,
+                          width: 196,
+                          height: 196,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
                             color: Color(0x26FF6467),
@@ -330,8 +321,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     ),
                   ),
                 Container(
-                  width: 215,
-                  height: 208,
+                  width: 196,
+                  height: 190,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
@@ -349,8 +340,8 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                   ),
                   child: Center(
                     child: SizedBox(
-                      width: 72,
-                      height: 72,
+                      width: 64,
+                      height: 64,
                       child: SvgPicture.asset(
                         'assets/icons/hearticon.svg',
                         colorFilter: const ColorFilter.mode(
@@ -363,13 +354,13 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                 ),
                 if (!_hasSelectedDevice)
                   Positioned(
-                    right: 22,
-                    bottom: 18,
+                    right: 16,
+                    bottom: 16,
                     child: GestureDetector(
                       onTap: () => _showDeviceSelectionMenu(true),
                       child: Container(
-                        width: 80,
-                        height: 78,
+                        width: 72,
+                        height: 70,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
@@ -388,7 +379,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                         child: Icon(
                           Icons.add_rounded,
                           color: AppColors.white.withValues(alpha: 0.75),
-                          size: 30,
+                          size: 28,
                         ),
                       ),
                     ),
@@ -397,38 +388,39 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: _hasSelectedDevice
-              ? Column(
-            key: const ValueKey('connected'),
-            children: [
-              Text(
-                _selectedDeviceLabel,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textPrimary.withValues(alpha: 0.86),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Connected',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.green.withValues(alpha: 0.9),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-            ],
-          )
-              : Text(
-            _selectedDeviceLabel,
-            key: const ValueKey('disconnected'),
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: AppColors.red.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w400,
-            ),
-          ),
+          child:
+              _hasSelectedDevice
+                  ? Column(
+                    key: const ValueKey('connected'),
+                    children: [
+                      Text(
+                        _selectedDeviceLabel,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textPrimary.withValues(alpha: 0.86),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Connected',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: AppColors.green.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  )
+                  : Text(
+                    _selectedDeviceLabel,
+                    key: const ValueKey('disconnected'),
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: AppColors.red.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
         ),
       ],
     );
@@ -451,7 +443,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: SizedBox(
-          height: 96,
+          height: 82,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -467,12 +459,12 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
               ),
               Positioned(
                 left: 6,
-                top: 10,
+                top: 7,
                 child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                  imageFilter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                   child: Container(
-                    width: 96,
-                    height: 96,
+                    width: 82,
+                    height: 82,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: blurColor,
@@ -481,31 +473,31 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 64,
-                      height: 64,
+                      width: 52,
+                      height: 52,
                       child: Center(
                         child: Container(
-                          width: 64,
-                          height: 64,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: iconBackground,
                           ),
                           child: Center(
                             child: SizedBox(
-                              width: 28,
-                              height: 28,
+                              width: 22,
+                              height: 22,
                               child: SvgPicture.asset(svgAsset),
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -514,16 +506,21 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                           Text(
                             title,
                             style: theme.textTheme.titleLarge?.copyWith(
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w500,
+                              height: 1.1,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
                             subtitle,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: AppColors.textMuted,
+                              fontSize: 13,
+                              height: 1.2,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -586,7 +583,10 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                             ),
                             child: IconButton(
                               onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                              icon: const Icon(
+                                Icons.arrow_back_rounded,
+                                size: 20,
+                              ),
                               color: AppColors.textPrimary,
                               splashRadius: 20,
                             ),
@@ -606,7 +606,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 56),
+                    const SizedBox(height: 36),
                     _buildSensorHero(theme),
                     const Spacer(),
                     _buildSessionActionCard(
@@ -614,25 +614,37 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                       svgAsset: 'assets/icons/createsessionicon.svg',
                       blurColor: const Color(0x26FF6467),
                       iconBackground: const Color(0x1AFF6467),
-                      title: 'Create Session',
-                      subtitle: 'Start a new workout',
-                      onTap: _hasSelectedDevice
-                          ? () => _openSession(isHost: true)
-                          : null,
+                      title: 'Solo Session',
+                      subtitle: 'Start your workout on your own',
+                      onTap: _hasSelectedDevice ? _startSoloWorkout : null,
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
+                    _buildSessionActionCard(
+                      theme: theme,
+                      svgAsset: 'assets/icons/createsessionicon.svg',
+                      blurColor: const Color(0x26FF6467),
+                      iconBackground: const Color(0x1AFF6467),
+                      title: 'Create Paired Session',
+                      subtitle: 'Start a workout and invite someone',
+                      onTap:
+                          _hasSelectedDevice
+                              ? () => _openChooseMode(isHost: true)
+                              : null,
+                    ),
+                    const SizedBox(height: 10),
                     _buildSessionActionCard(
                       theme: theme,
                       svgAsset: 'assets/icons/joinsessionicon.svg',
                       blurColor: const Color(0x262B7FFF),
                       iconBackground: const Color(0x1A2B7FFF),
-                      title: 'Join Session',
-                      subtitle: 'Connect with others',
-                      onTap: _hasSelectedDevice
-                          ? () => _openSession(isHost: false)
-                          : null,
+                      title: 'Join Paired Session',
+                      subtitle: 'Connect to a session someone else created',
+                      onTap:
+                          _hasSelectedDevice
+                              ? () => _openChooseMode(isHost: false)
+                              : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
