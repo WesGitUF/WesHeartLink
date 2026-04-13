@@ -5,6 +5,7 @@ import 'package:heart_link_app/screens/signup_screen.dart';
 import 'firebase_options.dart';
 import 'package:heart_link_app/radial-gauge.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
+import 'package:heart_link_app/screens/session/choose_mode_screen.dart';
 import 'package:heart_link_app/screens/session/sensor_selection_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_screen.dart';
 import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
@@ -19,9 +20,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
@@ -70,30 +69,47 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const AppShell(),
         '/session': (context) => const SessionScreen(),
         '/sensorSelection': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
           return SensorSelectionScreen(
-            workoutMode: args['workoutMode'] as String
+            workoutMode: args['workoutMode'] as String,
+          );
+        },
+        '/chooseMode': (context) {
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return ChooseModeScreen(
+            workoutMode: args['workoutMode'] as String,
+            userDeviceId: args['userDeviceId'] as String,
+            isHost: args['isHost'] as bool,
           );
         },
         '/tracking': (context) => const TrackingScreen(),
         '/radialGauge': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
           return GaugeChart(
             userDeviceId: args['userDeviceId'],
             isOnline: args['isOnline'] as bool,
             isHost: args['isHost'] as bool,
-            workoutMode: args['workoutMode'] as String
+            workoutMode: args['workoutMode'] as String,
+            isSoloWorkout: (args['isSoloWorkout'] as bool?) ?? false,
           );
         },
         '/profile': (context) => const ProfileScreen(),
         '/maxHR': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return MaxHRInputScreen(
-            workoutMode: args['workoutMode'] as String
-          );
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
+          return MaxHRInputScreen(workoutMode: args['workoutMode'] as String);
         },
         '/trackingResult': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          final args =
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>;
           return TrackingResultScreen(
             elapsedTime: args['elapsed'] as Duration,
             sameZoneTime: args['sameZone'] as Duration,
@@ -105,7 +121,7 @@ class MyApp extends StatelessWidget {
             series: args['series'] as List<int>,
             topZone: args['topZone'] as String,
             isSolo: args['isSolo'] as bool, //changed this
-            theoreticalMaxHr: args['theoreticalMaxHr'] as int
+            theoreticalMaxHr: args['theoreticalMaxHr'] as int,
           );
         },
       },
