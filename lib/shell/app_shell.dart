@@ -168,11 +168,7 @@ class _AppShellState extends State<AppShell> {
         color: Colors.transparent,
         padding: EdgeInsets.zero,
         child: Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).padding.bottom > 0
-                ? MediaQuery.of(context).padding.bottom
-                : 6,
-          ),
+          padding: EdgeInsets.zero,
           decoration: BoxDecoration(
             color: AppColors.surfacePrimary.withValues(alpha: 0.96),
             border: Border(
@@ -187,7 +183,7 @@ class _AppShellState extends State<AppShell> {
             ],
           ),
           child: SizedBox(
-            height: 74,
+            height: 50,
             child: Row(
               children: [
                 Expanded(
