@@ -373,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 23, 24, 0),
+            padding: EdgeInsets.fromLTRB(24, 23, 24, MediaQuery.of(context).padding.bottom + 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
