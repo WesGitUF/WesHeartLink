@@ -231,16 +231,13 @@ class WorkoutDetailScreen extends StatelessWidget {
                 children: [
                   SizedBox(
                     height: 260,
-                    child: CustomPaint(
-                      painter: _HrCurvePainter(
-                        series: series,
-                        theoreticalMaxHr: theoreticalMaxHr,
-                        yAxisMax: sessionMaxHr,
-                        tickCount: 4,
-                        startLabel: '0:00',
-                        endLabel: _formatDuration(workout.duration),
-                      ),
-                      size: Size.infinite,
+                    child: _InteractiveHrChart(
+                      series: series,
+                      theoreticalMaxHr: theoreticalMaxHr,
+                      yAxisMax: sessionMaxHr,
+                      workoutDuration: workout.duration,
+                      startLabel: '0:00',
+                      endLabel: _formatDuration(workout.duration),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -565,19 +562,21 @@ class _HrCurvePainter extends CustomPainter {
   final int tickCount;
   final String startLabel;
   final String endLabel;
+  final int? selectedIndex;
+  final String? tooltipTime;
 
   // Zone boundaries as % of theoretical max HR — matches the legend labels
-  static const double _greyUpperBound   = 0.65; // 40–65%
-  static const double _blueUpperBound   = 0.80; // 66–80%
-  static const double _greenUpperBound  = 0.89; // 81–89%
+  static const double _greyUpperBound = 0.65; // 40–65%
+  static const double _blueUpperBound = 0.80; // 66–80%
+  static const double _greenUpperBound = 0.89; // 81–89%
   static const double _yellowUpperBound = 0.95; // 90–95%
-                                                 // above 95% → red
+  // above 95% → red
 
-  static const Color _grey   = Color(0xFF666A70);
-  static const Color _blue   = Color(0xFF2F6BDA);
-  static const Color _green  = Color(0xFF66B35B);
+  static const Color _grey = Color(0xFF666A70);
+  static const Color _blue = Color(0xFF2F6BDA);
+  static const Color _green = Color(0xFF66B35B);
   static const Color _yellow = Color(0xFFF3A43B);
-  static const Color _red    = Color(0xFFE25353);
+  static const Color _red = Color(0xFFE25353);
 
   _HrCurvePainter({
     required this.series,
@@ -586,57 +585,63 @@ class _HrCurvePainter extends CustomPainter {
     required this.tickCount,
     required this.startLabel,
     required this.endLabel,
+    this.selectedIndex,
+    this.tooltipTime,
   });
 
   Color _zoneColor(int bpm) {
     if (theoreticalMaxHr <= 0) return _grey;
     final percent = bpm / theoreticalMaxHr;
-    if (percent <= _greyUpperBound)   return _grey;
-    if (percent <= _blueUpperBound)   return _blue;
-    if (percent <= _greenUpperBound)  return _green;
+    if (percent <= _greyUpperBound) return _grey;
+    if (percent <= _blueUpperBound) return _blue;
+    if (percent <= _greenUpperBound) return _green;
     if (percent <= _yellowUpperBound) return _yellow;
     return _red;
   }
 
   ({double min, double max, List<int> ticks}) _buildAxis() {
-    int low  = series.reduce((a, b) => a < b ? a : b);
+    int low = series.reduce((a, b) => a < b ? a : b);
     int high = series.reduce((a, b) => a > b ? a : b);
 
     if (high < yAxisMax) high = yAxisMax;
-    if (low == high) { low -= 5; high += 5; }
+    if (low == high) {
+      low -= 5;
+      high += 5;
+    }
 
     // Add 8% padding around the range
-    low  -= ((high - low) * 0.08).round();
+    low -= ((high - low) * 0.08).round();
     high += ((high - low) * 0.08).round();
 
     // Snap to nearest 10
-    low  = (low  / 10).floor() * 10;
-    high = (high / 10).ceil()  * 10;
+    low = (low / 10).floor() * 10;
+    high = (high / 10).ceil() * 10;
 
     if (low < 40) low = 40;
     if (high <= low) high = low + 10;
 
     final count = tickCount.clamp(3, 8);
-    final step  = ((high - low) / (count - 1)).round();
+    final step = ((high - low) / (count - 1)).round();
     final ticks = List<int>.generate(count, (i) => low + step * i);
 
-    return (min: low.toDouble(), max: (low + step * (count - 1)).toDouble(), ticks: ticks);
+    return (min: low.toDouble(), max: (low + step * (count - 1))
+        .toDouble(), ticks: ticks);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
     if (series.isEmpty) return;
 
-    const double paddingLeft   = 44;
-    const double paddingRight  = 16;
-    const double paddingTop    = 8;
+    const double paddingLeft = 44;
+    const double paddingRight = 16;
+    const double paddingTop = 40;
     const double paddingBottom = 26;
 
     final chartArea = Rect.fromLTWH(
       paddingLeft,
       paddingTop,
-      size.width  - paddingLeft  - paddingRight,
-      size.height - paddingTop   - paddingBottom,
+      size.width - paddingLeft - paddingRight,
+      size.height - paddingTop - paddingBottom,
     );
 
     final axis = _buildAxis();
@@ -663,24 +668,27 @@ class _HrCurvePainter extends CustomPainter {
     for (final tick in axis.ticks) {
       final y = yForValue(tick.toDouble());
 
-      canvas.drawLine(Offset(chartArea.left, y), Offset(chartArea.right, y), gridPaint);
+      canvas.drawLine(
+          Offset(chartArea.left, y), Offset(chartArea.right, y), gridPaint);
 
       final leftLabel = TextPainter(
         text: TextSpan(text: '$tick', style: labelStyle),
         textDirection: TextDirection.ltr,
-      )..layout();
-      leftLabel.paint(canvas, Offset(chartArea.left - 4 - leftLabel.width, y - leftLabel.height / 2));
+      )
+        ..layout();
+      leftLabel.paint(canvas, Offset(
+          chartArea.left - 4 - leftLabel.width, y - leftLabel.height / 2));
     }
 
     // X-axis baseline
     canvas.drawLine(
-      Offset(chartArea.left,  chartArea.bottom),
+      Offset(chartArea.left, chartArea.bottom),
       Offset(chartArea.right, chartArea.bottom),
       Paint()
         ..color = AppColors.strokeSoft
         ..strokeWidth = 2,
     );
-    _drawText(canvas, Offset(chartArea.left,  chartArea.bottom + 14), startLabel,
+    _drawText(canvas, Offset(chartArea.left, chartArea.bottom + 14), startLabel,
         fontSize: 11, color: Colors.white70);
     _drawText(canvas, Offset(chartArea.right, chartArea.bottom + 14), endLabel,
         fontSize: 11, color: Colors.white70, align: TextAlign.right);
@@ -698,8 +706,8 @@ class _HrCurvePainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     for (int i = 0; i < points.length - 1; i++) {
-      final p0  = points[i];
-      final p1  = points[i + 1];
+      final p0 = points[i];
+      final p1 = points[i + 1];
       final mid = Offset((p0.dx + p1.dx) / 2, (p0.dy + p1.dy) / 2);
 
       final avgBpm = ((series[i] + series[i + 1]) / 2).round();
@@ -708,26 +716,111 @@ class _HrCurvePainter extends CustomPainter {
       canvas.drawPath(
         Path()
           ..moveTo(p0.dx, p0.dy)
-          ..quadraticBezierTo(p0.dx, p0.dy, mid.dx, mid.dy)
-          ..quadraticBezierTo(p1.dx, p1.dy, p1.dx, p1.dy),
+          ..quadraticBezierTo(p0.dx, p0.dy, mid.dx, mid.dy)..quadraticBezierTo(
+            p1.dx, p1.dy, p1.dx, p1.dy),
         curvePaint,
+      );
+    }
+    // Draw selection line + tooltip
+    if (selectedIndex != null && selectedIndex! >= 0 && selectedIndex! < points.length) {
+      final selPoint = points[selectedIndex!];
+      final bpm = series[selectedIndex!];
+
+      // Vertical line
+      canvas.drawLine(
+        Offset(selPoint.dx, chartArea.top),
+        Offset(selPoint.dx, chartArea.bottom),
+        Paint()
+          ..color = Colors.white
+          ..strokeWidth = 2,
+      );
+
+      // Dot at intersection
+      canvas.drawCircle(
+        selPoint,
+        5,
+        Paint()..color = Colors.white,
+      );
+      canvas.drawCircle(
+        selPoint,
+        3,
+        Paint()..color = Colors.black,
+      );
+
+      // Tooltip bubble
+      final tooltipText = '$bpm bpm';
+      final timeText = tooltipTime ?? '';
+
+      final bpmPainter = TextPainter(
+        text: TextSpan(
+          text: tooltipText,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final timePainter = TextPainter(
+        text: TextSpan(
+          text: timeText,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Colors.white70,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final bubbleWidth = (bpmPainter.width > timePainter.width ? bpmPainter.width : timePainter.width) + 20;
+      final bubbleHeight = bpmPainter.height + timePainter.height + 10;
+
+      double bubbleX = selPoint.dx - bubbleWidth / 2;
+      if (bubbleX < chartArea.left) bubbleX = chartArea.left;
+      if (bubbleX + bubbleWidth > chartArea.right) bubbleX = chartArea.right - bubbleWidth;
+
+      final bubbleRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(bubbleX, chartArea.top - bubbleHeight - 8, bubbleWidth, bubbleHeight),
+        const Radius.circular(12),
+      );
+
+      canvas.drawRRect(
+        bubbleRect,
+        Paint()..color = _red,
+      );
+
+      final bubbleTop = chartArea.top - bubbleHeight - 8;
+      final textBlockHeight = bpmPainter.height + timePainter.height;
+      final textStartY = bubbleTop + (bubbleHeight - textBlockHeight) / 2;
+
+      bpmPainter.paint(
+        canvas,
+        Offset(bubbleX + (bubbleWidth - bpmPainter.width) / 2, textStartY),
+      );
+      timePainter.paint(
+        canvas,
+        Offset(bubbleX + (bubbleWidth - timePainter.width) / 2, textStartY + bpmPainter.height),
       );
     }
   }
 
-  void _drawText(
-    Canvas canvas,
-    Offset position,
-    String text, {
-    TextAlign align = TextAlign.left,
-    double fontSize = 12,
-    Color color = Colors.white,
-  }) {
+  void _drawText(Canvas canvas,
+      Offset position,
+      String text, {
+        TextAlign align = TextAlign.left,
+        double fontSize = 12,
+        Color color = Colors.white,
+      }) {
     final painter = TextPainter(
-      text: TextSpan(text: text, style: TextStyle(color: color, fontSize: fontSize)),
+      text: TextSpan(
+          text: text, style: TextStyle(color: color, fontSize: fontSize)),
       textAlign: align,
       textDirection: TextDirection.ltr,
-    )..layout();
+    )
+      ..layout();
     final adjustedPosition = align == TextAlign.right
         ? position - Offset(painter.width, 0)
         : position;
@@ -736,11 +829,85 @@ class _HrCurvePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _HrCurvePainter old) {
-    return series           != old.series           ||
-           theoreticalMaxHr != old.theoreticalMaxHr ||
-           yAxisMax         != old.yAxisMax         ||
-           tickCount        != old.tickCount        ||
-           startLabel       != old.startLabel       ||
-           endLabel         != old.endLabel;
+    return series != old.series ||
+        theoreticalMaxHr != old.theoreticalMaxHr ||
+        yAxisMax != old.yAxisMax ||
+        tickCount != old.tickCount ||
+        startLabel != old.startLabel ||
+        endLabel != old.endLabel ||
+        selectedIndex != old.selectedIndex ||
+        tooltipTime != old.tooltipTime;
+  }
+}
+
+class _InteractiveHrChart extends StatefulWidget {
+  final List<int> series;
+  final int theoreticalMaxHr;
+  final int yAxisMax;
+  final Duration workoutDuration;
+  final String startLabel;
+  final String endLabel;
+
+  const _InteractiveHrChart({
+    required this.series,
+    required this.theoreticalMaxHr,
+    required this.yAxisMax,
+    required this.workoutDuration,
+    required this.startLabel,
+    required this.endLabel,
+  });
+
+  @override
+  State<_InteractiveHrChart> createState() => _InteractiveHrChartState();
+}
+
+class _InteractiveHrChartState extends State<_InteractiveHrChart> {
+  int? _selectedIndex;
+
+  String _formatTimeAtIndex(int index) {
+    if (widget.series.length <= 1) return '0:00';
+    final fraction = index / (widget.series.length - 1);
+    final seconds = (widget.workoutDuration.inSeconds * fraction).round();
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  void _handleTouch(Offset localPosition, Size size) {
+    const double paddingLeft = 44;
+    const double paddingRight = 16;
+    final chartWidth = size.width - paddingLeft - paddingRight;
+    final x = (localPosition.dx - paddingLeft).clamp(0.0, chartWidth);
+    final fraction = chartWidth == 0 ? 0.0 : x / chartWidth;
+    final index = (fraction * (widget.series.length - 1)).round().clamp(0, widget.series.length - 1);
+    setState(() => _selectedIndex = index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = Size(constraints.maxWidth, constraints.maxHeight);
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) => _handleTouch(d.localPosition, size),
+          onPanStart: (d) => _handleTouch(d.localPosition, size),
+          onPanUpdate: (d) => _handleTouch(d.localPosition, size),
+          child: CustomPaint(
+            painter: _HrCurvePainter(
+              series: widget.series,
+              theoreticalMaxHr: widget.theoreticalMaxHr,
+              yAxisMax: widget.yAxisMax,
+              tickCount: 4,
+              startLabel: widget.startLabel,
+              endLabel: widget.endLabel,
+              selectedIndex: _selectedIndex,
+              tooltipTime: _selectedIndex != null ? _formatTimeAtIndex(_selectedIndex!) : null,
+            ),
+            size: Size.infinite,
+          ),
+        );
+      },
+    );
   }
 }

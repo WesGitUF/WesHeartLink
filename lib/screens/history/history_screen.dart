@@ -242,7 +242,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
             )
                 : ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 40),
               itemCount: items.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, i) => _workoutTile(

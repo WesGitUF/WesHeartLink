@@ -570,6 +570,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 6, 24, 20),
+                child: SingleChildScrollView(
                 child: Column(
                   children: [
                     SizedBox(
@@ -608,9 +609,9 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 24),
                     _buildSensorHero(theme),
-                    const Spacer(),
+                    const SizedBox(height: 32),
                     _buildSessionActionCard(
                       theme: theme,
                       icon: Icons.person_outline_rounded,
@@ -647,9 +648,10 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                               ? () => _openChooseMode(isHost: false)
                               : null,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
                   ],
                 ),
+              ),
               ),
             ],
           ),

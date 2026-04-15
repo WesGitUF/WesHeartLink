@@ -373,7 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               : (email.isNotEmpty ? email[0].toUpperCase() : "?");
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).padding.bottom + 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

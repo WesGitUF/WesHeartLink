@@ -289,7 +289,7 @@ class _SessionScreenState extends State<SessionScreen> {
               Positioned(
                 left: 24,
                 right: 24,
-                bottom: 34,
+                bottom: 34 + MediaQuery.of(context).padding.bottom,
                 child: IgnorePointer(
                   ignoring: !hasSelection,
                   child: AnimatedOpacity(
