@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:heart_link_app/screens/signup_screen.dart';
+import 'package:heart_link_app/screens/splash/splash_screen.dart';
 import 'firebase_options.dart';
 import 'package:heart_link_app/radial-gauge.dart';
 import 'package:heart_link_app/screens/session/session_screen.dart';
@@ -43,25 +44,23 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
 
-      // Use a StreamBuilder to listen to auth changes
-      home: StreamBuilder<firebase_auth.User?>(
-        stream: authService.userChanges,
-        builder: (context, snapshot) {
-          // If the connection is active, check for a logged-in user
-          if (snapshot.connectionState == ConnectionState.active) {
-            final firebase_auth.User? user = snapshot.data;
-            if (user == null) {
-              // return const LoginScreen();
-              return const LoginScreen();
-            } else {
-              return const AppShell();
+      home: SplashScreen(
+        nextScreen: StreamBuilder<firebase_auth.User?>(
+          stream: authService.userChanges,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.active) {
+              final firebase_auth.User? user = snapshot.data;
+              if (user == null) {
+                return const LoginScreen();
+              } else {
+                return const AppShell();
+              }
             }
-          }
-          // While waiting for auth state, show a loading indicator
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        },
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          },
+        ),
       ),
       routes: {
         '/login': (context) => const LoginScreen(),
