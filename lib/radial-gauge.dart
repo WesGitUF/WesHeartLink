@@ -1453,6 +1453,26 @@ class _GaugeChartState extends State<GaugeChart>
     return SafeArea(
       child: Stack(
         children: [
+          Positioned(
+            top: 100,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                width: 380,
+                height: 380,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      AppColors.redStrong.withValues(alpha: 0.10),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -1539,12 +1559,10 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF101113),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white24,
-                                  width: 1.2,
-                                ),
+                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.strokeSoft),
+                                boxShadow: AppShadows.cardShadow,
                               ),
                               child: Column(
                                 children: [
@@ -1573,12 +1591,10 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF101113),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.white24,
-                                  width: 1.2,
-                                ),
+                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: AppColors.strokeSoft),
+                                boxShadow: AppShadows.cardShadow,
                               ),
                               child: Column(
                                 children: [
@@ -1614,20 +1630,21 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF101113),
-                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                      _maxHeartRate != null && _maxSessionHR > 0
-                                          ? _colorForZone(
-                                            getZoneForHR(
-                                              _maxSessionHR,
-                                              _maxHeartRate!,
-                                            ),
-                                          )
-                                          : Colors.white24,
+                                  _maxHeartRate != null && _maxSessionHR > 0
+                                      ? _colorForZone(
+                                    getZoneForHR(
+                                      _maxSessionHR,
+                                      _maxHeartRate!,
+                                    ),
+                                  )
+                                      : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
+                                boxShadow: AppShadows.cardShadow,
                               ),
                               child: Column(
                                 children: [
@@ -1674,20 +1691,21 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF101113),
-                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                      _maxHeartRate != null && averageHR > 0
-                                          ? _colorForZone(
-                                            getZoneForHR(
-                                              averageHR.round(),
-                                              _maxHeartRate!,
-                                            ),
-                                          )
-                                          : Colors.white24,
+                                  _maxHeartRate != null && _maxSessionHR > 0
+                                      ? _colorForZone(
+                                    getZoneForHR(
+                                      _maxSessionHR,
+                                      _maxHeartRate!,
+                                    ),
+                                  )
+                                      : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
+                                boxShadow: AppShadows.cardShadow,
                               ),
                               child: Column(
                                 children: [
@@ -1832,7 +1850,7 @@ class _GaugeChartState extends State<GaugeChart>
                                     child: Text(
                                       'Start',
                                       style: TextStyle(
-                                        fontSize: 16,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.w500,
                                         color: Colors.white,
                                       ),
@@ -1962,7 +1980,10 @@ class _GaugeChartState extends State<GaugeChart>
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Container(color: AppColors.background, child: _buildWorkoutBody()),
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppGradients.pageBackground),
+        child: _buildWorkoutBody(),
+      ),
     );
   }
 }
