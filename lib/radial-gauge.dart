@@ -646,7 +646,13 @@ class _GaugeChartState extends State<GaugeChart>
 
     if (await WorkoutHapticSettings.isEnabled() &&
         (await Vibration.hasVibrator() ?? false)) {
-      Vibration.vibrate(duration: 250, amplitude: 255);
+      await Future.delayed(const Duration(milliseconds: 300));
+      for (var i = 0; i < 3; i++) {
+        Vibration.vibrate(duration: 120, amplitude: 255);
+        if (i < 2) {
+          await Future.delayed(const Duration(milliseconds: 190));
+        }
+      }
     }
   }
 
