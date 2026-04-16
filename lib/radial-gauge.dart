@@ -2011,9 +2011,9 @@ class _GaugeChartState extends State<GaugeChart>
           ),
           if (_isAutoPaused && _showAutoPauseOverlay)
             Positioned.fill(
-              child: GestureDetector(
+              child: Listener(
                 behavior: HitTestBehavior.opaque,
-                onTap: _dismissAutoPauseOverlay,
+                onPointerDown: (_) => _dismissAutoPauseOverlay(),
                 child: Container(
                   color: const Color(0xFF06080E).withValues(alpha: 0.94),
                   padding: const EdgeInsets.symmetric(
