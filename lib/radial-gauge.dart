@@ -1058,193 +1058,195 @@ class _GaugeChartState extends State<GaugeChart>
         color: Colors.black.withOpacity(0.6),
         child: Center(
           child: Container(
-            padding: const EdgeInsets.all(20),
-            margin: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.all(22),
+            margin: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(
               color: const Color.fromARGB(255, 40, 40, 41),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.35),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-            child:
-                _isHost!
-                    ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "Share this Session ID:",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        SelectableText(
-                          sessionId ?? "Loading...",
-                          style: const TextStyle(
-                            fontSize: 24,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ValueListenableBuilder(
-                          valueListenable: nearbyService.guestConnectedNotifier,
-                          builder: (context, guestConnected, _) {
-                            return ElevatedButton(
-                              onPressed:
-                                  !guestConnected
-                                      ? null
-                                      : () async {
-                                        final ok =
-                                            await _ensureBackgroundSetupBeforeStart();
-                                        if (!ok) return;
+            child: _isHost!
+                ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Share this Session ID",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white, // match End Workout
+                  ),
+                ),
 
-                                        setState(() {
-                                          _showOverlay = false;
-                                          _guestConnected = true;
-                                        });
+                const SizedBox(height: 16),
 
-                                        _markWorkoutActive();
-                                        _stopwatch.start();
-                                        _workoutStartTime = DateTime.now();
-                                        _startTimer();
-                                        await _startWorkoutNotification();
-                                      },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 20,
-                                  horizontal: 24,
-                                ),
-                                textStyle: const TextStyle(fontSize: 24),
-                              ),
-                              child: Text(
-                                guestConnected
-                                    ? 'Start Workout'
-                                    : 'Waiting for partner...',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    )
-                    : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "Enter Session ID to Join:",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: _sessionIdController,
-                          decoration: const InputDecoration(
-                            filled: true,
-                            fillColor: Colors.black,
-                            border: OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: Colors.red,
-                                width: 2,
-                              ),
-                            ),
-                            hintText: "Enter code",
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: () async {
-                            if (_sessionIdController.text.isEmpty) return;
 
-                            sessionId = _sessionIdController.text.trim();
-
-                            if (!_isOnline!) {
-                              await nearbyService.initializeNearby(
-                                role: "peer",
-                                userName:
-                                    FirebaseAuth
-                                        .instance
-                                        .currentUser
-                                        ?.displayName ??
-                                    "Guest",
-                                sessionCode: sessionId,
-                              );
-                              return;
-                            }
-
-                            final result = await _sessionService.joinSession(
-                              sessionId!,
-                            );
-                            if (result is String) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(
-                                  context,
-                                ).showSnackBar(SnackBar(content: Text(result)));
-                              }
-                              return;
-                            }
-
-                            final ok =
-                                await _ensureBackgroundSetupBeforeStart();
-                            if (!ok) return;
-
-                            setState(() {
-                              _isHost = false;
-                              _guestConnected = true;
-                              _showOverlay = false;
-                            });
-
-                            _listenForPartnerHR();
-                            _markWorkoutActive();
-                            _stopwatch.start();
-                            _workoutStartTime = DateTime.now();
-                            _startTimer();
-                            await _startWorkoutNotification();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 20,
-                              horizontal: 24,
-                            ),
-                            textStyle: const TextStyle(fontSize: 24),
-                          ),
-                          child: Text(
-                            'Join Session',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.red.withOpacity(0.35),
+                      width: 1.4,
                     ),
+                  ),
+                  child: SelectableText(
+                    sessionId ?? "Loading...",
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white, // match End Workout
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
+                const Text(
+                  "Waiting for partner to join...",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white70,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+              ],
+            )
+                : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Enter Session ID to Join",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppColors.red.withOpacity(0.35),
+                      width: 1.4,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _sessionIdController,
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                    decoration: const InputDecoration(
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 12,
+                      ),
+                      border: InputBorder.none,
+                      hintText: "Enter code",
+                      hintStyle: TextStyle(color: Colors.white54),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 26),
+
+
+                TextButton(
+                  onPressed: () async {
+                    if (_sessionIdController.text.isEmpty) return;
+
+                    sessionId = _sessionIdController.text.trim();
+
+                    if (!_isOnline!) {
+                      await nearbyService.initializeNearby(
+                        role: "peer",
+                        userName: FirebaseAuth
+                            .instance
+                            .currentUser
+                            ?.displayName ??
+                            "Guest",
+                        sessionCode: sessionId,
+                      );
+                      return;
+                    }
+
+                    final result =
+                    await _sessionService.joinSession(sessionId!);
+                    if (result is String) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(result)),
+                        );
+                      }
+                      return;
+                    }
+
+                    final ok =
+                    await _ensureBackgroundSetupBeforeStart();
+                    if (!ok) return;
+
+                    setState(() {
+                      _isHost = false;
+                      _guestConnected = true;
+                      _showOverlay = false;
+                    });
+
+                    _listenForPartnerHR();
+                    _markWorkoutActive();
+                    _stopwatch.start();
+                    _workoutStartTime = DateTime.now();
+                    _startTimer();
+                    await _startWorkoutNotification();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.red,
+                    backgroundColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: AppColors.red.withOpacity(0.35),
+                        width: 1.4,
+                      ),
+                    ),
+                  ),
+                  child: const Text(
+                    "Join Session",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+
 
   // Radial gauge widget
   // Circular gauge with colored zones and pointers for user/partner HR
