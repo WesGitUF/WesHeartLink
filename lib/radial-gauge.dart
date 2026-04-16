@@ -45,7 +45,7 @@ class GaugeChart extends StatefulWidget {
 }
 
 class _GaugeChartState extends State<GaugeChart>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final SessionService _sessionService = SessionService();
 
@@ -122,6 +122,7 @@ class _GaugeChartState extends State<GaugeChart>
 
   // play animation controller
   late final AnimationController _pulseController;
+  late final AnimationController _autoPauseShakeController;
 
   //keep track of if displayed emoji is user or partner
   bool userImage = true;
@@ -598,6 +599,18 @@ class _GaugeChartState extends State<GaugeChart>
     return "$hours:$minutes:$seconds";
   }
 
+  double get _autoPauseShakeOffset {
+    final t = _autoPauseShakeController.value;
+
+    if (t < 0.16) return -14 * (t / 0.16);
+    if (t < 0.32) return -14 + (28 * ((t - 0.16) / 0.16));
+    if (t < 0.48) return 14 - (28 * ((t - 0.32) / 0.16));
+    if (t < 0.64) return -14 + (28 * ((t - 0.48) / 0.16));
+    if (t < 0.80) return 14 - (28 * ((t - 0.64) / 0.16));
+
+    return -14 + (14 * ((t - 0.80) / 0.20));
+  }
+
   void _dismissAutoPauseOverlay() {
     if (!_showAutoPauseOverlay) return;
     setState(() => _showAutoPauseOverlay = false);
@@ -625,6 +638,7 @@ class _GaugeChartState extends State<GaugeChart>
       });
       if (!_isPaused) _stopwatch.stop();
 
+      _autoPauseShakeController.forward(from: 0);
       _playAutoPauseSound();
     } else if (_isAutoPaused && hr >= lowThreshold) {
       // Recovered above 55% — auto resume (only if not also manually paused)
@@ -960,6 +974,11 @@ class _GaugeChartState extends State<GaugeChart>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
+
+    _autoPauseShakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
   }
 
   @override
@@ -977,6 +996,7 @@ class _GaugeChartState extends State<GaugeChart>
     WorkoutNotificationService.dispose();
 
     _pulseController.dispose();
+    _autoPauseShakeController.dispose();
 
     super.dispose();
   }
@@ -2040,12 +2060,21 @@ class _GaugeChartState extends State<GaugeChart>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SizedBox(
-                        width: 220,
-                        height: 220,
-                        child: Image.asset(
-                          'images/sleepy-emoji.png',
-                          fit: BoxFit.contain,
+                      AnimatedBuilder(
+                        animation: _autoPauseShakeController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(_autoPauseShakeOffset, 0),
+                            child: child,
+                          );
+                        },
+                        child: SizedBox(
+                          width: 220,
+                          height: 220,
+                          child: Image.asset(
+                            'images/sleepy-emoji.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 26),
