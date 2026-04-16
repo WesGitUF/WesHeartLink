@@ -1091,7 +1091,7 @@ class _GaugeChartState extends State<GaugeChart>
                           builder: (context, guestConnected, _) {
                             return ElevatedButton(
                               onPressed:
-                                  (_isOnline! && !guestConnected)
+                                  !guestConnected
                                       ? null
                                       : () async {
                                         final ok =
@@ -1100,13 +1100,7 @@ class _GaugeChartState extends State<GaugeChart>
 
                                         setState(() {
                                           _showOverlay = false;
-
-                                          if (guestConnected) {
-                                            _guestConnected = true;
-                                          } else {
-                                            _guestConnected = false;
-                                            isSolo = true;
-                                          }
+                                          _guestConnected = true;
                                         });
 
                                         _markWorkoutActive();
@@ -1126,9 +1120,7 @@ class _GaugeChartState extends State<GaugeChart>
                               child: Text(
                                 guestConnected
                                     ? 'Start Workout'
-                                    : (_isOnline!
-                                        ? 'Waiting for partner...'
-                                        : 'Start Solo Workout'),
+                                    : 'Waiting for partner...',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
