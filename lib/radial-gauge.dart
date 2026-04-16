@@ -798,14 +798,6 @@ class _GaugeChartState extends State<GaugeChart>
       });
     }
 
-    if (!isSoloWorkout && !_isOnline! && _isHost!) {
-      setState(() {
-        _showOverlay = false;
-        isSolo = true;
-      });
-      _markWorkoutActive();
-    }
-
     // Initialize data before calling tickupdate
     pickIcon();
     _setUserHR();
@@ -1099,7 +1091,7 @@ class _GaugeChartState extends State<GaugeChart>
                           builder: (context, guestConnected, _) {
                             return ElevatedButton(
                               onPressed:
-                                  (_isOnline! && !guestConnected)
+                                  !guestConnected
                                       ? null
                                       : () async {
                                         final ok =
@@ -1108,13 +1100,7 @@ class _GaugeChartState extends State<GaugeChart>
 
                                         setState(() {
                                           _showOverlay = false;
-
-                                          if (guestConnected) {
-                                            _guestConnected = true;
-                                          } else {
-                                            _guestConnected = false;
-                                            isSolo = true;
-                                          }
+                                          _guestConnected = true;
                                         });
 
                                         _markWorkoutActive();
@@ -1134,9 +1120,7 @@ class _GaugeChartState extends State<GaugeChart>
                               child: Text(
                                 guestConnected
                                     ? 'Start Workout'
-                                    : (_isOnline!
-                                        ? 'Waiting for partner...'
-                                        : 'Start Solo Workout'),
+                                    : 'Waiting for partner...',
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -1559,7 +1543,9 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.strokeSoft),
                                 boxShadow: AppShadows.cardShadow,
@@ -1591,7 +1577,9 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.strokeSoft),
                                 boxShadow: AppShadows.cardShadow,
@@ -1630,18 +1618,20 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                  _maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(
-                                    getZoneForHR(
-                                      _maxSessionHR,
-                                      _maxHeartRate!,
-                                    ),
-                                  )
-                                      : AppColors.strokeSoft,
+                                      _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              _maxSessionHR,
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
                                 boxShadow: AppShadows.cardShadow,
@@ -1691,18 +1681,20 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                  _maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(
-                                    getZoneForHR(
-                                      _maxSessionHR,
-                                      _maxHeartRate!,
-                                    ),
-                                  )
-                                      : AppColors.strokeSoft,
+                                      _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              _maxSessionHR,
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
                                 boxShadow: AppShadows.cardShadow,
