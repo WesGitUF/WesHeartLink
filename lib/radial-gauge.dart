@@ -84,6 +84,7 @@ class _GaugeChartState extends State<GaugeChart>
 
   // Auto-pause state
   bool _isAutoPaused = false;
+  bool _showAutoPauseOverlay = false;
   bool _hasReachedHighHR = false; // latches true once HR >= 70% maxHR
 
   //define user max HR, as well as current user and partner HR values
@@ -596,6 +597,11 @@ class _GaugeChartState extends State<GaugeChart>
     return "$hours:$minutes:$seconds";
   }
 
+  void _dismissAutoPauseOverlay() {
+    if (!_showAutoPauseOverlay) return;
+    setState(() => _showAutoPauseOverlay = false);
+  }
+
   void _checkAutoPause(int hr) {
     if (_isPaused && _elapsed == Duration.zero)
       return; // workout not started yet
@@ -612,14 +618,19 @@ class _GaugeChartState extends State<GaugeChart>
 
     if (!_isAutoPaused && hr < lowThreshold) {
       // Drop below 55% after having been above 70% — auto pause
-      setState(() => _isAutoPaused = true);
+      setState(() {
+        _isAutoPaused = true;
+        _showAutoPauseOverlay = true;
+      });
       if (!_isPaused) _stopwatch.stop();
 
       _playAutoPauseSound();
-
     } else if (_isAutoPaused && hr >= lowThreshold) {
       // Recovered above 55% — auto resume (only if not also manually paused)
-      setState(() => _isAutoPaused = false);
+      setState(() {
+        _isAutoPaused = false;
+        _showAutoPauseOverlay = false;
+      });
       if (!_isPaused) _stopwatch.start();
     }
   }
@@ -632,7 +643,6 @@ class _GaugeChartState extends State<GaugeChart>
     await _audioPlayer.resume();
     await Future.delayed(const Duration(milliseconds: 180));
 
-
     await _audioPlayer.pause();
     await _audioPlayer.seek(Duration.zero);
     await _audioPlayer.setSource(AssetSource("audio/auto_pause.mp3"));
@@ -643,9 +653,7 @@ class _GaugeChartState extends State<GaugeChart>
         (await Vibration.hasVibrator() ?? false)) {
       Vibration.vibrate(duration: 250, amplitude: 255);
     }
-
   }
-
 
   void _connectToDevices() {
     if (userDeviceId == '00:11:22:33:44:55') {
@@ -1585,7 +1593,9 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.strokeSoft),
                                 boxShadow: AppShadows.cardShadow,
@@ -1617,7 +1627,9 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: AppColors.strokeSoft),
                                 boxShadow: AppShadows.cardShadow,
@@ -1656,18 +1668,20 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                  _maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(
-                                    getZoneForHR(
-                                      _maxSessionHR,
-                                      _maxHeartRate!,
-                                    ),
-                                  )
-                                      : AppColors.strokeSoft,
+                                      _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              _maxSessionHR,
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
                                 boxShadow: AppShadows.cardShadow,
@@ -1717,18 +1731,20 @@ class _GaugeChartState extends State<GaugeChart>
                               width: MediaQuery.of(context).size.width * 0.37,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
-                                color: AppColors.cardOverlaySoft.withValues(alpha: 0.4),
+                                color: AppColors.cardOverlaySoft.withValues(
+                                  alpha: 0.4,
+                                ),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                  _maxHeartRate != null && _maxSessionHR > 0
-                                      ? _colorForZone(
-                                    getZoneForHR(
-                                      _maxSessionHR,
-                                      _maxHeartRate!,
-                                    ),
-                                  )
-                                      : AppColors.strokeSoft,
+                                      _maxHeartRate != null && _maxSessionHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              _maxSessionHR,
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
                                 boxShadow: AppShadows.cardShadow,
@@ -1897,6 +1913,7 @@ class _GaugeChartState extends State<GaugeChart>
                                     if (_isAutoPaused) {
                                       // User manually overrides auto-pause
                                       _isAutoPaused = false;
+                                      _showAutoPauseOverlay = false;
                                       _isPaused = false;
                                       _stopwatch.start();
                                     } else {
@@ -1992,6 +2009,55 @@ class _GaugeChartState extends State<GaugeChart>
               );
             },
           ),
+          if (_isAutoPaused && _showAutoPauseOverlay)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _dismissAutoPauseOverlay,
+                child: Container(
+                  color: const Color(0xFF06080E).withValues(alpha: 0.94),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 36,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 220,
+                        height: 220,
+                        child: Image.asset(
+                          'images/sleepy-emoji.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      const Text(
+                        'AUTO-PAUSED',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Heart rate dropped below 55%.\nTap anywhere to dismiss.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.45,
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_showOverlay) _buildSessionOverlay(),
         ],
       ),
