@@ -614,12 +614,38 @@ class _GaugeChartState extends State<GaugeChart>
       // Drop below 55% after having been above 70% — auto pause
       setState(() => _isAutoPaused = true);
       if (!_isPaused) _stopwatch.stop();
+
+      _playAutoPauseSound();
+
     } else if (_isAutoPaused && hr >= lowThreshold) {
       // Recovered above 55% — auto resume (only if not also manually paused)
       setState(() => _isAutoPaused = false);
       if (!_isPaused) _stopwatch.start();
     }
   }
+
+  Future<void> _playAutoPauseSound() async {
+    final audioEnabled = await WorkoutAudioSettings.isEnabled();
+    if (!audioEnabled) return;
+
+    await _audioPlayer.setVolume(0);
+    await _audioPlayer.resume();
+    await Future.delayed(const Duration(milliseconds: 180));
+
+
+    await _audioPlayer.pause();
+    await _audioPlayer.seek(Duration.zero);
+    await _audioPlayer.setSource(AssetSource("audio/auto_pause.mp3"));
+    await _audioPlayer.setVolume(1.0);
+    await _audioPlayer.resume();
+
+    if (await WorkoutHapticSettings.isEnabled() &&
+        (await Vibration.hasVibrator() ?? false)) {
+      Vibration.vibrate(duration: 250, amplitude: 255);
+    }
+
+  }
+
 
   void _connectToDevices() {
     if (userDeviceId == '00:11:22:33:44:55') {
