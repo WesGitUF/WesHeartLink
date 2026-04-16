@@ -45,7 +45,7 @@ class GaugeChart extends StatefulWidget {
 }
 
 class _GaugeChartState extends State<GaugeChart>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final SessionService _sessionService = SessionService();
 
@@ -84,6 +84,7 @@ class _GaugeChartState extends State<GaugeChart>
 
   // Auto-pause state
   bool _isAutoPaused = false;
+  bool _showAutoPauseOverlay = false;
   bool _hasReachedHighHR = false; // latches true once HR >= 70% maxHR
 
   //define user max HR, as well as current user and partner HR values
@@ -113,6 +114,7 @@ class _GaugeChartState extends State<GaugeChart>
   late String workoutMessage;
   final _random = Random();
   late final AudioPlayer _audioPlayer;
+  late final AudioPlayer _autoPausePlayer;
 
   Timer? _timer;
 
@@ -120,6 +122,7 @@ class _GaugeChartState extends State<GaugeChart>
 
   // play animation controller
   late final AnimationController _pulseController;
+  late final AnimationController _autoPauseShakeController;
 
   //keep track of if displayed emoji is user or partner
   bool userImage = true;
@@ -596,6 +599,23 @@ class _GaugeChartState extends State<GaugeChart>
     return "$hours:$minutes:$seconds";
   }
 
+  double get _autoPauseShakeOffset {
+    final t = _autoPauseShakeController.value;
+
+    if (t < 0.16) return -14 * (t / 0.16);
+    if (t < 0.32) return -14 + (28 * ((t - 0.16) / 0.16));
+    if (t < 0.48) return 14 - (28 * ((t - 0.32) / 0.16));
+    if (t < 0.64) return -14 + (28 * ((t - 0.48) / 0.16));
+    if (t < 0.80) return 14 - (28 * ((t - 0.64) / 0.16));
+
+    return -14 + (14 * ((t - 0.80) / 0.20));
+  }
+
+  void _dismissAutoPauseOverlay() {
+    if (!_showAutoPauseOverlay) return;
+    setState(() => _showAutoPauseOverlay = false);
+  }
+
   void _checkAutoPause(int hr) {
     if (_isPaused && _elapsed == Duration.zero)
       return; // workout not started yet
@@ -612,12 +632,41 @@ class _GaugeChartState extends State<GaugeChart>
 
     if (!_isAutoPaused && hr < lowThreshold) {
       // Drop below 55% after having been above 70% — auto pause
-      setState(() => _isAutoPaused = true);
+      setState(() {
+        _isAutoPaused = true;
+        _showAutoPauseOverlay = true;
+      });
       if (!_isPaused) _stopwatch.stop();
+
+      _autoPauseShakeController.forward(from: 0);
+      _playAutoPauseSound();
     } else if (_isAutoPaused && hr >= lowThreshold) {
       // Recovered above 55% — auto resume (only if not also manually paused)
-      setState(() => _isAutoPaused = false);
+      setState(() {
+        _isAutoPaused = false;
+        _showAutoPauseOverlay = false;
+      });
       if (!_isPaused) _stopwatch.start();
+    }
+  }
+
+  Future<void> _playAutoPauseSound() async {
+    final audioEnabled = await WorkoutAudioSettings.isEnabled();
+    if (!audioEnabled) return;
+
+    await _autoPausePlayer.setVolume(1.0);
+    await _autoPausePlayer.stop();
+    await _autoPausePlayer.play(AssetSource('audio/auto_pause.mp3'));
+
+    if (await WorkoutHapticSettings.isEnabled() &&
+        (await Vibration.hasVibrator() ?? false)) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      for (var i = 0; i < 3; i++) {
+        Vibration.vibrate(duration: 120, amplitude: 255);
+        if (i < 2) {
+          await Future.delayed(const Duration(milliseconds: 190));
+        }
+      }
     }
   }
 
@@ -893,6 +942,21 @@ class _GaugeChartState extends State<GaugeChart>
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
     _audioPlayer.setVolume(1.0);
 
+    _autoPausePlayer = AudioPlayer();
+
+    _autoPausePlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceNavigationGuidance,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    );
+
+    _autoPausePlayer.setReleaseMode(ReleaseMode.stop);
+    _autoPausePlayer.setVolume(1.0);
+
     WorkoutAudioSettings.getAsset().then((asset) {
       _audioPlayer.setSource(AssetSource(asset));
     });
@@ -902,6 +966,11 @@ class _GaugeChartState extends State<GaugeChart>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
+
+    _autoPauseShakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
   }
 
   @override
@@ -911,6 +980,7 @@ class _GaugeChartState extends State<GaugeChart>
     _userConnection?.cancel();
     _timer?.cancel();
     _audioPlayer.dispose();
+    _autoPausePlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
@@ -918,6 +988,7 @@ class _GaugeChartState extends State<GaugeChart>
     WorkoutNotificationService.dispose();
 
     _pulseController.dispose();
+    _autoPauseShakeController.dispose();
 
     super.dispose();
   }
@@ -1865,6 +1936,7 @@ class _GaugeChartState extends State<GaugeChart>
                                     if (_isAutoPaused) {
                                       // User manually overrides auto-pause
                                       _isAutoPaused = false;
+                                      _showAutoPauseOverlay = false;
                                       _isPaused = false;
                                       _stopwatch.start();
                                     } else {
@@ -1960,6 +2032,64 @@ class _GaugeChartState extends State<GaugeChart>
               );
             },
           ),
+          if (_isAutoPaused && _showAutoPauseOverlay)
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => _dismissAutoPauseOverlay(),
+                child: Container(
+                  color: const Color(0xFF06080E).withValues(alpha: 0.94),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 28,
+                    vertical: 36,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedBuilder(
+                        animation: _autoPauseShakeController,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(_autoPauseShakeOffset, 0),
+                            child: child,
+                          );
+                        },
+                        child: SizedBox(
+                          width: 220,
+                          height: 220,
+                          child: Image.asset(
+                            'images/sleepy-emoji.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 26),
+                      const Text(
+                        'AUTO-PAUSED',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Heart rate dropped below 55%.\nTap anywhere to dismiss.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.45,
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           if (_showOverlay) _buildSessionOverlay(),
         ],
       ),
