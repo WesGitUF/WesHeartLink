@@ -114,6 +114,7 @@ class _GaugeChartState extends State<GaugeChart>
   late String workoutMessage;
   final _random = Random();
   late final AudioPlayer _audioPlayer;
+  late final AudioPlayer _autoPausePlayer;
 
   Timer? _timer;
 
@@ -639,15 +640,9 @@ class _GaugeChartState extends State<GaugeChart>
     final audioEnabled = await WorkoutAudioSettings.isEnabled();
     if (!audioEnabled) return;
 
-    await _audioPlayer.setVolume(0);
-    await _audioPlayer.resume();
-    await Future.delayed(const Duration(milliseconds: 180));
-
-    await _audioPlayer.pause();
-    await _audioPlayer.seek(Duration.zero);
-    await _audioPlayer.setSource(AssetSource("audio/auto_pause.mp3"));
-    await _audioPlayer.setVolume(1.0);
-    await _audioPlayer.resume();
+    await _autoPausePlayer.setVolume(1.0);
+    await _autoPausePlayer.stop();
+    await _autoPausePlayer.play(AssetSource('audio/auto_pause.mp3'));
 
     if (await WorkoutHapticSettings.isEnabled() &&
         (await Vibration.hasVibrator() ?? false)) {
@@ -935,6 +930,21 @@ class _GaugeChartState extends State<GaugeChart>
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
     _audioPlayer.setVolume(1.0);
 
+    _autoPausePlayer = AudioPlayer();
+
+    _autoPausePlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceNavigationGuidance,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    );
+
+    _autoPausePlayer.setReleaseMode(ReleaseMode.stop);
+    _autoPausePlayer.setVolume(1.0);
+
     WorkoutAudioSettings.getAsset().then((asset) {
       _audioPlayer.setSource(AssetSource(asset));
     });
@@ -953,6 +963,7 @@ class _GaugeChartState extends State<GaugeChart>
     _userConnection?.cancel();
     _timer?.cancel();
     _audioPlayer.dispose();
+    _autoPausePlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
