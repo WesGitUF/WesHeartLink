@@ -639,7 +639,19 @@ class _GaugeChartState extends State<GaugeChart>
           .listen((connectionState) {
             if (connectionState.connectionState ==
                 DeviceConnectionState.connected) {
+              _userSubscription?.cancel();
+              _userSubscription = null;
               _subscribeToCharacteristic(userDeviceId!);
+            } else if (connectionState.connectionState ==
+                DeviceConnectionState.disconnected) {
+              _userSubscription?.cancel();
+              _userSubscription = null;
+              if (mounted) {
+                setState(() {
+                  _lastHrPacketAt = null;
+                  _userHR = 0;
+                });
+              }
             }
           });
     }
@@ -673,6 +685,14 @@ class _GaugeChartState extends State<GaugeChart>
           },
           onError: (error) {
             print("Error on device $deviceId: $error");
+          },
+          onDone: () {
+            if (mounted) {
+              setState(() {
+                _lastHrPacketAt = null;
+                _userHR = 0;
+              });
+            }
           },
         );
     _userSubscription = subscription;
@@ -1041,6 +1061,7 @@ class _GaugeChartState extends State<GaugeChart>
 
     _timer?.cancel();
     _stopwatch.stop();
+    _elapsed = _stopwatch.elapsed;
 
     if (!_guestConnected) {
       _sameZone = Duration.zero;
