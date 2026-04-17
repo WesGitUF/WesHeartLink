@@ -412,7 +412,7 @@ class _TimeInZoneCard extends StatelessWidget {
             'Time in Zone',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppColors.white,
+              color: AppColors.textMuted,
             ),
           ),
           const SizedBox(height: 16),
