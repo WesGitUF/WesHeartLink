@@ -394,12 +394,19 @@ class _GaugeChartState extends State<GaugeChart>
             : (_lastHrPacketAt != null &&
                 now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
 
+    bool signalLost = false;
+
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR = _sliderHR;
         _checkAutoPause(_sliderHR);
+      } else if (!hasFreshRealReading) {
+        // No packet in 2 seconds — clear stale reading immediately
+        _userHR = 0;
+        _lastHrPacketAt = null;
+        signalLost = true;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -451,6 +458,8 @@ class _GaugeChartState extends State<GaugeChart>
 
       _elapsed = _stopwatch.elapsed;
     });
+
+    if (signalLost) _checkAutoPause(0);
 
     // Persist state periodically so a crash can be recovered on next launch
     _ticksSinceLastSave++;
