@@ -1099,7 +1099,7 @@ class _GaugeChartState extends State<GaugeChart>
             padding: const EdgeInsets.all(20),
             margin: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 40, 40, 41),
+              color: const Color.fromARGB(255, 18, 18, 20),
               borderRadius: BorderRadius.circular(12),
             ),
             child:
@@ -1111,8 +1111,8 @@ class _GaugeChartState extends State<GaugeChart>
                           "Share this Session ID:",
                           style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -1120,7 +1120,7 @@ class _GaugeChartState extends State<GaugeChart>
                           sessionId ?? "Loading...",
                           style: const TextStyle(
                             fontSize: 24,
-                            color: Colors.redAccent,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -1155,12 +1155,22 @@ class _GaugeChartState extends State<GaugeChart>
                                         await _startWorkoutNotification();
                                       },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
+                                backgroundColor: Colors.red.withOpacity(0.12),
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.red.withOpacity(0.12),
+                                disabledForegroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 20,
                                   horizontal: 24,
                                 ),
                                 textStyle: const TextStyle(fontSize: 24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: Colors.redAccent.withOpacity(0.4),
+                                  width: 1.5,
+                                   ),
+                                ),
                               ),
                               child: Text(
                                 guestConnected
@@ -1187,8 +1197,8 @@ class _GaugeChartState extends State<GaugeChart>
                           "Enter Session ID to Join:",
                           style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -1212,7 +1222,7 @@ class _GaugeChartState extends State<GaugeChart>
                             ),
                             errorBorder: OutlineInputBorder(
                               borderSide: BorderSide(
-                                color: Colors.red,
+                                color: Colors.redAccent,
                                 width: 2,
                               ),
                             ),
@@ -1270,12 +1280,20 @@ class _GaugeChartState extends State<GaugeChart>
                             await _startWorkoutNotification();
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
+                            backgroundColor: Colors.red.withOpacity(0.12),
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
                               vertical: 20,
                               horizontal: 24,
                             ),
                             textStyle: const TextStyle(fontSize: 24),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: Colors.redAccent.withOpacity(0.4),
+                                width: 1.5,
+                              ),
+                            ),
                           ),
                           child: Text(
                             'Join Session',
