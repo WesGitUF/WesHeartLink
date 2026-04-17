@@ -237,6 +237,11 @@ class _StatsBoxState extends State<_StatsBox> {
             icon: Icons.bolt_rounded,
             accent: AppColors.blue,
           ),
+          const SizedBox(height: 12),
+          _TimeInZoneCard(
+            series: widget.series,
+            theoreticalMaxHr: widget.theoreticalMaxHr,
+          ),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
@@ -331,6 +336,211 @@ class _StatsBoxState extends State<_StatsBox> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TimeInZoneCard extends StatelessWidget {
+  final List<int> series;
+  final int theoreticalMaxHr;
+
+  static const _zoneColors = [
+    Color(0xFF666A70),
+    Color(0xFF2F6BDA),
+    Color(0xFF66B35B),
+    Color(0xFFF3A43B),
+    Color(0xFFE25353),
+  ];
+
+  static const _zoneLabels = [
+    'Warm up / Recovery',
+    'Endurance',
+    'Aerobic',
+    'Threshold',
+    'Maximum',
+  ];
+
+  const _TimeInZoneCard({
+    required this.series,
+    required this.theoreticalMaxHr,
+  });
+
+  List<int> _zoneCounts() {
+    final counts = List<int>.filled(5, 0);
+    if (series.isEmpty || theoreticalMaxHr <= 0) return counts;
+    for (final bpm in series) {
+      final p = bpm / theoreticalMaxHr;
+      if (p <= 0.65) { counts[0]++; }
+      else if (p <= 0.80) { counts[1]++; }
+      else if (p <= 0.89) { counts[2]++; }
+      else if (p <= 0.95) { counts[3]++; }
+      else { counts[4]++; }
+    }
+    return counts;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final counts = _zoneCounts();
+    final total = series.length;
+
+    final z1Max = (theoreticalMaxHr * 0.65).round();
+    final z2Max = (theoreticalMaxHr * 0.80).round();
+    final z3Max = (theoreticalMaxHr * 0.89).round();
+    final z4Max = (theoreticalMaxHr * 0.95).round();
+
+    final hrRanges = [
+      '0–$z1Max',
+      '${z1Max + 1}–$z2Max',
+      '${z2Max + 1}–$z3Max',
+      '${z3Max + 1}–$z4Max',
+      '${z4Max + 1}–$theoreticalMaxHr',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.strokeSoft),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Time in Zone',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 16),
+          for (int i = 0; i < 5; i++) ...[
+            _ZoneRow(
+              zoneNumber: i + 1,
+              hrRange: hrRanges[i],
+              label: _zoneLabels[i],
+              color: _zoneColors[i],
+              seconds: counts[i],
+              totalSeconds: total,
+            ),
+            if (i < 4) const SizedBox(height: 14),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ZoneRow extends StatelessWidget {
+  final int zoneNumber;
+  final String hrRange;
+  final String label;
+  final Color color;
+  final int seconds;
+  final int totalSeconds;
+
+  const _ZoneRow({
+    required this.zoneNumber,
+    required this.hrRange,
+    required this.label,
+    required this.color,
+    required this.seconds,
+    required this.totalSeconds,
+  });
+
+  String _formatTime(int s) {
+    final m = s ~/ 60;
+    final sec = s % 60;
+    return '$m:${sec.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fraction = totalSeconds > 0 ? seconds / totalSeconds : 0.0;
+    final pct = (fraction * 100).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Zone $zoneNumber ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '($hrRange) ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '• $label',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _formatTime(seconds),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 30,
+              child: Text(
+                '$pct%',
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            children: [
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.strokeSoft),
+                ),
+              ),
+              if (fraction > 0)
+                Container(
+                  height: 8,
+                  width: constraints.maxWidth * fraction,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
