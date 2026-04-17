@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart' show Workout;
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
-import 'package:heart_link_app/screens/session/tracking_result_screen.dart';
 
 class WorkoutDetailScreen extends StatelessWidget {
   final Workout workout;
@@ -85,21 +84,6 @@ class WorkoutDetailScreen extends StatelessWidget {
 
     final String peakZone = _computePeakZone(sessionMaxHr, theoreticalMaxHr);
 
-    // Count readings per zone for the Time in Zone chart
-    final zoneCounts = List<int>.filled(5, 0);
-    if (series.isNotEmpty && theoreticalMaxHr > 0) {
-      for (final bpm in series) {
-        final p = bpm / theoreticalMaxHr;
-        if (p <= 0.65)      zoneCounts[0]++;
-        else if (p <= 0.80) zoneCounts[1]++;
-        else if (p <= 0.89) zoneCounts[2]++;
-        else if (p <= 0.95) zoneCounts[3]++;
-        else                zoneCounts[4]++;
-      }
-    }
-    final zonePercents = [
-      for (final c in zoneCounts) series.isNotEmpty ? c / series.length : 0.0,
-    ];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -274,7 +258,10 @@ class WorkoutDetailScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _GlassCard(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-              child: _ZoneBarChart(zonePercents: zonePercents),
+              child: _TimeInZoneCard(
+                series: series,
+                theoreticalMaxHr: theoreticalMaxHr,
+              ),
             ),
             const SizedBox(height: 24),
           ],
@@ -298,7 +285,7 @@ class WorkoutDetailScreen extends StatelessWidget {
                 childAspectRatio: 1.15,
                 children: [
                   _WorkoutStatCard(
-                    label: 'Duration',
+                    label: 'Elapsed Time',
                     value: _formatDuration(workout.duration),
                     icon: Icons.schedule_outlined,
                     accent: AppColors.blue,
@@ -476,80 +463,189 @@ class _ZoneDot extends StatelessWidget {
   }
 }
 
-class _ZoneBarChart extends StatelessWidget{
-  final List<double> zonePercents;
+class _TimeInZoneCard extends StatelessWidget {
+  final List<int> series;
+  final int theoreticalMaxHr;
 
-  static const List<Color> _colors = [
-  Color(0xFF666A70), // Z1 — 40–65%                                     
-  Color(0xFF2F6BDA), // Z2 — 66–80%                                     
-  Color(0xFF66B35B), // Z3 — 81–89%                                     
-  Color(0xFFF3A43B), // Z4 — 90–95%                                     
-  Color(0xFFE25353), // Z5 — 95–100%
+  static const _zoneColors = [
+    Color(0xFF666A70),
+    Color(0xFF2F6BDA),
+    Color(0xFF66B35B),
+    Color(0xFFF3A43B),
+    Color(0xFFE25353),
   ];
 
-  const _ZoneBarChart({required this.zonePercents});
+  static const _zoneLabels = [
+    'Warm up / Recovery',
+    'Endurance',
+    'Aerobic',
+    'Threshold',
+    'Maximum',
+  ];
+
+  const _TimeInZoneCard({
+    required this.series,
+    required this.theoreticalMaxHr,
+  });
+
+  List<int> _zoneCounts() {
+    final counts = List<int>.filled(5, 0);
+    if (series.isEmpty || theoreticalMaxHr <= 0) return counts;
+    for (final bpm in series) {
+      final p = bpm / theoreticalMaxHr;
+      if (p <= 0.65) { counts[0]++; }
+      else if (p <= 0.80) { counts[1]++; }
+      else if (p <= 0.89) { counts[2]++; }
+      else if (p <= 0.95) { counts[3]++; }
+      else { counts[4]++; }
+    }
+    return counts;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final counts = _zoneCounts();
+    final total = series.length;
+
+    final z1Max = (theoreticalMaxHr * 0.65).round();
+    final z2Max = (theoreticalMaxHr * 0.80).round();
+    final z3Max = (theoreticalMaxHr * 0.89).round();
+    final z4Max = (theoreticalMaxHr * 0.95).round();
+
+    final hrRanges = [
+      '0–$z1Max',
+      '${z1Max + 1}–$z2Max',
+      '${z2Max + 1}–$z3Max',
+      '${z3Max + 1}–$z4Max',
+      '${z4Max + 1}–$theoreticalMaxHr',
+    ];
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (int i = 0; i < 5; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: i < 4 ? 10 : 0),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  child: Text(
-                    'Z${i + 1}',
-                    style: const TextStyle(fontSize: 13, color: Colors.white70),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      return Stack(
-                        children: [
-                          // Track
-                          Container(
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceSecondary,
-                              border: Border.all(color: AppColors.strokeSoft),
-                              borderRadius: BorderRadius.circular(7),
-                            ),
-                          ),
-                          // Filled bar
-                          if (zonePercents[i] > 0)
-                            Container(
-                              height: 14,
-                              width: constraints.maxWidth * zonePercents[i],
-                              decoration: BoxDecoration(
-                                color: _colors[i],
-                                borderRadius: BorderRadius.circular(7),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 36,
-                  child: Text(
-                    '${(zonePercents[i] * 100).round()}%',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        for (int i = 0; i < 5; i++) ...[
+          _ZoneRow(
+            zoneNumber: i + 1,
+            hrRange: hrRanges[i],
+            label: _zoneLabels[i],
+            color: _zoneColors[i],
+            seconds: counts[i],
+            totalSeconds: total,
           ),
+          if (i < 4) const SizedBox(height: 14),
+        ],
+      ],
+    );
+  }
+}
+
+class _ZoneRow extends StatelessWidget {
+  final int zoneNumber;
+  final String hrRange;
+  final String label;
+  final Color color;
+  final int seconds;
+  final int totalSeconds;
+
+  const _ZoneRow({
+    required this.zoneNumber,
+    required this.hrRange,
+    required this.label,
+    required this.color,
+    required this.seconds,
+    required this.totalSeconds,
+  });
+
+  String _formatTime(int s) {
+    final m = s ~/ 60;
+    final sec = s % 60;
+    return '$m:${sec.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fraction = totalSeconds > 0 ? seconds / totalSeconds : 0.0;
+    final pct = (fraction * 100).round();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Zone $zoneNumber ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '($hrRange) ',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    TextSpan(
+                      text: '• $label',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _formatTime(seconds),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 30,
+              child: Text(
+                '$pct%',
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        LayoutBuilder(
+          builder: (context, constraints) => Stack(
+            children: [
+              Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.strokeSoft),
+                ),
+              ),
+              if (fraction > 0)
+                Container(
+                  height: 8,
+                  width: constraints.maxWidth * fraction,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
