@@ -1695,14 +1695,14 @@ class _GaugeChartState extends State<GaugeChart>
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color:
-                                  _maxHeartRate != null && averageHR > 0
-                                      ? _colorForZone(
-                                    getZoneForHR(
-                                      averageHR.round(),
-                                      _maxHeartRate!,
-                                    ),
-                                  )
-                                      : AppColors.strokeSoft,
+                                      _maxHeartRate != null && averageHR > 0
+                                          ? _colorForZone(
+                                            getZoneForHR(
+                                              averageHR.round(),
+                                              _maxHeartRate!,
+                                            ),
+                                          )
+                                          : AppColors.strokeSoft,
                                   width: 1.2,
                                 ),
                                 boxShadow: AppShadows.cardShadow,
