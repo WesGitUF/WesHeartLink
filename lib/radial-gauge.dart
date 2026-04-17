@@ -394,12 +394,19 @@ class _GaugeChartState extends State<GaugeChart>
             : (_lastHrPacketAt != null &&
                 now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
 
+    bool signalLost = false;
+
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR = _sliderHR;
         _checkAutoPause(_sliderHR);
+      } else if (!hasFreshRealReading) {
+        // No packet in 2 seconds — clear stale reading immediately
+        _userHR = 0;
+        _lastHrPacketAt = null;
+        signalLost = true;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -451,6 +458,8 @@ class _GaugeChartState extends State<GaugeChart>
 
       _elapsed = _stopwatch.elapsed;
     });
+
+    if (signalLost) _checkAutoPause(0);
 
     // Persist state periodically so a crash can be recovered on next launch
     _ticksSinceLastSave++;
@@ -639,7 +648,19 @@ class _GaugeChartState extends State<GaugeChart>
           .listen((connectionState) {
             if (connectionState.connectionState ==
                 DeviceConnectionState.connected) {
+              _userSubscription?.cancel();
+              _userSubscription = null;
               _subscribeToCharacteristic(userDeviceId!);
+            } else if (connectionState.connectionState ==
+                DeviceConnectionState.disconnected) {
+              _userSubscription?.cancel();
+              _userSubscription = null;
+              if (mounted) {
+                setState(() {
+                  _lastHrPacketAt = null;
+                  _userHR = 0;
+                });
+              }
             }
           });
     }
@@ -673,6 +694,14 @@ class _GaugeChartState extends State<GaugeChart>
           },
           onError: (error) {
             print("Error on device $deviceId: $error");
+          },
+          onDone: () {
+            if (mounted) {
+              setState(() {
+                _lastHrPacketAt = null;
+                _userHR = 0;
+              });
+            }
           },
         );
     _userSubscription = subscription;
@@ -1041,6 +1070,7 @@ class _GaugeChartState extends State<GaugeChart>
 
     _timer?.cancel();
     _stopwatch.stop();
+    _elapsed = _stopwatch.elapsed;
 
     if (!_guestConnected) {
       _sameZone = Duration.zero;
