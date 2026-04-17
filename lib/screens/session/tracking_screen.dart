@@ -40,6 +40,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
   Timer? _timer;
 
   Duration _sameZoneDuration = Duration.zero;
+  final List<int> _series = [];
 
   HeartRateZone? _previousUserZone;
 
@@ -62,6 +63,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _stopwatch.start();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
+        _series.add(_effectiveUserHR);
         var currentUserZone = getZoneForHR(_effectiveUserHR, maxHeartRate);
         var currentPartnerZone = getZoneForHR(_effectivePartnerHR, maxHeartRate);
         if (currentUserZone.name == currentPartnerZone.name) {
@@ -76,8 +78,10 @@ class _TrackingScreenState extends State<TrackingScreen> {
     _timer?.cancel();
 
     final elapsed = _stopwatch.elapsed;
-    final List<int> series = [];
-    final double avgHR = _effectiveUserHR.toDouble();
+    final List<int> series = List<int>.from(_series);
+    final double avgHR = series.isNotEmpty
+        ? series.reduce((a, b) => a + b) / series.length
+        : _effectiveUserHR.toDouble();
     final String topZone = getZoneForHR(_effectiveUserHR, maxHeartRate).name;
 
     Navigator.pushNamedAndRemoveUntil(
