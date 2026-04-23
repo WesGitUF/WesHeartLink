@@ -115,6 +115,7 @@ class _GaugeChartState extends State<GaugeChart>
   final _random = Random();
   late final AudioPlayer _audioPlayer;
   late final AudioPlayer _zone5Player;
+  late final AudioPlayer _autoPausePlayer;
 
   Timer? _timer;
 
@@ -599,6 +600,13 @@ class _GaugeChartState extends State<GaugeChart>
     return "$hours:$minutes:$seconds";
   }
 
+  Future<void> _playAutoPauseSound() async {
+    final audioEnabled = await WorkoutAudioSettings.isEnabled();
+    if (!audioEnabled) return;
+    await _autoPausePlayer.seek(Duration.zero);
+    await _autoPausePlayer.resume();
+  }
+
   void _checkAutoPause(int hr) {
     if (_isPaused && _elapsed == Duration.zero)
       return; // workout not started yet
@@ -617,6 +625,7 @@ class _GaugeChartState extends State<GaugeChart>
       // Drop below 55% after having been above 70% — auto pause
       setState(() => _isAutoPaused = true);
       if (!_isPaused) _stopwatch.stop();
+      _playAutoPauseSound();
     } else if (_isAutoPaused && hr >= lowThreshold) {
       // Recovered above 55% — auto resume (only if not also manually paused)
       setState(() => _isAutoPaused = false);
@@ -932,6 +941,21 @@ class _GaugeChartState extends State<GaugeChart>
     _zone5Player.setReleaseMode(ReleaseMode.stop);
     _zone5Player.setVolume(1.0);
     _zone5Player.setSource(AssetSource('audio/FAHHHH.m4a'));
+
+    _autoPausePlayer = AudioPlayer();
+    _autoPausePlayer.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceNavigationGuidance,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    );
+    _autoPausePlayer.setReleaseMode(ReleaseMode.stop);
+    _autoPausePlayer.setVolume(1.0);
+    _autoPausePlayer.setSource(AssetSource('audio/autopause.mp3'));
+
     _initAsync();
 
     _pulseController = AnimationController(
@@ -948,6 +972,7 @@ class _GaugeChartState extends State<GaugeChart>
     _timer?.cancel();
     _audioPlayer.dispose();
     _zone5Player.dispose();
+    _autoPausePlayer.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
