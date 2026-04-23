@@ -7,6 +7,7 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:heart_link_app/services/hrm_connection_controller.dart';
 
 class SensorSelectionScreen extends StatefulWidget {
   final String workoutMode;
@@ -19,21 +20,38 @@ class SensorSelectionScreen extends StatefulWidget {
 }
 
 class _SensorSelectionScreenState extends State<SensorSelectionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final List<DiscoveredDevice> _devicesList = [];
   DiscoveredDevice? _selectedUserDevice;
   StreamSubscription<DiscoveredDevice>? _scanSubscription;
+  late final HrmConnectionController _hrmController;
+  StreamSubscription<HrmConnectionState>? _hrmStateSub;
+  HrmConnectionState _hrmState = HrmConnectionState.disconnected;
   late final AnimationController _glowController;
   late final Animation<double> _glowOpacity;
   late final Animation<double> _glowScale;
+  late final AnimationController _beatController;
+  late final Animation<double> _beatScale;
 
+  static const String _fakeDeviceId = '00:11:22:33:44:55';
   late String _workoutMode;
 
   @override
   void initState() {
     super.initState();
     _workoutMode = widget.workoutMode;
+    _hrmController = HrmConnectionController(_ble);
+    _hrmStateSub = _hrmController.stateStream.listen((state) {
+      if (!mounted) return;
+      setState(() => _hrmState = state);
+      if (state == HrmConnectionState.connected) {
+        _beatController.repeat();
+      } else {
+        _beatController.stop();
+        _beatController.reset();
+      }
+    });
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
@@ -44,11 +62,22 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     _glowScale = Tween<double>(begin: 0.94, end: 1.05).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
+    _beatController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _beatScale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.22), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.22, end: 1.0), weight: 15),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.12), weight: 12),
+      TweenSequenceItem(tween: Tween(begin: 1.12, end: 1.0), weight: 12),
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 46),
+    ]).animate(_beatController);
     // Dummy device for testing
     setState(() {
       _devicesList.add(
         DiscoveredDevice(
-          id: '00:11:22:33:44:55', // Valid Bluetooth address format.
+          id: _fakeDeviceId,
           name: 'Fake HRM Device',
           serviceData: {},
           manufacturerData: Uint8List(0),
@@ -113,10 +142,15 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
     return name.isNotEmpty ? name : device.id;
   }
 
+  bool get _isConnected => _hrmState == HrmConnectionState.connected;
+
   @override
   void dispose() {
     _scanSubscription?.cancel();
+    _hrmStateSub?.cancel();
+    _hrmController.dispose();
     _glowController.dispose();
+    _beatController.dispose();
     super.dispose();
   }
 
@@ -239,6 +273,11 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
           _selectedUserDevice = selected;
         }
       });
+      if (selected.id == _fakeDeviceId) {
+        _hrmController.connectFake(selected.id);
+      } else {
+        _hrmController.connect(selected.id);
+      }
     }
   }
 
@@ -339,17 +378,32 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
                     ),
                   ),
                   child: Center(
-                    child: SizedBox(
-                      width: 64,
-                      height: 64,
-                      child: SvgPicture.asset(
-                        'assets/icons/hearticon.svg',
-                        colorFilter: const ColorFilter.mode(
-                          AppColors.red,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
+                    child: _isConnected
+                        ? ScaleTransition(
+                            scale: _beatScale,
+                            child: SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: SvgPicture.asset(
+                                'assets/icons/hearticon.svg',
+                                colorFilter: const ColorFilter.mode(
+                                  AppColors.red,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: SvgPicture.asset(
+                              'assets/icons/hearticon.svg',
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.red,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 if (!_hasSelectedDevice)
