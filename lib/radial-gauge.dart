@@ -104,6 +104,7 @@ class _GaugeChartState extends State<GaugeChart>
   bool _isActiveSession = true;
 
   bool _showPercent = false;
+  bool _showPartnerLeftBanner = false;
 
   //initialize user and partner HR zone, using heart rate zone clas
   late HeartRateZone userZone;
@@ -525,27 +526,16 @@ class _GaugeChartState extends State<GaugeChart>
       }
 
       // End session check
-      if (data['sessionActive'] == false) {
-        await _stopWorkoutNotification();
-
-        _timer?.cancel();
-        _stopwatch.stop();
-        _isActiveSession = false;
+      // Partner ended the session
+      if (data['sessionActive'] == false && _guestConnected) {
+        setState(() {
+          _guestConnected = false;
+          _partnerHR = 0;
+          _showPartnerLeftBanner = true;
+        });
 
         await _sessionListener?.cancel();
         _sessionListener = null;
-
-        final calories = WorkoutService.calculateCalories(
-          avgHr: averageHR.toInt(),
-          age: userAge,
-          weight: _userWeight,
-          gender: _userGender,
-          duration: _elapsed,
-        );
-
-        if (mounted) {
-          _showTrackingSummary(context, calories: calories.toDouble());
-        }
       }
     });
   }
@@ -810,19 +800,15 @@ class _GaugeChartState extends State<GaugeChart>
       nearbyService.guestConnectedNotifier.addListener(() async {
         final connected = nearbyService.guestConnectedNotifier.value;
         if (connected && !_guestConnected) {
-          final ok = await _ensureBackgroundSetupBeforeStart();
-          if (!ok) return;
-
           setState(() {
             _guestConnected = true;
-            _showOverlay = false;
           });
-
-          _markWorkoutActive();
-          _stopwatch.start();
-          _workoutStartTime = DateTime.now();
-          _startTimer();
-          await _startWorkoutNotification();
+        } else if (!connected && _guestConnected && _isActiveSession) {
+          setState(() {
+            _guestConnected = false;
+            _partnerHR = 0;
+            _showPartnerLeftBanner = true;
+          });
         }
       });
     }
@@ -901,11 +887,6 @@ class _GaugeChartState extends State<GaugeChart>
         });
 
         _listenForPartnerHR();
-        _markWorkoutActive();
-        _stopwatch.start();
-        _workoutStartTime = DateTime.now();
-        _startTimer();
-        await _startWorkoutNotification();
       }
     });
   }
@@ -1072,9 +1053,6 @@ class _GaugeChartState extends State<GaugeChart>
     _stopwatch.stop();
     _elapsed = _stopwatch.elapsed;
 
-    if (!_guestConnected) {
-      _sameZone = Duration.zero;
-    }
 
     final calories = WorkoutService.calculateCalories(
       avgHr: averageHR.toInt(),
@@ -1138,13 +1116,6 @@ class _GaugeChartState extends State<GaugeChart>
 
                                         setState(() {
                                           _showOverlay = false;
-
-                                          /*if (guestConnected) {
-                                            _guestConnected = true;
-                                          } else {
-                                            _guestConnected = false;
-                                            isSolo = true;
-                                          }*/
                                           _guestConnected = true;
                                         });
 
@@ -1153,7 +1124,7 @@ class _GaugeChartState extends State<GaugeChart>
                                         _workoutStartTime = DateTime.now();
                                         _startTimer();
                                         await _startWorkoutNotification();
-                                      },
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red.withOpacity(0.12),
                                 foregroundColor: Colors.white,
@@ -1273,11 +1244,7 @@ class _GaugeChartState extends State<GaugeChart>
                             });
 
                             _listenForPartnerHR();
-                            _markWorkoutActive();
-                            _stopwatch.start();
-                            _workoutStartTime = DateTime.now();
-                            _startTimer();
-                            await _startWorkoutNotification();
+
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.withOpacity(0.12),
@@ -1584,7 +1551,7 @@ class _GaugeChartState extends State<GaugeChart>
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 32),
 
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -2016,6 +1983,59 @@ class _GaugeChartState extends State<GaugeChart>
               );
             },
           ),
+          if (_showPartnerLeftBanner)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 18, 18, 20),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.4)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.person_off_rounded, color: Colors.white, size: 40),
+                        const SizedBox(height: 14),
+                        const Text(
+                          'Partner Disconnected',
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Your partner has left the workout.\nYou can keep going!',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        GestureDetector(
+                          onTap: () => setState(() => _showPartnerLeftBanner = false),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.redAccent.withOpacity(0.4), width: 1.5),
+                            ),
+                            child: const Text(
+                              'Continue Workout',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           if (_showOverlay) _buildSessionOverlay(),
         ],
       ),
