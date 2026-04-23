@@ -114,12 +114,25 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                       ),
                     ),
                     Expanded(
-                      child: AnimatedOpacity(
-                        opacity: _selectedIsOnline == false ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Lottie.asset(
-                          'assets/images/pair-workout-animation.json',
-                        ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          AnimatedOpacity(
+                            opacity: _selectedIsOnline == false ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Lottie.asset(
+                              'assets/images/pair-workout-animation.json',
+                            ),
+                          ),
+                          AnimatedOpacity(
+                            opacity: _selectedIsOnline == true ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Lottie.asset(
+                              'assets/images/different-location-animation.json',
+                              repeat: false,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     _ModeActionCard(
