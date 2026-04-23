@@ -22,6 +22,7 @@ class ChooseModeScreen extends StatefulWidget {
 
 class _ChooseModeScreenState extends State<ChooseModeScreen> {
   bool? _selectedIsOnline;
+  int _onlineTapCount = 0;
 
   void _handleContinue() {
     final bool? isOnline = _selectedIsOnline;
@@ -128,6 +129,7 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                             opacity: _selectedIsOnline == true ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 300),
                             child: Lottie.asset(
+                              key: ValueKey<int>(_onlineTapCount),
                               'assets/images/different-location-animation.json',
                               repeat: false,
                             ),
@@ -165,6 +167,7 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                       isSelected: _selectedIsOnline == true,
                       onTap: () {
                         setState(() {
+                          if (_selectedIsOnline != true) _onlineTapCount++;
                           _selectedIsOnline =
                               _selectedIsOnline == true ? null : true;
                         });
