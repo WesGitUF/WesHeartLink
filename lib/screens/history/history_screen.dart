@@ -16,6 +16,7 @@ class Workout {
   final int? maxSessionHr;
   final int? theoreticalMaxHr;
   final String? topZone;
+  final Duration? totalDuration;
 
   const Workout({
     required this.type,
@@ -26,6 +27,7 @@ class Workout {
     this.maxSessionHr,
     this.theoreticalMaxHr,
     this.topZone,
+    this.totalDuration,
   });
 }
 

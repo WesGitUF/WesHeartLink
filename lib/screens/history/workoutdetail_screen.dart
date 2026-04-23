@@ -284,6 +284,13 @@ class WorkoutDetailScreen extends StatelessWidget {
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.15,
                 children: [
+                  if (workout.totalDuration != null)
+                    _WorkoutStatCard(
+                      label: 'Elapsed Time',
+                      value: _formatDuration(workout.totalDuration!),
+                      icon: Icons.timer_outlined,
+                      accent: AppColors.textSecondary,
+                    ),
                   _WorkoutStatCard(
                     label: 'Moving Time',
                     value: _formatDuration(workout.duration),

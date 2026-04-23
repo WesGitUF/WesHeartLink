@@ -109,8 +109,10 @@ class MyApp extends StatelessWidget {
           final args =
               ModalRoute.of(context)!.settings.arguments
                   as Map<String, dynamic>;
+          final elapsed = args['elapsed'] as Duration;
           return TrackingResultScreen(
-            elapsedTime: args['elapsed'] as Duration,
+            elapsedTime: elapsed,
+            totalElapsedTime: (args['totalElapsed'] as Duration?) ?? elapsed,
             sameZoneTime: args['sameZone'] as Duration,
             workoutMode: args['workoutMode'] as String,
             workoutModeIcon: args['workoutModeIcon'] as IconData,
@@ -119,7 +121,7 @@ class MyApp extends StatelessWidget {
             calories: (args['calories'] as num).toDouble(),
             series: args['series'] as List<int>,
             topZone: args['topZone'] as String,
-            isSolo: args['isSolo'] as bool, //changed this
+            isSolo: args['isSolo'] as bool,
             theoreticalMaxHr: args['theoreticalMaxHr'] as int,
           );
         },

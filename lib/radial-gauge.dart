@@ -329,13 +329,14 @@ class _GaugeChartState extends State<GaugeChart>
     await WorkoutNotificationService.stop();
   }
 
-  void _showTrackingSummary(BuildContext context, {required double calories}) {
+  void _showTrackingSummary(BuildContext context, {required double calories, required Duration totalElapsed}) {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder:
             (context) => TrackingResultScreen(
               elapsedTime: _elapsed,
+              totalElapsedTime: totalElapsed,
               sameZoneTime: _sameZone,
               workoutMode: _workoutMode,
               workoutModeIcon: _workoutModeIcon!,
@@ -1071,7 +1072,9 @@ class _GaugeChartState extends State<GaugeChart>
     _timer?.cancel();
     _stopwatch.stop();
     _elapsed = _stopwatch.elapsed;
-
+    final totalElapsed = _workoutStartTime != null
+        ? DateTime.now().difference(_workoutStartTime!)
+        : _elapsed;
 
     final calories = WorkoutService.calculateCalories(
       avgHr: averageHR.toInt(),
@@ -1081,7 +1084,7 @@ class _GaugeChartState extends State<GaugeChart>
       duration: _elapsed,
     );
 
-    _showTrackingSummary(context, calories: calories.toDouble());
+    _showTrackingSummary(context, calories: calories.toDouble(), totalElapsed: totalElapsed);
   }
 
   // Session overlay widget

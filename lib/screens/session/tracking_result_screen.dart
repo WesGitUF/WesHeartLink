@@ -5,6 +5,7 @@ import 'package:heart_link_app/shell/app_shell.dart';
 
 class TrackingResultScreen extends StatelessWidget {
   final Duration elapsedTime;
+  final Duration totalElapsedTime;
   final Duration sameZoneTime;
   final String workoutMode;
   final IconData workoutModeIcon;
@@ -20,6 +21,7 @@ class TrackingResultScreen extends StatelessWidget {
   const TrackingResultScreen({
     super.key,
     required this.elapsedTime,
+    required this.totalElapsedTime,
     required this.sameZoneTime,
     required this.workoutMode,
     required this.workoutModeIcon,
@@ -48,6 +50,7 @@ class TrackingResultScreen extends StatelessWidget {
                   delegate: SliverChildListDelegate([
                     _StatsBox(
                       elapsedTime: elapsedTime,
+                      totalElapsedTime: totalElapsedTime,
                       sameZoneTime: sameZoneTime,
                       workoutMode: workoutMode,
                       workoutModeIcon: workoutModeIcon,
@@ -72,6 +75,7 @@ class TrackingResultScreen extends StatelessWidget {
 
 class _StatsBox extends StatefulWidget {
   final Duration elapsedTime;
+  final Duration totalElapsedTime;
   final Duration sameZoneTime;
   final String workoutMode;
   final IconData workoutModeIcon;
@@ -84,6 +88,7 @@ class _StatsBox extends StatefulWidget {
   final int theoreticalMaxHr;
   const _StatsBox({
     required this.elapsedTime,
+    required this.totalElapsedTime,
     required this.sameZoneTime,
     required this.workoutMode,
     required this.workoutModeIcon,
@@ -195,6 +200,13 @@ class _StatsBoxState extends State<_StatsBox> {
           ),
           const SizedBox(height: 24),
           _StatTile(
+            label: 'Elapsed Time',
+            value: _formatDuration(widget.totalElapsedTime),
+            icon: Icons.timer_outlined,
+            accent: AppColors.textSecondary,
+          ),
+          const SizedBox(height: 12),
+          _StatTile(
             label: 'Moving Time',
             value: _formatDuration(widget.elapsedTime),
             icon: Icons.schedule_rounded,
@@ -273,6 +285,7 @@ class _StatsBoxState extends State<_StatsBox> {
                               avgHr: widget.avgHeartRate,
                               bpmSeries: widget.series,
                               elapsed: widget.elapsedTime,
+                              totalElapsed: widget.totalElapsedTime,
                               workoutMode: widget.workoutMode,
                               maxSessionHr: widget.maxHeartRate,
                               topZone: widget.topZone,

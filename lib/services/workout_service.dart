@@ -19,6 +19,7 @@ class WorkoutService {
     required String topZone,
     required int theoreticalMaxHr,
     DateTime? startTime,
+    Duration? totalElapsed,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -65,6 +66,7 @@ class WorkoutService {
       'calories': calories,
       'createdAt': Timestamp.fromDate(endTime),
       'durationSeconds': elapsed.inSeconds,
+      'totalElapsedSeconds': totalElapsed?.inSeconds,
       'maxSessionHr': maxSessionHr,
       'topZone': topZone,
       'start': Timestamp.fromDate(resolvedStartTime),
@@ -103,6 +105,8 @@ class WorkoutService {
           data['maxSessionHr'] == null ? null : _asInt(data['maxSessionHr']);
       final String? topZone =
           data['topZone'] == null ? null : data['topZone'].toString();
+      final int? totalElapsedSec =
+          data['totalElapsedSeconds'] == null ? null : _asInt(data['totalElapsedSeconds']);
       final List<int> series = (data['bpmSeries'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
@@ -117,6 +121,7 @@ class WorkoutService {
         theoreticalMaxHr: theoreticalMaxHr,
         maxSessionHr: maxSessionHr,
         topZone: topZone,
+        totalDuration: totalElapsedSec != null ? Duration(seconds: totalElapsedSec) : null,
       );
 
       out.add(HistoryEntry(
