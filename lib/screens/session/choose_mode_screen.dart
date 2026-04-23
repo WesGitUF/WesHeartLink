@@ -156,18 +156,10 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                 left: 24,
                 right: 24,
                 bottom: 34 + MediaQuery.of(context).padding.bottom,
-                child: IgnorePointer(
-                  ignoring: !hasSelection,
-                  child: AnimatedOpacity(
-                    opacity: hasSelection ? 1 : 0,
-                    duration: const Duration(milliseconds: 140),
-                    curve: Curves.easeOut,
-                    child: _ContinueButton(
-                      enabled: hasSelection,
-                      label: 'Continue',
-                      onPressed: _handleContinue,
-                    ),
-                  ),
+                child: _ContinueButton(
+                  enabled: hasSelection,
+                  label: 'Continue',
+                  onPressed: _handleContinue,
                 ),
               ),
             ],
