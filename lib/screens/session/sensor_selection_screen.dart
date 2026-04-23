@@ -283,6 +283,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
   Future<void> _openChooseMode({required bool isHost}) async {
     if (!_hasSelectedDevice) return;
+    _hrmController.disconnect();
 
     Navigator.pushNamed(
       context,
@@ -297,6 +298,7 @@ class _SensorSelectionScreenState extends State<SensorSelectionScreen>
 
   void _startSoloWorkout() {
     if (!_hasSelectedDevice) return;
+    _hrmController.disconnect();
 
     Navigator.pushNamed(
       context,
