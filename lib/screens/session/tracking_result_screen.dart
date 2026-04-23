@@ -195,7 +195,7 @@ class _StatsBoxState extends State<_StatsBox> {
           ),
           const SizedBox(height: 24),
           _StatTile(
-            label: 'Elapsed Time',
+            label: 'Moving Time',
             value: _formatDuration(widget.elapsedTime),
             icon: Icons.schedule_rounded,
             accent: AppColors.blue,
