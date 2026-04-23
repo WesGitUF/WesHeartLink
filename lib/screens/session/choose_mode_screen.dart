@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
+import 'package:lottie/lottie.dart';
 
 class ChooseModeScreen extends StatefulWidget {
   const ChooseModeScreen({
@@ -112,7 +113,15 @@ class _ChooseModeScreenState extends State<ChooseModeScreen> {
                         ],
                       ),
                     ),
-                    const Spacer(),
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: _selectedIsOnline == false ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Lottie.asset(
+                          'assets/images/pair-workout-animation.json',
+                        ),
+                      ),
+                    ),
                     _ModeActionCard(
                       theme: theme,
                       icon: Icons.wifi_off_rounded,
