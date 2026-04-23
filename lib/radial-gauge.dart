@@ -114,6 +114,7 @@ class _GaugeChartState extends State<GaugeChart>
   late String workoutMessage;
   final _random = Random();
   late final AudioPlayer _audioPlayer;
+  late final AudioPlayer _zone5Player;
 
   Timer? _timer;
 
@@ -483,9 +484,12 @@ class _GaugeChartState extends State<GaugeChart>
         final hapticEnabled = await WorkoutHapticSettings.isEnabled();
         if (!audioEnabled && !hapticEnabled) return;
 
+        final isZone5 = userZone.name == 'Zone 5';
+        final activePlayer = isZone5 ? _zone5Player : _audioPlayer;
+
         if (audioEnabled) {
-          await _audioPlayer.setVolume(0);
-          await _audioPlayer.resume();
+          await activePlayer.setVolume(0);
+          await activePlayer.resume();
           await Future.delayed(const Duration(milliseconds: 180));
         }
 
@@ -494,10 +498,10 @@ class _GaugeChartState extends State<GaugeChart>
         }
 
         if (audioEnabled) {
-          await _audioPlayer.pause();
-          await _audioPlayer.seek(Duration.zero);
-          await _audioPlayer.setVolume(1.0);
-          await _audioPlayer.resume();
+          await activePlayer.pause();
+          await activePlayer.seek(Duration.zero);
+          await activePlayer.setVolume(1.0);
+          await activePlayer.resume();
         }
       }
     }
@@ -914,6 +918,20 @@ class _GaugeChartState extends State<GaugeChart>
     WorkoutAudioSettings.getAsset().then((asset) {
       _audioPlayer.setSource(AssetSource(asset));
     });
+
+    _zone5Player = AudioPlayer();
+    _zone5Player.setAudioContext(
+      AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceNavigationGuidance,
+          audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+        ),
+      ),
+    );
+    _zone5Player.setReleaseMode(ReleaseMode.stop);
+    _zone5Player.setVolume(1.0);
+    _zone5Player.setSource(AssetSource('audio/FAHHHH.m4a'));
     _initAsync();
 
     _pulseController = AnimationController(
@@ -929,6 +947,7 @@ class _GaugeChartState extends State<GaugeChart>
     _userConnection?.cancel();
     _timer?.cancel();
     _audioPlayer.dispose();
+    _zone5Player.dispose();
     _sessionIdController.dispose();
     _sessionListener?.cancel();
     nearbyService.stopAll();
