@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:heart_link_app/models/heart_rate_zone.dart';
 import 'package:heart_link_app/screens/history/history_screen.dart';
 import 'package:heart_link_app/screens/history/history_repo.dart';
+import 'package:heart_link_app/services/active_workout_store.dart';
+import 'package:heart_link_app/services/bpm_log_file.dart';
 
 class WorkoutService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -15,6 +18,8 @@ class WorkoutService {
     required int maxSessionHr,
     required String topZone,
     required int theoreticalMaxHr,
+    DateTime? startTime,
+    Duration? totalElapsed,
   }) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -40,15 +45,17 @@ class WorkoutService {
       debugPrint('WorkoutService.saveEntry – failed to load profile: $e');
     }
 
-    final calories = _calculateCalories(
+    final calories = calculateCalories(
       avgHr: avgHr.toInt(),
       age: userAge,
       weight: weight,
       gender: gender,
       duration: elapsed,
     );
-    final endTime = DateTime.now();
-    final startTime = endTime.subtract(elapsed);
+    final endTime = startTime != null
+        ? startTime.add(elapsed)
+        : DateTime.now();
+    final resolvedStartTime = startTime ?? endTime.subtract(elapsed);
     final ref = await _db
         .collection('users')
         .doc(user.uid)
@@ -59,9 +66,10 @@ class WorkoutService {
       'calories': calories,
       'createdAt': Timestamp.fromDate(endTime),
       'durationSeconds': elapsed.inSeconds,
+      'totalElapsedSeconds': totalElapsed?.inSeconds,
       'maxSessionHr': maxSessionHr,
       'topZone': topZone,
-      'start': Timestamp.fromDate(startTime),
+      'start': Timestamp.fromDate(resolvedStartTime),
       'type': workoutMode,
       'theoreticalMaxHr': theoreticalMaxHr,
     });
@@ -97,6 +105,8 @@ class WorkoutService {
           data['maxSessionHr'] == null ? null : _asInt(data['maxSessionHr']);
       final String? topZone =
           data['topZone'] == null ? null : data['topZone'].toString();
+      final int? totalElapsedSec =
+          data['totalElapsedSeconds'] == null ? null : _asInt(data['totalElapsedSeconds']);
       final List<int> series = (data['bpmSeries'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
@@ -111,6 +121,7 @@ class WorkoutService {
         theoreticalMaxHr: theoreticalMaxHr,
         maxSessionHr: maxSessionHr,
         topZone: topZone,
+        totalDuration: totalElapsedSec != null ? Duration(seconds: totalElapsedSec) : null,
       );
 
       out.add(HistoryEntry(
@@ -121,6 +132,63 @@ class WorkoutService {
     }
 
     return out;
+  }
+
+  /// Checks for a workout that was interrupted by a crash and saves it to
+  /// Firestore. Returns true if a workout was recovered, false otherwise.
+  static Future<bool> recoverCrashedWorkout() async {
+    final saved = await ActiveWorkoutStore.load();
+    if (saved == null) return false;
+
+    final elapsed = saved['elapsed'] as Duration;
+    final timesHr = saved['timesHr'] as int;
+
+    // Discard trivially short sessions (< 10 s) or sessions with no HR data
+    if (elapsed.inSeconds < 10 || timesHr == 0) {
+      await ActiveWorkoutStore.clear();
+      return false;
+    }
+
+    final bpmLog          = await BpmLogFile.readAll();
+    final sumHr           = saved['sumHr'] as int;
+    final maxHr           = saved['maxHr'] as int;
+    final workoutMode     = saved['workoutMode'] as String;
+    final theoreticalMaxHr = saved['theoreticalMaxHr'] as int;
+    final start           = saved['start'] as DateTime;
+    final avgHr           = sumHr / timesHr;
+
+    // Compute the zone the user spent most time in
+    String topZone = 'Zone 1';
+    if (bpmLog.isNotEmpty && theoreticalMaxHr > 0) {
+      final zoneCounts = <String, int>{};
+      for (final bpm in bpmLog) {
+        final zone = getZoneForHR(bpm, theoreticalMaxHr);
+        zoneCounts[zone.name] = (zoneCounts[zone.name] ?? 0) + 1;
+      }
+      topZone = zoneCounts.entries
+          .reduce((a, b) => a.value > b.value ? a : b)
+          .key;
+    }
+
+    try {
+      await WorkoutService().saveEntry(
+        avgHr: avgHr,
+        bpmSeries: bpmLog,
+        elapsed: elapsed,
+        workoutMode: workoutMode,
+        maxSessionHr: maxHr,
+        topZone: topZone,
+        theoreticalMaxHr: theoreticalMaxHr,
+        startTime: start,
+      );
+    } catch (e) {
+      debugPrint('WorkoutService.recoverCrashedWorkout – save failed: $e');
+      return false;
+    }
+
+    await ActiveWorkoutStore.clear();
+    await BpmLogFile.clear();
+    return true;
   }
 
   Future<void> deleteEntry(String id) async {
@@ -143,7 +211,7 @@ class WorkoutService {
     return 0;
   }
 
-  static int _calculateCalories({
+  static int calculateCalories({
     required int avgHr,
     required int age,
     required double weight,
@@ -151,12 +219,13 @@ class WorkoutService {
     required Duration duration,
   }) {
     final minutes = duration.inSeconds / 60.0;
+    final normalizedGender = gender.toLowerCase();
 
     double perMin;
-    if (gender == 'female') {
-      perMin = ((0.4472 * avgHr) - (0.1263 * (weight * 0.45359237)) + (0.074 * age) - 20.4022) / 4.184;
+    if (normalizedGender == 'female') {
+      perMin = ((0.4472 * avgHr) - (0.05741 * (weight * 0.45359237)) + (0.074 * age) - 20.4022) / 4.184;
     } else {
-      perMin = ((0.6309 * avgHr) + (0.1988 * (weight * 0.45359237)) + (0.2017 * age) - 55.0969) / 4.184;
+      perMin = ((0.6309 * avgHr) + (0.09036 * (weight * 0.45359237)) - 55.0969 + (0.2017 * age)) / 4.184;
     }
 
     if (perMin < 0) perMin = 0;

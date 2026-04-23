@@ -2,12 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HrState extends ChangeNotifier {
-  // storage key for age and maxhr
   static const _kAgeKey = 'hr.age';
   static const _kCustomMaxKey = 'hr.customMax';
 
-  int? _age;            
-  int? _customMaxHr; 
+  int? _age;
+  int? _customMaxHr;
+
 
   int? get age => _age;
   int? get customMaxHr => _customMaxHr;
@@ -35,7 +35,6 @@ class HrState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // update age and save to storage
   Future<void> updateAge(int age) async {
     _age = age;
     final sp = await SharedPreferences.getInstance();
@@ -43,10 +42,10 @@ class HrState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // set custom max hr
   Future<void> setCustomMaxHr(int? v) async {
     _customMaxHr = v;
     final sp = await SharedPreferences.getInstance();
+
     if (v == null) {
       await sp.remove(_kCustomMaxKey);
     } else {
@@ -56,5 +55,4 @@ class HrState extends ChangeNotifier {
   }
 }
 
-// global instance for access
 final HrState hrState = HrState();
