@@ -391,11 +391,11 @@ class _TimeInZoneCard extends StatelessWidget {
     final z4Max = (theoreticalMaxHr * 0.95).round();
 
     final hrRanges = [
-      '0–$z1Max',
+      '< $z1Max',
       '${z1Max + 1}–$z2Max',
       '${z2Max + 1}–$z3Max',
       '${z3Max + 1}–$z4Max',
-      '${z4Max + 1}–$theoreticalMaxHr',
+      '> $z4Max',
     ];
 
     return Container(
