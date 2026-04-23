@@ -284,6 +284,13 @@ class WorkoutDetailScreen extends StatelessWidget {
                 crossAxisSpacing: 12,
                 childAspectRatio: 1.15,
                 children: [
+                  if (workout.totalDuration != null)
+                    _WorkoutStatCard(
+                      label: 'Elapsed Time',
+                      value: _formatDuration(workout.totalDuration!),
+                      icon: Icons.timer_outlined,
+                      accent: AppColors.textSecondary,
+                    ),
                   _WorkoutStatCard(
                     label: 'Moving Time',
                     value: _formatDuration(workout.duration),
@@ -513,11 +520,11 @@ class _TimeInZoneCard extends StatelessWidget {
     final z4Max = (theoreticalMaxHr * 0.95).round();
 
     final hrRanges = [
-      '0–$z1Max',
+      '< $z1Max',
       '${z1Max + 1}–$z2Max',
       '${z2Max + 1}–$z3Max',
       '${z3Max + 1}–$z4Max',
-      '${z4Max + 1}–$theoreticalMaxHr',
+      '> $z4Max',
     ];
 
     return Column(
