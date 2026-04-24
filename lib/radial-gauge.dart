@@ -86,6 +86,9 @@ class _GaugeChartState extends State<GaugeChart>
   bool _isAutoPaused = false;
   bool _hasReachedHighHR = false; // latches true once HR >= 70% maxHR
 
+  // Signal state — false means no fresh BLE packet, kept separate from HR value
+  bool _hasSignal = false;
+
   //define user max HR, as well as current user and partner HR values
   int? _maxHeartRate;
   int userAge = 0;
@@ -383,34 +386,55 @@ class _GaugeChartState extends State<GaugeChart>
   //update function to run every second during active session
   Future<void> _tickUpdate() async {
     if (!mounted) return;
-    //return if paused, inactive, or no max HR set
-    if (_isPaused || _isAutoPaused) return;
-    if (!_stopwatch.isRunning || !_isActiveSession) return;
+    if (!_isActiveSession) return;
     if (_maxHeartRate == null || _showOverlay) return;
-
-    bool zoneBumpUp = false;
 
     final now = DateTime.now();
     final bool isFakeDevice = userDeviceId == '00:11:22:33:44:55';
+
+    // Watchdog: detect a live-but-silent BLE connection and force-reconnect.
+    // Runs before pause guards so auto-pause (triggered by signal loss) doesn't
+    // prevent the counter from accumulating.
+    if (!kIsWeb && !isFakeDevice && userDeviceId != null) {
+      final bool hasSignal =
+          _lastHrPacketAt != null &&
+          now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2);
+      if (!hasSignal) {
+        _ticksWithoutSignal++;
+        if (_ticksWithoutSignal >= _deadConnectionThresholdTicks) {
+          _ticksWithoutSignal = 0;
+          _forceReconnect();
+        }
+      } else {
+        _ticksWithoutSignal = 0;
+      }
+    }
+
+    if (_isPaused || _isAutoPaused) return;
+    if (!_stopwatch.isRunning) return;
+
+    bool zoneBumpUp = false;
+
     final bool hasFreshRealReading =
         isFakeDevice
             ? true
             : (_lastHrPacketAt != null &&
                 now.difference(_lastHrPacketAt!) <= const Duration(seconds: 2));
 
-    bool signalLost = false;
-
     setState(() {
       //check if using simulated HR (device ID is placeholder)
       //simulate HR changes if so
       if (userDeviceId == '00:11:22:33:44:55') {
         _userHR = _sliderHR;
+        _hasSignal = true;
         _checkAutoPause(_sliderHR);
       } else if (!hasFreshRealReading) {
-        // No packet in 2 seconds — clear stale reading immediately
-        _userHR = 0;
+        // No fresh packet — mark signal lost but keep last HR for display.
+        // Do NOT zero _userHR here; showing 0 was the client's reported bug.
+        _hasSignal = false;
         _lastHrPacketAt = null;
-        signalLost = true;
+      } else {
+        _hasSignal = true;
       }
 
       _userHR = _userHR.clamp(0, _maxHeartRate!);
@@ -462,10 +486,6 @@ class _GaugeChartState extends State<GaugeChart>
 
       _elapsed = _stopwatch.elapsed;
     });
-
-    if (signalLost) {
-      _checkAutoPause(0);
-    }
 
     // Persist state periodically so a crash can be recovered on next launch
     _ticksSinceLastSave++;
@@ -639,6 +659,24 @@ class _GaugeChartState extends State<GaugeChart>
   bool _isReconnecting = false;
   bool _isResubscribing = false;
 
+  int _ticksWithoutSignal = 0;
+  static const int _deadConnectionThresholdTicks = 8;
+
+  void _forceReconnect() {
+    if (!mounted || !_isActiveSession) return;
+    print("BLE dead connection detected — forcing reconnect");
+    setState(() => _hasSignal = false);
+    try {
+      _userSubscription?.cancel();
+      _userSubscription = null;
+    } catch (_) {}
+    try {
+      _userConnection?.cancel();
+      _userConnection = null;
+    } catch (_) {}
+    _connectToDevices();
+  }
+
   void _connectToDevices() {
     if (userDeviceId == '00:11:22:33:44:55') {
       return;
@@ -679,7 +717,7 @@ class _GaugeChartState extends State<GaugeChart>
               if (mounted) {
                 setState(() {
                   _lastHrPacketAt = null;
-                  _userHR = 0;
+                  _hasSignal = false;
                 });
               }
               // Reconnect after a short delay
@@ -731,6 +769,7 @@ class _GaugeChartState extends State<GaugeChart>
           _userHR = parsedHr;
           _latestPacketHr = parsedHr;
           _lastHrPacketAt = DateTime.now();
+          _hasSignal = true;
         });
         _checkAutoPause(parsedHr);
       },
@@ -739,7 +778,7 @@ class _GaugeChartState extends State<GaugeChart>
         if (mounted) {
           setState(() {
             _lastHrPacketAt = null;
-            _userHR = 0;
+            _hasSignal = false;
           });
         }
         // Try resubscribing after a short delay
@@ -754,7 +793,7 @@ class _GaugeChartState extends State<GaugeChart>
         if (mounted) {
           setState(() {
             _lastHrPacketAt = null;
-            _userHR = 0;
+            _hasSignal = false;
           });
         }
         // Stream ended silently — try resubscribing
@@ -1615,11 +1654,13 @@ class _GaugeChartState extends State<GaugeChart>
                               });
                             },
                             child: Text(
-                              _showPercent &&
-                                      _maxHeartRate != null &&
-                                      _maxHeartRate! > 0
-                                  ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
-                                  : '$_userHR BPM',
+                              !_hasSignal && userDeviceId != '00:11:22:33:44:55'
+                                  ? (_showPercent ? '--%' : '-- BPM')
+                                  : _showPercent &&
+                                          _maxHeartRate != null &&
+                                          _maxHeartRate! > 0
+                                      ? '${((_userHR / _maxHeartRate!) * 100).round()}%'
+                                      : '$_userHR BPM',
                               style: const TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w400,
