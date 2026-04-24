@@ -30,7 +30,7 @@ class WorkoutRootScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 18),
                       Text(
-                        'Current Workout Page WIP',
+                        'Current Workout Page',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,
@@ -40,7 +40,7 @@ class WorkoutRootScreen extends StatelessWidget {
                       ),
                       SizedBox(height: 10),
                       Text(
-                        'For now, press + to start a workout and track your progress.',
+                        'Press + to start a workout and track your progress here.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
