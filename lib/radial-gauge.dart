@@ -644,9 +644,22 @@ class _GaugeChartState extends State<GaugeChart>
 
   Future<void> _playAutoPauseSound() async {
     final audioEnabled = await WorkoutAudioSettings.isEnabled();
-    if (!audioEnabled) return;
-    await _autoPausePlayer.seek(Duration.zero);
-    await _autoPausePlayer.resume();
+    final hapticEnabled = await WorkoutHapticSettings.isEnabled();
+
+    if (audioEnabled) {
+      await _autoPausePlayer.seek(Duration.zero);
+      await _autoPausePlayer.resume();
+    }
+
+    if (hapticEnabled && (await Vibration.hasVibrator() ?? false)) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      for (var i = 0; i < 3; i++) {
+        Vibration.vibrate(duration: 120, amplitude: 255);
+        if (i < 2) {
+          await Future.delayed(const Duration(milliseconds: 190));
+        }
+      }
+    }
   }
 
   void _checkAutoPause(int hr) {
