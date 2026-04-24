@@ -1090,7 +1090,7 @@ class _GaugeChartState extends State<GaugeChart>
     );
     _autoPausePlayer.setReleaseMode(ReleaseMode.stop);
     _autoPausePlayer.setVolume(1.0);
-    _autoPausePlayer.setSource(AssetSource('audio/autopause.mp3'));
+    _autoPausePlayer.setSource(AssetSource('audio/auto_pause_new.mp3'));
 
     _initAsync();
 
