@@ -463,7 +463,9 @@ class _GaugeChartState extends State<GaugeChart>
       _elapsed = _stopwatch.elapsed;
     });
 
-    if (signalLost) _checkAutoPause(0);
+    if (signalLost) {
+      _checkAutoPause(0);
+    }
 
     // Persist state periodically so a crash can be recovered on next launch
     _ticksSinceLastSave++;
@@ -634,6 +636,9 @@ class _GaugeChartState extends State<GaugeChart>
     }
   }
 
+  bool _isReconnecting = false;
+  bool _isResubscribing = false;
+
   void _connectToDevices() {
     if (userDeviceId == '00:11:22:33:44:55') {
       return;
@@ -644,20 +649,32 @@ class _GaugeChartState extends State<GaugeChart>
     }
 
     if (userDeviceId != null) {
-      _userConnection = _ble
-          .connectToDevice(
-            id: userDeviceId!,
-            connectionTimeout: const Duration(seconds: 10),
-          )
-          .listen((connectionState) {
+      // Small delay to let previous screen's BLE connection fully tear down
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        _userConnection?.cancel();
+        _userConnection = _ble
+            .connectToDevice(
+          id: userDeviceId!,
+          connectionTimeout: const Duration(seconds: 10),
+        )
+            .listen(
+              (connectionState) {
+            print("BLE state: ${connectionState.connectionState}");
+
             if (connectionState.connectionState ==
                 DeviceConnectionState.connected) {
+              print("BLE connected — subscribing to HR characteristic");
+              _isReconnecting = false;
               _userSubscription?.cancel();
               _userSubscription = null;
               _subscribeToCharacteristic(userDeviceId!);
             } else if (connectionState.connectionState ==
                 DeviceConnectionState.disconnected) {
-              _userSubscription?.cancel();
+              print("BLE disconnected — clearing HR, reconnecting in 3s");
+              try {
+                _userSubscription?.cancel();
+              } catch (_) {}
               _userSubscription = null;
               if (mounted) {
                 setState(() {
@@ -665,10 +682,31 @@ class _GaugeChartState extends State<GaugeChart>
                   _userHR = 0;
                 });
               }
+              // Reconnect after a short delay
+              Future.delayed(const Duration(seconds: 3), () {
+                if (mounted && _isActiveSession) {
+                  print("BLE attempting reconnect...");
+                  _connectToDevices();
+                }
+              });
             }
-          });
+          },
+          onError: (error) {
+            print("BLE connection error: $error");
+            if (!_isReconnecting && _isActiveSession && mounted) {
+              _isReconnecting = true;
+              print("BLE connection stream error — retrying in 3 seconds");
+              Future.delayed(const Duration(seconds: 3), () {
+                if (mounted && _isActiveSession) {
+                  _isReconnecting = false;
+                  _connectToDevices();
+                }
+              });
+            }
+          },
+        );
+      });
     }
-    // Once connections start, cancel scanning to reduce load.
     _scanSubscription?.cancel();
   }
 
@@ -679,35 +717,54 @@ class _GaugeChartState extends State<GaugeChart>
       characteristicId: Uuid.parse("2A37"),
     );
 
+    _userSubscription?.cancel();
     final subscription = _ble
         .subscribeToCharacteristic(characteristic)
         .listen(
           (data) {
-            if (!mounted) return;
+        if (!mounted) return;
+        if (userDeviceId == '00:11:22:33:44:55') return;
+        final parsedHr = _parseHeartRate(data);
+        if (parsedHr == null || parsedHr <= 0) return;
 
-            if (userDeviceId == '00:11:22:33:44:55') return;
-            final parsedHr = _parseHeartRate(data);
-            if (parsedHr == null || parsedHr <= 0) return;
-
-            setState(() {
-              _userHR = parsedHr;
-              _latestPacketHr = parsedHr;
-              _lastHrPacketAt = DateTime.now();
-            });
-            _checkAutoPause(parsedHr);
-          },
-          onError: (error) {
-            print("Error on device $deviceId: $error");
-          },
-          onDone: () {
-            if (mounted) {
-              setState(() {
-                _lastHrPacketAt = null;
-                _userHR = 0;
-              });
-            }
-          },
-        );
+        setState(() {
+          _userHR = parsedHr;
+          _latestPacketHr = parsedHr;
+          _lastHrPacketAt = DateTime.now();
+        });
+        _checkAutoPause(parsedHr);
+      },
+      onError: (error) {
+        print("HR characteristic error: $error — resubscribing in 2s");
+        if (mounted) {
+          setState(() {
+            _lastHrPacketAt = null;
+            _userHR = 0;
+          });
+        }
+        // Try resubscribing after a short delay
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && _isActiveSession) {
+            _subscribeToCharacteristic(deviceId);
+          }
+        });
+      },
+      onDone: () {
+        print("HR characteristic stream ended — resubscribing in 2s");
+        if (mounted) {
+          setState(() {
+            _lastHrPacketAt = null;
+            _userHR = 0;
+          });
+        }
+        // Stream ended silently — try resubscribing
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && _isActiveSession) {
+            _subscribeToCharacteristic(deviceId);
+          }
+        });
+      },
+    );
     _userSubscription = subscription;
   }
 
