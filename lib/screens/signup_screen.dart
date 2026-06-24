@@ -7,6 +7,7 @@ import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/login_screen.dart';
 import 'package:heart_link_app/screens/heartratedial/hr.state.dart';
 import 'package:heart_link_app/shell/app_shell.dart';
+import 'package:heart_link_app/screens/complete_profile_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -29,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _gender;
 
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +180,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       items: const [
         DropdownMenuItem(value: 'male', child: Text('Male')),
         DropdownMenuItem(value: 'female', child: Text('Female')),
-        DropdownMenuItem(value: 'other', child: Text('Other')),
       ],
       onChanged: (v) => setState(() => _gender = v),
       validator: (v) => v == null ? 'Select gender' : null,
@@ -316,31 +317,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _socialButton('G'),
+        _socialButton(
+          label: 'G',
+          onTap: _isGoogleLoading ? null : _handleGoogleSignUp,
+          isLoading: _isGoogleLoading,
+        ),
         const SizedBox(width: 16),
-        _socialButton('f'),
+        _socialButton(label: 'f'),
       ],
     );
   }
 
-  Widget _socialButton(String label) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        // rgba(23,25,28,0.8) = cardOverlayStrong
-        color: AppColors.cardOverlayStrong,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.strokeSoft),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textTertiary,
+  Widget _socialButton({required String label, VoidCallback? onTap, bool isLoading = false}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          // rgba(23,25,28,0.8) = cardOverlayStrong
+          color: AppColors.cardOverlayStrong,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.strokeSoft),
         ),
+        alignment: Alignment.center,
+        child: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.textTertiary,
+                ),
+              )
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textTertiary,
+                ),
+              ),
       ),
     );
   }
@@ -378,6 +395,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ── Auth logic ────────────────────────────────────────────────────────────
+
+  Future<void> _handleGoogleSignUp() async {
+    if (_isGoogleLoading) return;
+    setState(() => _isGoogleLoading = true);
+    try {
+      final user = await _authService.signInWithGoogle();
+      if (!mounted) return;
+      if (user != null) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => CompleteProfileScreen(user: user),
+          ),
+          (route) => false,
+        );
+      }
+      // user == null means they cancelled the Google picker — do nothing
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
 
   Future<void> _handleSignUp() async {
     if (!_formKey.currentState!.validate()) return;

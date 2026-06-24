@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heart_link_app/app/theme/app_theme.dart';
 import 'package:heart_link_app/services/auth_service.dart';
 import 'package:heart_link_app/screens/signup_screen.dart';
+import 'package:heart_link_app/screens/complete_profile_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,8 +48,25 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleGoogleLogin() async {
     try {
       final User? user = await _authService.signInWithGoogle();
-      if (user != null && mounted) {
+      if (user == null || !mounted) return;
+
+      // Check if profile is already complete
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (!mounted) return;
+
+      final hasProfile = doc.exists && doc.data()?['age'] != null;
+      if (hasProfile) {
         Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => CompleteProfileScreen(user: user),
+          ),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (!mounted) return;
